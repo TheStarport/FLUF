@@ -1,0 +1,19 @@
+[submodule "vendor/flhook-sdk"]
+	path = vendor/flhook-sdk
+	url = https://github.com/TheStarport/FLHookSDK.git
+	branch = 4.1
+[submodule "vendor/imgui-filebrowser"]
+	path = vendor/imgui-filebrowser
+	url = https://github.com/AirGuanZ/imgui-filebrowser.git
+[submodule "vendor/RmlUi"]
+	path = vendor/RmlUi
+	url = https://github.com/mikke89/RmlUi.git
+[submodule "vendor/FLHookSDK"]
+	path = vendor/FLHookSDK
+	url = https://github.com/TheStarport/FLHookSDK
+[submodule "vendor/reflect-cpp"]
+	path = vendor/reflect-cpp
+	url = https://github.com/getml/reflect-cpp
+[submodule "vendor/freetype"]
+	path = vendor/freetype
+	url = https://github.com/freetype/freetype.git
