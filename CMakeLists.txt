@@ -95,6 +95,11 @@ function(set_general_targets)
             "USE_GLM;"
             "NOMINMAX;"
     )
+
+    target_link_libraries(${PARSED_ARGS_PROJECT_NAME} PRIVATE
+            glm::glm
+            magic_enum::magic_enum
+    )
 endfunction()
 
 function(begin_glob)

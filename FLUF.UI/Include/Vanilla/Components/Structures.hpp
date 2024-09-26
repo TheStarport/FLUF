@@ -1,6 +1,6 @@
 #pragma once
 
-#include <FLCore/FLCoreDefs.h>
+#include <FLCore/FLCoreDefs.hpp>
 #include <functional>
 #include <string>
 

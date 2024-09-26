@@ -12,6 +12,8 @@ target_include_directories(FLUF.UI PRIVATE ${RML_PATH}/Include)
 
 target_link_libraries(FLUF.UI PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
 
+target_compile_definitions(FLUF.UI PRIVATE FLUF_UI PRIVATE FLCore)
+
 target_precompile_headers(FLUF.UI PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${ROOT_DIR}/PCH.hpp>")
 
 # Selectively skip PCH for certain files

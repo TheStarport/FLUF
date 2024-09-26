@@ -5,10 +5,6 @@ class FlTextControl : public FlControl
 {
         byte data[928]{}; // 0x3A0 in sub_58C120
 
-        using CreateFlTextControlFunction = FlTextControl*(__thiscall*)(const FlControl* parent, const char* nickname, const char* font, const Vector& position,
-                                                                        const char* hardpoint, float sizeX, float sizeY, float sizeZ, uint resStrId, int align,
-                                                                        uint tip, bool center);
-
     protected:
         FlTextControl() = default;
 
@@ -39,6 +35,4 @@ class FlTextControl : public FlControl
             // ReSharper disable once CppDFALocalValueEscapesFunction
             return { test };
         }
-
-        inline static auto CreateTextControl = reinterpret_cast<CreateFlTextControlFunction>(0x5A0E30);
 };
