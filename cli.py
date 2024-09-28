@@ -5,6 +5,7 @@ import platform
 import requests
 import shutil
 import subprocess
+from sys import stdout
 from zipfile import ZipFile
 
 
@@ -16,21 +17,29 @@ def log(s: str):
     click.echo(">>> " + s)
 
 
-def try_purge(directory: str, name: str, should_purge: bool):
-    if os.path.isdir(directory):
-        if should_purge:
-            log(f"Found existing {name}, purging...")
-            shutil.rmtree(directory)
+def download_file(url: str, filename: str):
+    with open(filename, "wb") as f:
+        log("Downloading %s" % filename)
+        response = requests.get(url, stream=True)
+        total_length = response.headers.get('content-length')
+
+        if total_length is None:  # no content length header
+            f.write(response.content)
         else:
-            raise EnvironmentError("Running the requirements command when existing directories are present requires "
-                                   "the --purge flag to be present.")
+            dl = 0
+            total_length = int(total_length)
+            for data in response.iter_content(chunk_size=4096):
+                dl += len(data)
+                f.write(data)
+                done = int(50 * dl / total_length)
+                stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50 - done)))
+                stdout.flush()
 
 
 def run(cmd: str, no_log: bool = False, allow_error: bool = False) -> int:
-
     log("Running Command: " + cmd)
     proc = subprocess.Popen(cmd, stdout=(subprocess.DEVNULL if no_log else subprocess.PIPE),
-                            stderr=subprocess.STDOUT,  shell=True, text=True)
+                            stderr=subprocess.STDOUT, shell=True, text=True)
 
     if no_log:
         proc.wait()
@@ -57,6 +66,45 @@ def run(cmd: str, no_log: bool = False, allow_error: bool = False) -> int:
 @click.group()
 def cli():
     pass
+
+
+@cli.command(short_help='Downloads and unpacks the DirectX9 SDK if needed')
+def d3d9():
+    if os.path.isdir("vendor/DXSDK"):
+        log("DXSDK already exists. No need to download...")
+        return
+
+    download_file('https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe',
+                  '_DX2010_.exe')
+
+    log("Extracting contents from _DX2010_.exe ...")
+    run("7z x _DX2010_.exe DXSDK/Include -ovendor", no_log=True)
+    run("7z x _DX2010_.exe DXSDK/Lib/x86 -ovendor", no_log=True)
+
+    log("Extracted contents successfully. Cleaning up...")
+    os.remove("_DX2010_.exe")
+
+
+@cli.command(short_help='Downloads and unpacks libcurl if needed')
+def curl():
+    if os.path.isdir("vendor/curl-8.10.1"):
+        log("libcurl already exists. No need to download...")
+        return
+
+    download_file('https://curl.se/download/curl-8.10.1.tar.gz', 'libcurl.tar.gz')
+    log("Extracting contents from libcurl.tar.gz ...")
+
+    run('7z x "libcurl.tar.gz" -so | 7z x -aoa -si -ttar -ovendor', no_log=True)
+
+    log("Extracted contents successfully. Cleaning up...")
+    os.remove("libcurl.tar.gz")
+
+
+@cli.command(short_help='Downloads and unpacks all (non-conan) dependencies')
+@click.pass_context
+def dependencies(ctx: click.Context):
+    ctx.invoke(curl)
+    ctx.invoke(d3d9)
 
 
 @cli.command(short_help='Install and build dependencies via conan')
