@@ -1,12 +1,11 @@
 #pragma once
 
-#include "RmlUi/Core/RenderInterfaceCompatibility.h"
-
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/RenderInterface.h>
 #include <d3dx9.h>
 
 // TODO: Update to RenderInterface with shaders instead of textures
-class RenderInterfaceDirectX9 final : public Rml::RenderInterfaceCompatibility
+class RenderInterfaceDirectX9 final : public Rml::RenderInterface
 {
         struct RmlD3D9Vertex
         {
@@ -26,16 +25,14 @@ class RenderInterfaceDirectX9 final : public Rml::RenderInterfaceCompatibility
                 LPDIRECT3DTEXTURE9 texture;
         };
 
-        void RenderGeometry(Rml::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rml::TextureHandle texture,
-                            const Rml::Vector2f& translation) override;
-        Rml::CompiledGeometryHandle CompileGeometry(Rml::Vertex* vertices, int num_vertices, int* indices, int num_indices,
-                                                    Rml::TextureHandle texture) override;
-        void RenderCompiledGeometry(Rml::CompiledGeometryHandle geometry, const Rml::Vector2f& translation) override;
-        void ReleaseCompiledGeometry(Rml::CompiledGeometryHandle geometry) override;
+        Rml::CompiledGeometryHandle CompileGeometry(Rml::Span<const Rml::Vertex> vertices, Rml::Span<const int> indices) override;
+        void RenderGeometry(Rml::CompiledGeometryHandle geometry, Rml::Vector2f translation, Rml::TextureHandle texture) override;
+        void ReleaseGeometry(Rml::CompiledGeometryHandle geometry) override;
+        Rml::TextureHandle LoadTexture(Rml::Vector2i& texture_dimensions, const Rml::String& source) override;
+        Rml::TextureHandle GenerateTexture(Rml::Span<const unsigned char> source, Rml::Vector2i sourceDimensions) override;
+        void SetScissorRegion(Rml::Rectanglei region) override;
+
         void EnableScissorRegion(bool enable) override;
-        void SetScissorRegion(int x, int y, int width, int height) override;
-        bool LoadTexture(Rml::TextureHandle& texture_handle, Rml::Vector2i& texture_dimensions, const Rml::String& source) override;
-        bool GenerateTexture(Rml::TextureHandle& texture_handle, const Rml::byte* source, const Rml::Vector2i& source_dimensions) override;
         void ReleaseTexture(Rml::TextureHandle texture) override;
 
         static float GetHorizontalTexelOffset();

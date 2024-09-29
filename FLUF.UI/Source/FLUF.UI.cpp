@@ -3,6 +3,7 @@
 #include "FLUF.UI.hpp"
 
 #include "Rml/Interfaces/RenderInterfaceDirectX9.hpp"
+#include "Rml/Interfaces/RmlInterface.hpp"
 #include "Typedefs.hpp"
 #include "Utils/Detour.hpp"
 #include "Vanilla/HudManager.hpp"
@@ -10,15 +11,20 @@
 #include <d3dx9.h>
 
 using ScriptLoadPtr = void* (*)(const char* fileName);
+using FrameUpdatePtr = void (*)(double delta);
 using Direct3DCreate8Ptr = IDirect3D9*(__stdcall*)(uint sdkVersion);
 using Direct3DCreateDevice9 = HRESULT(__stdcall*)(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                   D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
+using Direct3DDevice9EndScene = HRESULT(__stdcall*)(IDirect3DDevice9* device);
 
 std::shared_ptr<FlufUi> module;
 
 std::unique_ptr<FunctionDetour<ScriptLoadPtr>> thornLoadDetour;
+std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreate8Ptr>> d3d8CreateDetour;
+std::unique_ptr<FunctionDetour<Direct3DCreate8Ptr>> d3d9CreateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d8CreateDeviceDetour;
+std::unique_ptr<FunctionDetour<Direct3DDevice9EndScene>> d3d9EndSceneDetour;
 
 // ReSharper disable twice CppUseAuto
 st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
@@ -39,7 +45,33 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-void FlufUi::DelayedInit() {}
+void FlufUi::DelayedInit()
+{
+    if (d3d9)
+    {
+        rmlInterface = std::make_shared<RmlInterface>(this, d3d9, d3d9device);
+    }
+}
+
+void FlufUi::OnUpdate(const double delta)
+{
+    constexpr float SixtyFramesPerSecond = 1.0f / 60.0f;
+    static double timeCounter = 0.0f;
+
+    timeCounter += delta;
+    while (timeCounter > SixtyFramesPerSecond)
+    {
+        // Fixed Update
+        timeCounter -= SixtyFramesPerSecond;
+    }
+
+    const auto context = module->rmlInterface->GetRmlContext();
+    context->Update();
+
+    frameUpdateDetour->UnDetour();
+    frameUpdateDetour->GetOriginalFunc()(delta);
+    frameUpdateDetour->Detour(OnUpdate);
+}
 
 void* FlufUi::OnScriptLoadHook(const char* file)
 {
@@ -59,27 +91,10 @@ void* FlufUi::OnScriptLoadHook(const char* file)
 IDirect3D9* __stdcall FlufUi::OnDirect3D8Create(const uint sdkVersion)
 {
     d3d8CreateDetour->UnDetour();
-    IDirect3D9* d3d9 = d3d8CreateDetour->GetOriginalFunc()(sdkVersion);
+    d3d9 = d3d8CreateDetour->GetOriginalFunc()(sdkVersion);
 
-    if (HMODULE dll; RtlPcToFileHeader(d3d9, reinterpret_cast<void**>(&dll)))
-    {
-        // If successful, prepend
-        if (CHAR maxPath[MAX_PATH]; GetModuleFileNameA(dll, maxPath, MAX_PATH))
-        {
-            const std::string path = maxPath;
-            if (const std::string file = path.substr(path.find_last_of('\\') + 1); file != "d3d9.dll")
-            {
-                // TODO: Log
-                MessageBoxA(nullptr, "This isn't DirectX9.", "Bad renderer", MB_OK);
-
-                // return without hooking, they are not running DirectX9
-                return d3d9;
-            }
-        }
-    }
-
-    const auto vtable = reinterpret_cast<DWORD**>(*reinterpret_cast<DWORD*>(d3d9));
-    d3d8CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice9>>(reinterpret_cast<Direct3DCreateDevice9>(*vtable[17]));
+    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9));
+    d3d8CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice9>>(reinterpret_cast<Direct3DCreateDevice9>(vtable[15]));
     d3d8CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
 
     return d3d9;
@@ -92,13 +107,32 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
     d3d8CreateDeviceDetour->UnDetour();
     const auto result =
         d3d8CreateDeviceDetour->GetOriginalFunc()(context, adapter, deviceType, focusWindow, behaviorFlags, presentationParameters, returnedDeviceInterface);
+    d3d9device = *returnedDeviceInterface;
+
+    // Hook the EndScene
+    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9device));
+    d3d9EndSceneDetour = std::make_unique<FunctionDetour<Direct3DDevice9EndScene>>(reinterpret_cast<Direct3DDevice9EndScene>(vtable[41]));
+    d3d9EndSceneDetour->UnDetour(); // Should do nothing 99.99% of the time, but prevents a crash in that rare occurance
+    d3d9EndSceneDetour->Detour(OnDirect3D9EndScene);
 
     d3d8CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
     return result;
 }
 
+HRESULT __stdcall FlufUi::OnDirect3D9EndScene(IDirect3DDevice9* device)
+{
+    module->rmlInterface->GetRmlContext()->Render();
+
+    d3d9EndSceneDetour->UnDetour();
+    auto result = d3d9EndSceneDetour->GetOriginalFunc()(device);
+    d3d9EndSceneDetour->Detour(OnDirect3D9EndScene);
+
+    return result;
+}
+
 std::weak_ptr<FlufUi> FlufUi::Instance() { return module; }
 std::weak_ptr<HudManager> FlufUi::GetHudManager() { return hudManager; }
+std::weak_ptr<RmlInterface> FlufUi::GetRmlInterface() { return rmlInterface; }
 
 FlufUi::FlufUi()
 {
@@ -113,6 +147,10 @@ FlufUi::FlufUi()
     const HMODULE d3d8 = GetModuleHandleA("d3d8.dll");
     d3d8CreateDetour = std::make_unique<FunctionDetour<Direct3DCreate8Ptr>>(reinterpret_cast<Direct3DCreate8Ptr>(GetProcAddress(d3d8, "Direct3DCreate8")));
     d3d8CreateDetour->Detour(OnDirect3D8Create);
+
+    const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
+    frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));
+    frameUpdateDetour->Detour(OnUpdate);
 }
 
 FlufUi::~FlufUi() { hudManager.reset(); }

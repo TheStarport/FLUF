@@ -27,8 +27,10 @@ class RmlInterface
         std::unique_ptr<Rml::RenderInterface> renderInterface;
         std::unique_ptr<SystemInterface> systemInterface;
         std::unique_ptr<FileInterface> fileInterface;
+        Rml::Context* rmlContext;
 
     public:
-        explicit RmlInterface(FlufUi* fluf);
+        explicit RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* device);
+        Rml::Context* GetRmlContext();
         ~RmlInterface();
 };

@@ -22,25 +22,46 @@ struct TgaHeader
 
 constexpr DWORD vertexFvf = D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1;
 
-void RenderInterfaceDirectX9::RenderGeometry(Rml::Vertex* vertices, const int num_vertices, int* indices, const int num_indices,
-                                             const Rml::TextureHandle texture, const Rml::Vector2f& translation)
+void RenderInterfaceDirectX9::EnableScissorRegion(const bool enable) { d3d9Device->SetRenderState(D3DRS_SCISSORTESTENABLE, enable); }
+
+Rml::TextureHandle RenderInterfaceDirectX9::GenerateTexture(const Rml::Span<const unsigned char> source, const Rml::Vector2i sourceDimensions)
 {
-    const Rml::CompiledGeometryHandle geometry = CompileGeometry(vertices, num_vertices, indices, num_indices, texture);
-    RenderCompiledGeometry(geometry, translation);
-    ReleaseCompiledGeometry(geometry);
+    LPDIRECT3DTEXTURE9 d3d9Texture;
+    if (d3d9Device->CreateTexture(sourceDimensions.x, sourceDimensions.y, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &d3d9Texture, nullptr) != D3D_OK)
+    {
+        return reinterpret_cast<Rml::TextureHandle>(nullptr);
+    }
+
+    D3DLOCKED_RECT locked;
+    d3d9Texture->LockRect(0, &locked, nullptr, 0);
+    for (auto y = 0; y < sourceDimensions.y; ++y)
+    {
+        for (auto x = 0; x < sourceDimensions.x; ++x)
+        {
+            const auto* sourcePixel = source.data() + sourceDimensions.x * 4 * y + x * 4;
+            auto destPixel = static_cast<byte*>(locked.pBits) + locked.Pitch * y + x * 4;
+
+            destPixel[0] = sourcePixel[2];
+            destPixel[1] = sourcePixel[1];
+            destPixel[2] = sourcePixel[0];
+            destPixel[3] = sourcePixel[3];
+        }
+    }
+
+    d3d9Texture->UnlockRect(0);
+    return reinterpret_cast<Rml::TextureHandle>(d3d9Texture);
 }
 
-Rml::CompiledGeometryHandle RenderInterfaceDirectX9::CompileGeometry(Rml::Vertex* vertices, const int num_vertices, int* indices, const int num_indices,
-                                                                     const Rml::TextureHandle texture)
+Rml::CompiledGeometryHandle RenderInterfaceDirectX9::CompileGeometry(Rml::Span<const Rml::Vertex> vertices, Rml::Span<const int> indices)
 {
     auto geometry = new RmlD3D9CompiledGeometry();
-    d3d9Device->CreateVertexBuffer(num_vertices * sizeof(RmlD3D9Vertex), D3DUSAGE_WRITEONLY, vertexFvf, D3DPOOL_DEFAULT, &geometry->verticies, nullptr);
-    d3d9Device->CreateIndexBuffer(num_indices * sizeof(uint), D3DUSAGE_WRITEONLY, D3DFMT_INDEX32, D3DPOOL_DEFAULT, &geometry->indicies, nullptr);
+    d3d9Device->CreateVertexBuffer(vertices.size() * sizeof(RmlD3D9Vertex), D3DUSAGE_WRITEONLY, vertexFvf, D3DPOOL_DEFAULT, &geometry->verticies, nullptr);
+    d3d9Device->CreateIndexBuffer(indices.size() * sizeof(uint), D3DUSAGE_WRITEONLY, D3DFMT_INDEX32, D3DPOOL_DEFAULT, &geometry->indicies, nullptr);
 
     RmlD3D9Vertex* d3d9Vertex;
     geometry->verticies->Lock(0, 0, reinterpret_cast<void**>(&d3d9Vertex), 0);
 
-    for (int i = 0; i < num_vertices; ++i)
+    for (int i = 0; i < vertices.size(); ++i)
     {
         auto& newVertex = d3d9Vertex[i];
         auto& oldVertex = vertices[i];
@@ -57,18 +78,16 @@ Rml::CompiledGeometryHandle RenderInterfaceDirectX9::CompileGeometry(Rml::Vertex
 
     uint* d3d9Index;
     geometry->indicies->Lock(0, 0, reinterpret_cast<void**>(&d3d9Index), 0);
-    memcpy(d3d9Index, indices, num_indices * sizeof(uint));
+    memcpy(d3d9Index, indices.data(), indices.size() * sizeof(uint));
     geometry->indicies->Unlock();
 
-    geometry->verticiesCount = num_vertices;
-    geometry->primitivesCount = num_indices / 3;
-
-    geometry->texture = texture ? reinterpret_cast<LPDIRECT3DTEXTURE9>(texture) : nullptr;
+    geometry->verticiesCount = vertices.size();
+    geometry->primitivesCount = indices.size() / 3;
 
     return reinterpret_cast<Rml::CompiledGeometryHandle>(geometry);
 }
 
-void RenderInterfaceDirectX9::RenderCompiledGeometry(const Rml::CompiledGeometryHandle geometry, const Rml::Vector2f& translation)
+void RenderInterfaceDirectX9::RenderGeometry(Rml::CompiledGeometryHandle geometry, Rml::Vector2f translation, Rml::TextureHandle texture)
 {
     D3DXMATRIX worldTransform;
     D3DXMatrixTranslation(&worldTransform, translation.x, translation.y, 0);
@@ -80,11 +99,13 @@ void RenderInterfaceDirectX9::RenderCompiledGeometry(const Rml::CompiledGeometry
     d3d9Device->SetStreamSource(0, d3d9Geometry->verticies, 0, sizeof(RmlD3D9Vertex));
     d3d9Device->SetIndices(d3d9Geometry->indicies);
 
-    d3d9Device->SetTexture(0, d3d9Geometry->texture);
+    d3d9Device->SetTexture(0, reinterpret_cast<LPDIRECT3DTEXTURE9>(texture));
     d3d9Device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, d3d9Geometry->verticiesCount, 0, d3d9Geometry->primitivesCount);
+
+    d3d9Geometry->texture = reinterpret_cast<LPDIRECT3DTEXTURE9>(texture);
 }
 
-void RenderInterfaceDirectX9::ReleaseCompiledGeometry(const Rml::CompiledGeometryHandle geometry)
+void RenderInterfaceDirectX9::ReleaseGeometry(Rml::CompiledGeometryHandle geometry)
 {
     const auto* d3d9Geometry = reinterpret_cast<RmlD3D9CompiledGeometry*>(geometry);
 
@@ -93,23 +114,7 @@ void RenderInterfaceDirectX9::ReleaseCompiledGeometry(const Rml::CompiledGeometr
     delete d3d9Geometry;
 }
 
-void RenderInterfaceDirectX9::EnableScissorRegion(const bool enable) { d3d9Device->SetRenderState(D3DRS_SCISSORTESTENABLE, enable); }
-
-void RenderInterfaceDirectX9::SetScissorRegion(const int x, const int y, const int width, const int height)
-{
-    // clang-format off
-    const RECT scissor{
-        .left = x,
-        .top = y,
-        .right = x + width,
-        .bottom = y + height
-    };
-    // clang-format on
-
-    d3d9Device->SetScissorRect(&scissor);
-}
-
-bool RenderInterfaceDirectX9::LoadTexture(Rml::TextureHandle& texture_handle, Rml::Vector2i& texture_dimensions, const Rml::String& source)
+Rml::TextureHandle RenderInterfaceDirectX9::LoadTexture(Rml::Vector2i& texture_dimensions, const Rml::String& source)
 {
     auto* fileInterface = Rml::GetFileInterface();
     auto fileHandle = fileInterface->Open(source);
@@ -145,7 +150,7 @@ bool RenderInterfaceDirectX9::LoadTexture(Rml::TextureHandle& texture_handle, Rm
         return false;
     }
 
-    auto* src = buffer.data() + sizeof(TgaHeader);
+    const auto* src = buffer.data() + sizeof(TgaHeader);
     std::vector dest{ imageSize, std::byte() };
     auto* destData = dest.data();
 
@@ -166,35 +171,21 @@ bool RenderInterfaceDirectX9::LoadTexture(Rml::TextureHandle& texture_handle, Rm
     texture_dimensions.x = header.width;
     texture_dimensions.y = header.height;
 
-    return GenerateTexture(texture_handle, reinterpret_cast<Rml::byte*>(destData), texture_dimensions);
+    return GenerateTexture(Rml::Span(reinterpret_cast<const unsigned char*>(&destData), imageSize), texture_dimensions);
 }
-bool RenderInterfaceDirectX9::GenerateTexture(Rml::TextureHandle& texture_handle, const Rml::byte* source, const Rml::Vector2i& source_dimensions)
+
+void RenderInterfaceDirectX9::SetScissorRegion(const Rml::Rectanglei region)
 {
-    LPDIRECT3DTEXTURE9 d3d9Texture;
-    if (d3d9Device->CreateTexture(source_dimensions.x, source_dimensions.y, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &d3d9Texture, nullptr) != D3D_OK)
-    {
-        return false;
-    }
+    // clang-format off
+    const RECT scissor{
+        .left = region.Left(),
+        .top = region.Top(),
+        .right = region.Left() + region.Width(),
+        .bottom = region.Right() + region.Height()
+    };
+    // clang-format on
 
-    D3DLOCKED_RECT locked;
-    d3d9Texture->LockRect(0, &locked, nullptr, 0);
-    for (auto y = 0; y < source_dimensions.y; ++y)
-    {
-        for (auto x = 0; x < source_dimensions.x; ++x)
-        {
-            const auto* sourcePixel = source + source_dimensions.x * 4 * y + x * 4;
-            auto destPixel = static_cast<byte*>(locked.pBits) + locked.Pitch * y + x * 4;
-
-            destPixel[0] = sourcePixel[2];
-            destPixel[1] = sourcePixel[1];
-            destPixel[2] = sourcePixel[0];
-            destPixel[3] = sourcePixel[3];
-        }
-    }
-
-    d3d9Texture->UnlockRect(0);
-    texture_handle = reinterpret_cast<Rml::TextureHandle>(d3d9Texture);
-    return true;
+    d3d9Device->SetScissorRect(&scissor);
 }
 
 void RenderInterfaceDirectX9::ReleaseTexture(const Rml::TextureHandle texture) { reinterpret_cast<LPDIRECT3DTEXTURE9>(texture)->Release(); }
