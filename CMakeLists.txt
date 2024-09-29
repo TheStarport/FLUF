@@ -29,13 +29,15 @@ set(VENDOR_PATH "${PROJECT_SOURCE_DIR}/vendor")
 set(SDK_PATH "${VENDOR_PATH}/FLHookSDK")
 set(REFLECT_PATH "${VENDOR_PATH}/reflect-cpp")
 
+# Libs
 set(RML_PATH "${VENDOR_PATH}/RmlUi")
+set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
 
 # Set Freetype requirements for RML
 set(FREETYPE_LIBRARY "${VENDOR_PATH}/freetype.lib")
 set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 
-# Configure RML
+# Compile subprojects
 add_subdirectory(${RML_PATH})
 
 # Import Conan Packages

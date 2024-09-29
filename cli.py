@@ -109,7 +109,7 @@ def dependencies(ctx: click.Context):
 
 @cli.command(short_help='Install and build dependencies via conan')
 @click.option("-r", "--release", is_flag=True, help="Configure in release mode")
-def install(release: bool):
+def configure(release: bool):
     default_profile = run("conan profile path default", allow_error=True)
     if default_profile:
         run("conan profile detect")
@@ -135,7 +135,7 @@ def build(ctx: click.Context, release: bool):
     preset = 'build' if is_windows() else ('release' if release else 'debug')
 
     # noinspection PyTypeChecker
-    ctx.invoke(install, release=release)
+    ctx.invoke(configure, release=release)
     run(f'cmake --preset="{preset}"')
     run(f"cmake --build build/{('' if is_windows() else ('Release' if release else 'Debug'))}", allow_error=True)
 
