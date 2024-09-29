@@ -18,7 +18,7 @@ void RmlInterface::LoadFonts()
     INI_Reader ini;
     if (!ini.open(std::string(R"(\..\DATA\FONTS\fonts.ini)").c_str(), false))
     {
-        return;
+        goto fallback;
     }
 
     while (ini.read_header())
@@ -58,6 +58,7 @@ void RmlInterface::LoadFonts()
     // No fonts loaded, load Times New Roman as an emergancy font
     if (fonts.empty())
     {
+    fallback:
         const std::string timesNewRoman = R"(C:\Windows\Fonts\times.ttf)";
         Rml::LoadFontFace(std::string("file://") + timesNewRoman, true);
         fonts.insert(timesNewRoman);
@@ -77,7 +78,7 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
     Rml::Initialise();
     // Rml::Lua::Initialise();
 
-    auto freelancerHwnd = reinterpret_cast<HWND>(0x6679F4);
+    const auto freelancerHwnd = FindWindowA(nullptr, "Freelancer");
     RECT rect;
     GetWindowRect(freelancerHwnd, &rect);
 
@@ -92,5 +93,5 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
     Rml::Debugger::SetVisible(true);
 #endif
 }
-Rml::Context* RmlInterface::GetRmlContext() { return rmlContext; }
+Rml::Context* RmlInterface::GetRmlContext() const { return rmlContext; }
 RmlInterface::~RmlInterface() { Rml::Shutdown(); }

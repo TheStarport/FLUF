@@ -31,6 +31,6 @@ class RmlInterface
 
     public:
         explicit RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* device);
-        Rml::Context* GetRmlContext();
+        Rml::Context* GetRmlContext() const;
         ~RmlInterface();
 };

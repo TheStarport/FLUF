@@ -59,6 +59,7 @@ void FlufUi::OnUpdate(const double delta)
     static double timeCounter = 0.0f;
 
     timeCounter += delta;
+    // ReSharper disable once CppDFALoopConditionNotUpdated
     while (timeCounter > SixtyFramesPerSecond)
     {
         // Fixed Update

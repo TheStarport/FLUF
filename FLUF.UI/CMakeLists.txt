@@ -24,7 +24,7 @@ target_link_libraries(FLUF.UI PRIVATE ${DXSDK}/Lib/x86/d3dx9.lib)
 
 # LibCurl
 target_include_directories(FLUF.UI PRIVATE ${CURL_PATH}/include)
-target_link_libraries(FLUF.UI PRIVATE ${VENDOR_PATH}/libcurl.lib)
+#target_link_libraries(FLUF.UI PRIVATE ${VENDOR_PATH}/libcurl.lib)
 
 # Selectively skip PCH for certain files
 set_source_files_properties(
