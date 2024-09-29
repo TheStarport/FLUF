@@ -12,7 +12,7 @@
 
 using ScriptLoadPtr = void* (*)(const char* fileName);
 using FrameUpdatePtr = void (*)(double delta);
-using Direct3DCreate8Ptr = IDirect3D9*(__stdcall*)(uint sdkVersion);
+using Direct3DCreate9Ptr = IDirect3D9*(__stdcall*)(uint sdkVersion);
 using Direct3DCreateDevice9 = HRESULT(__stdcall*)(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                   D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
 using Direct3DDevice9EndScene = HRESULT(__stdcall*)(IDirect3DDevice9* device);
@@ -21,8 +21,8 @@ std::shared_ptr<FlufUi> module;
 
 std::unique_ptr<FunctionDetour<ScriptLoadPtr>> thornLoadDetour;
 std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
-std::unique_ptr<FunctionDetour<Direct3DCreate8Ptr>> d3d8CreateDetour;
-std::unique_ptr<FunctionDetour<Direct3DCreate8Ptr>> d3d9CreateDetour;
+std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d8CreateDetour;
+std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d9CreateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d8CreateDeviceDetour;
 std::unique_ptr<FunctionDetour<Direct3DDevice9EndScene>> d3d9EndSceneDetour;
 
@@ -94,7 +94,7 @@ IDirect3D9* __stdcall FlufUi::OnDirect3D8Create(const uint sdkVersion)
     d3d9 = d3d8CreateDetour->GetOriginalFunc()(sdkVersion);
 
     const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9));
-    d3d8CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice9>>(reinterpret_cast<Direct3DCreateDevice9>(vtable[15]));
+    d3d8CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice9>>(reinterpret_cast<Direct3DCreateDevice9>(vtable[16]));
     d3d8CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
 
     return d3d9;
@@ -111,8 +111,8 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
 
     // Hook the EndScene
     const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9device));
-    d3d9EndSceneDetour = std::make_unique<FunctionDetour<Direct3DDevice9EndScene>>(reinterpret_cast<Direct3DDevice9EndScene>(vtable[41]));
-    d3d9EndSceneDetour->UnDetour(); // Should do nothing 99.99% of the time, but prevents a crash in that rare occurance
+    d3d9EndSceneDetour.reset();
+    d3d9EndSceneDetour = std::make_unique<FunctionDetour<Direct3DDevice9EndScene>>(reinterpret_cast<Direct3DDevice9EndScene>(vtable[42]));
     d3d9EndSceneDetour->Detour(OnDirect3D9EndScene);
 
     d3d8CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
@@ -121,7 +121,10 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
 
 HRESULT __stdcall FlufUi::OnDirect3D9EndScene(IDirect3DDevice9* device)
 {
-    module->rmlInterface->GetRmlContext()->Render();
+    if (module->rmlInterface)
+    {
+        module->rmlInterface->GetRmlContext()->Render();
+    }
 
     d3d9EndSceneDetour->UnDetour();
     auto result = d3d9EndSceneDetour->GetOriginalFunc()(device);
@@ -144,9 +147,11 @@ FlufUi::FlufUi()
 
     thornLoadDetour->Detour(OnScriptLoadHook);
 
-    const HMODULE d3d8 = GetModuleHandleA("d3d8.dll");
-    d3d8CreateDetour = std::make_unique<FunctionDetour<Direct3DCreate8Ptr>>(reinterpret_cast<Direct3DCreate8Ptr>(GetProcAddress(d3d8, "Direct3DCreate8")));
-    d3d8CreateDetour->Detour(OnDirect3D8Create);
+    if (const HMODULE d3d9 = GetModuleHandleA("d3d9.dll"))
+    {
+        d3d8CreateDetour = std::make_unique<FunctionDetour<Direct3DCreate9Ptr>>(reinterpret_cast<Direct3DCreate9Ptr>(GetProcAddress(d3d9, "Direct3DCreate9")));
+        d3d8CreateDetour->Detour(OnDirect3D8Create);
+    }
 
     const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
     frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));
