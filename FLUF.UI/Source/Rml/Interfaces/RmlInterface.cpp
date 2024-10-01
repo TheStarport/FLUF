@@ -101,6 +101,7 @@ bool RmlInterface::WinKeyDetour(const uint msg, const WPARAM wParam, const LPARA
     {
         case WM_KEYUP:
         case WM_KEYDOWN:
+        case WM_CHAR:
             {
                 auto el = rmlContext->GetFocusElement();
                 if (!el || el->GetTagName() != "input")
