@@ -12,10 +12,10 @@
 #include <Utils/Utils.hpp>
 
 #include "RmlUi/Core/Core.h"
-#include "RmlUi/Debugger/Debugger.h"
-// #include "RmlUi/Lua.h"
 
 #include "Rml/RmlWin32.hpp"
+#include "RmlUi/Debugger/Debugger.h"
+#include "RmlUi/Lua.h"
 
 RmlInterface* module = nullptr;
 
@@ -256,7 +256,7 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
     SetFileInterface(fileInterface.get());
     SetRenderInterface(renderInterface.get());
     Rml::Initialise();
-    // Rml::Lua::Initialise();
+    Rml::Lua::Initialise();
 
     const auto freelancerHwnd = reinterpret_cast<HWND*>(0x67ECA0);
     RECT rect;

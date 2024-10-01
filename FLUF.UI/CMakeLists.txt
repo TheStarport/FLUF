@@ -34,8 +34,8 @@ set_source_files_properties(
 )
 
 # RmlUi
-add_dependencies(FLUF.UI RmlUi::RmlUi RmlUi::Debugger)
-target_link_libraries(FLUF.UI PRIVATE RmlUi::Core RmlUi::Debugger)
+add_dependencies(FLUF.UI RmlUi::RmlUi RmlUi::Debugger RmlUi::Lua)
+target_link_libraries(FLUF.UI PRIVATE RmlUi::Core RmlUi::Debugger RmlUi::Lua)
 
 set_linux_msvc_includes(PROJECT_NAME FLUF.UI)
 

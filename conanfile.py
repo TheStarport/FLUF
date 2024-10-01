@@ -19,6 +19,7 @@ class CompressorRecipe(ConanFile):
     def requirements(self):
         self.requires("glm/cci.20230113")
         self.requires("magic_enum/0.9.6")
+        self.requires("lua/5.4.7")
 
     def build_requirements(self):
         self.tool_requires("cmake/3.22.6")

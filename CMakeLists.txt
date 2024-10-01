@@ -37,12 +37,23 @@ set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
 set(FREETYPE_LIBRARY "${VENDOR_PATH}/freetype.lib")
 set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 
-# Compile subprojects
-add_subdirectory(${RML_PATH})
-
 # Import Conan Packages
 find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
+find_package(lua REQUIRED)
+
+# Compile RML w/ Lua support
+set(RMLUI_LUA_BINDINGS TRUE)
+set(RML_LUA_BINDINGS_LIBRARY lua)
+set(LUA_INCLUDE_DIR ${lua_INCLUDE_DIR})
+
+if (CMAKE_BUILD_TYPE_INIT STREQUAL "Debug")
+    set(LUA_LIBRARIES ${lua_LIB_DIRS_DEBUG}/lua.lib)
+else ()
+    set(LUA_LIBRARIES ${lua_LIB_DIRS_RELEASE}/lua.lib)
+endif ()
+
+add_subdirectory(${RML_PATH})
 
 function(set_linux_msvc_includes)
     cmake_parse_arguments(
