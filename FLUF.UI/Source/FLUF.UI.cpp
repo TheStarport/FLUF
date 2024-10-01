@@ -124,6 +124,7 @@ HRESULT __stdcall FlufUi::OnDirect3D9EndScene(IDirect3DDevice9* device)
 {
     if (module->rmlInterface)
     {
+        module->rmlInterface->PollInput();
         module->rmlInterface->GetRmlContext()->Render();
     }
 

@@ -214,7 +214,8 @@ HudManager::HudManager()
     MemUtils::PatchAssembly(0x55BB26, OnExecuteButton);
     MemUtils::PatchAssembly(0x58AE2A, OnExecuteText);
     MemUtils::PatchAssembly(0x5971B3, OnExecuteScroll);
-    MemUtils::PatchAssembly(0x5979BF, OnExecuteCycle);
+    // MemUtils::PatchAssembly(0x5979BF, OnExecuteCycle);
+    // TODO: investigate why execute cycle is crashing
     MemUtils::PatchAssembly(0x59DC09, OnTerminate);
 }
 

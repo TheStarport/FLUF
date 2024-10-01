@@ -11,26 +11,26 @@ class FileInterface;
 
 class RmlInterface
 {
-        static bool HasKeyboardModifer(int modifiers, Rml::Input::KeyModifier modifier);
-        static int GetKeyboardModifiers(BYTE diKeys[]);
-        static bool KeyboardButtonDown(BYTE diKeys[], BYTE key);
-
-        void PollDInput8();
-        void LoadFonts();
-
-        inline static IDirectInput8* pDirectInput;
-        inline static LPDIRECTINPUTDEVICE8 lpdiKeyboard;
-
         std::unordered_set<std::string> fonts;
         FlufUi* ui;
+        std::array<bool, 5> lastMouseState{};
+        std::array<bool, 5> currentMouseState{};
+
+        void PollMouse();
+        void PollKeyboard();
+        void LoadFonts();
+        static LRESULT __stdcall WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
+        static bool WinKeyDetour(const uint msg, const WPARAM wParam, const LPARAM lParam);
 
         std::unique_ptr<Rml::RenderInterface> renderInterface;
         std::unique_ptr<SystemInterface> systemInterface;
         std::unique_ptr<FileInterface> fileInterface;
-        Rml::Context* rmlContext;
+        inline static Rml::Context* rmlContext;
 
     public:
         explicit RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* device);
-        Rml::Context* GetRmlContext() const;
         ~RmlInterface();
+
+        static Rml::Context* GetRmlContext();
+        void PollInput();
 };
