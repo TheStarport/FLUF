@@ -67,7 +67,7 @@ void FlufUi::OnUpdate(const double delta)
     }
 
     const auto context = module->rmlInterface->GetRmlContext();
-    context->Update();
+    module->rmlInterface->rmlContext->Update();
 
     frameUpdateDetour->UnDetour();
     frameUpdateDetour->GetOriginalFunc()(delta);
@@ -125,7 +125,7 @@ HRESULT __stdcall FlufUi::OnDirect3D9EndScene(IDirect3DDevice9* device)
     if (module->rmlInterface)
     {
         module->rmlInterface->PollInput();
-        module->rmlInterface->GetRmlContext()->Render();
+        module->rmlInterface->rmlContext->Render();
     }
 
     d3d9EndSceneDetour->UnDetour();

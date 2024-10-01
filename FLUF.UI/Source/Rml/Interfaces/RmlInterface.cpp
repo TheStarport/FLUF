@@ -274,7 +274,7 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
 #endif
 }
 
-Rml::Context* RmlInterface::GetRmlContext() { return rmlContext; }
+RmlContext RmlInterface::GetRmlContext() { return { rmlContext }; }
 RmlInterface::~RmlInterface()
 {
     Rml::Shutdown();

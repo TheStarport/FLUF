@@ -3,6 +3,7 @@
 #include "RmlUi/Core/Input.h"
 #include "RmlUi/Core/RenderInterface.h"
 
+#include <Rml/RmlContext.hpp>
 #include <dinput.h>
 
 class FlufUi;
@@ -11,6 +12,8 @@ class FileInterface;
 
 class RmlInterface
 {
+        friend FlufUi;
+
         std::unordered_set<std::string> fonts;
         FlufUi* ui;
         std::array<bool, 5> lastMouseState{};
@@ -18,6 +21,8 @@ class RmlInterface
 
         void PollMouse();
         void PollKeyboard();
+        void PollInput();
+        
         void LoadFonts();
         static LRESULT __stdcall WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
         static bool WinKeyDetour(const uint msg, const WPARAM wParam, const LPARAM lParam);
@@ -31,6 +36,5 @@ class RmlInterface
         explicit RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* device);
         ~RmlInterface();
 
-        static Rml::Context* GetRmlContext();
-        void PollInput();
+        static RmlContext GetRmlContext();
 };
