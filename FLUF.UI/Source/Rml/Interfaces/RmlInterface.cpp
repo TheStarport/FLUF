@@ -215,13 +215,28 @@ void RmlInterface::LoadFonts()
         }
     }
 
-    // No fonts loaded, load Times New Roman as an emergancy font
-    if (fonts.empty())
+fallback:
+    std::array<std::string, 9> systemFonts = {
+        "segoeui.ttf ",  // Segoe UI (Latin; Greek; Cyrillic; Armenian; Georgian; Georgian Khutsuri; Arabic; Hebrew; Fraser)
+        "tahoma.ttf ",   // Tahoma (Latin; Greek; Cyrillic; Armenian; Hebrew; Arabic; Thai)
+        "meiryo.ttc ",   // Meiryo UI (Japanese)
+        "msgothic.ttc",  // MS Gothic (Japanese)
+        "msjh.ttc",      // Microsoft JhengHei (Chinese Traditional; Han; Han with Bopomofo)
+        "msyh.ttc",      // Microsoft YaHei (Chinese Simplified; Han)
+        "malgun.ttf ",   // Malgun Gothic (Korean)
+        "simsun.ttc ",   // SimSun (Han Simplified)
+        "seguiemj.ttf ", // Segoe UI (Latin; Greek; Cyrillic; Armenian; Georgian; Georgian Khutsuri; Arabic; Hebrew; Fraser)
+    };
+
+    for (auto& font : systemFonts)
     {
-    fallback:
-        const std::string timesNewRoman = R"(C:\Windows\Fonts\times.ttf)";
-        Rml::LoadFontFace(std::string("file://") + timesNewRoman, true);
-        fonts.insert(timesNewRoman);
+        std::array<char, MAX_PATH> windowsDir;
+        auto len = GetSystemDirectoryA(windowsDir.data(), windowsDir.size());
+        auto f = fonts.insert(std::format(R"(file://{}\{})", std::string_view(windowsDir.data(), len), font));
+        if (f.second)
+        {
+            Rml::LoadFontFace(*f.first, true);
+        }
     }
 }
 
