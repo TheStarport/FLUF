@@ -274,6 +274,7 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
     module = this;
     winKeyDetour.Detour(WinKeyDetour);
     wndProcDetour.Detour(WndProc);
+    uiRenderDetour.Detour(UiRenderDetour);
 
     // TODO: Support OpenGL as well
     systemInterface = std::make_unique<SystemInterface>();
@@ -304,6 +305,10 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
 RmlContext RmlInterface::GetRmlContext() { return { rmlContext }; }
 RmlInterface::~RmlInterface()
 {
+    winKeyDetour.UnDetour();
+    wndProcDetour.UnDetour();
+    uiRenderDetour.UnDetour();
+
     if (!shutDown)
     {
         Rml::ReleaseCompiledGeometry();
@@ -312,4 +317,15 @@ RmlInterface::~RmlInterface()
         Rml::Shutdown();
     }
     module = nullptr;
+}
+
+bool RmlInterface::UiRenderDetour()
+{
+    module->PollInput();
+    rmlContext->Render();
+
+    uiRenderDetour.UnDetour();
+    auto result = uiRenderDetour.GetOriginalFunc()();
+    uiRenderDetour.Detour(UiRenderDetour);
+    return result;
 }

@@ -27,8 +27,8 @@ std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d8CreateDeviceDetour;
 std::unique_ptr<FunctionDetour<Direct3DDevice9EndScene>> d3d9EndSceneDetour;
 
 // ReSharper disable twice CppUseAuto
-st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
-st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "free"));
+const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
+const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "free"));
 
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
 {
@@ -124,8 +124,8 @@ HRESULT __stdcall FlufUi::OnDirect3D9EndScene(IDirect3DDevice9* device)
 {
     if (module->rmlInterface)
     {
-        module->rmlInterface->PollInput();
-        module->rmlInterface->rmlContext->Render();
+        // module->rmlInterface->PollInput();
+        // module->rmlInterface->rmlContext->Render();
     }
 
     d3d9EndSceneDetour->UnDetour();
