@@ -26,66 +26,93 @@ FunctionDetour wndProcDetour(reinterpret_cast<OriginalWndProc>(0x5B2570));
 
 LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const WPARAM wParam, const LPARAM lParam)
 {
-    if (msg == WM_KEYDOWN)
+    switch (msg)
     {
-        const Rml::Input::KeyIdentifier rml_key = RmlWin32::ConvertKey((int)wParam);
-        const int rml_modifier = RmlWin32::GetKeyModifierState();
-        auto dpi = GetDpiForWindow(hWnd);
-        const float native_dp_ratio = float(dpi == 0 ? USER_DEFAULT_SCREEN_DPI : dpi) / float(USER_DEFAULT_SCREEN_DPI);
-
-        // See if we have any global shortcuts that take priority over the context.
-        if (!RmlWin32::ProcessKeyDownShortcuts(rmlContext, rml_key, rml_modifier, native_dp_ratio, true))
-        {
-            return 0;
-        }
-
-        rmlContext->ProcessKeyDown(RmlWin32::ConvertKey((int)wParam), RmlWin32::GetKeyModifierState());
-
-        // The key was not consumed by the context either, try keyboard shortcuts of lower priority.
-        if (!RmlWin32::ProcessKeyDownShortcuts(rmlContext, rml_key, rml_modifier, native_dp_ratio, false))
-        {
-            return 0;
-        }
-    }
-    else if (msg == WM_KEYUP)
-    {
-        rmlContext->ProcessKeyUp(RmlWin32::ConvertKey((int)wParam), RmlWin32::GetKeyModifierState());
-    }
-    else if (msg == WM_CHAR)
-    {
-        static wchar_t first_u16_code_unit = 0;
-
-        const wchar_t c = (wchar_t)wParam;
-        Rml::Character character = (Rml::Character)c;
-
-        // Windows sends two-wide characters as two messages.
-        if (c >= 0xD800 && c < 0xDC00)
-        {
-            // First 16-bit code unit of a two-wide character.
-            first_u16_code_unit = c;
-        }
-        else
-        {
-            if (c >= 0xDC00 && c < 0xE000 && first_u16_code_unit != 0)
+        case WM_KEYDOWN:
             {
-                // Second 16-bit code unit of a two-wide character.
-                Rml::String utf8 = StringUtils::wstos(std::wstring{ first_u16_code_unit, c });
-                character = Rml::StringUtilities::ToCharacter(utf8.data(), utf8.data() + utf8.size());
-            }
-            else if (c == '\r')
-            {
-                // Windows sends new-lines as carriage returns, convert to endlines.
-                character = (Rml::Character)'\n';
+                const Rml::Input::KeyIdentifier rml_key = RmlWin32::ConvertKey((int)wParam);
+                const int rml_modifier = RmlWin32::GetKeyModifierState();
+                auto dpi = GetDpiForWindow(hWnd);
+                const float native_dp_ratio = float(dpi == 0 ? USER_DEFAULT_SCREEN_DPI : dpi) / float(USER_DEFAULT_SCREEN_DPI);
+
+                // See if we have any global shortcuts that take priority over the context.
+                if (!RmlWin32::ProcessKeyDownShortcuts(rmlContext, rml_key, rml_modifier, native_dp_ratio, true))
+                {
+                    return 0;
+                }
+
+                rmlContext->ProcessKeyDown(RmlWin32::ConvertKey((int)wParam), RmlWin32::GetKeyModifierState());
+
+                // The key was not consumed by the context either, try keyboard shortcuts of lower priority.
+                if (!RmlWin32::ProcessKeyDownShortcuts(rmlContext, rml_key, rml_modifier, native_dp_ratio, false))
+                {
+                    return 0;
+                }
+
+                break;
             }
 
-            first_u16_code_unit = 0;
-
-            // Only send through printable characters.
-            if (((char32_t)character >= 32 || character == (Rml::Character)'\n') && character != (Rml::Character)127)
+        case WM_PAINT:
+        case WM_QUIT:
+        case WM_DESTROY:
+        case WM_SIZE:
+        case WM_SIZING:
+        case WM_SHOWWINDOW:
+        case WM_SETFOCUS:
             {
-                rmlContext->ProcessTextInput(character);
+                Rml::ReleaseCompiledGeometry();
+                Rml::ReleaseTextures();
+
+                if (msg == WM_DESTROY || msg == WM_QUIT)
+                {
+                    module->shutDown = true;
+                    Rml::Debugger::Shutdown();
+                    Rml::Shutdown();
+                }
+                break;
             }
-        }
+        case WM_KEYUP:
+            {
+                rmlContext->ProcessKeyUp(RmlWin32::ConvertKey((int)wParam), RmlWin32::GetKeyModifierState());
+                break;
+            }
+        case WM_CHAR:
+            {
+                static wchar_t first_u16_code_unit = 0;
+
+                const wchar_t c = (wchar_t)wParam;
+                Rml::Character character = (Rml::Character)c;
+
+                // Windows sends two-wide characters as two messages.
+                if (c >= 0xD800 && c < 0xDC00)
+                {
+                    // First 16-bit code unit of a two-wide character.
+                    first_u16_code_unit = c;
+                }
+                else
+                {
+                    if (c >= 0xDC00 && c < 0xE000 && first_u16_code_unit != 0)
+                    {
+                        // Second 16-bit code unit of a two-wide character.
+                        Rml::String utf8 = StringUtils::wstos(std::wstring{ first_u16_code_unit, c });
+                        character = Rml::StringUtilities::ToCharacter(utf8.data(), utf8.data() + utf8.size());
+                    }
+                    else if (c == '\r')
+                    {
+                        // Windows sends new-lines as carriage returns, convert to endlines.
+                        character = (Rml::Character)'\n';
+                    }
+
+                    first_u16_code_unit = 0;
+
+                    // Only send through printable characters.
+                    if (((char32_t)character >= 32 || character == (Rml::Character)'\n') && character != (Rml::Character)127)
+                    {
+                        rmlContext->ProcessTextInput(character);
+                    }
+                }
+                break;
+            }
     }
 
     wndProcDetour.UnDetour();
@@ -277,6 +304,12 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
 RmlContext RmlInterface::GetRmlContext() { return { rmlContext }; }
 RmlInterface::~RmlInterface()
 {
-    Rml::Shutdown();
+    if (!shutDown)
+    {
+        Rml::ReleaseCompiledGeometry();
+        Rml::ReleaseTextures();
+        Rml::Debugger::Shutdown();
+        Rml::Shutdown();
+    }
     module = nullptr;
 }

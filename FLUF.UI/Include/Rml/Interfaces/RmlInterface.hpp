@@ -14,6 +14,7 @@ class RmlInterface
 {
         friend FlufUi;
 
+        bool shutDown = false;
         std::unordered_set<std::string> fonts;
         FlufUi* ui;
         std::array<bool, 5> lastMouseState{};
@@ -22,7 +23,7 @@ class RmlInterface
         void PollMouse();
         void PollKeyboard();
         void PollInput();
-        
+
         void LoadFonts();
         static LRESULT __stdcall WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
         static bool WinKeyDetour(const uint msg, const WPARAM wParam, const LPARAM lParam);
