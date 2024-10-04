@@ -1,16 +1,21 @@
 #pragma once
 
-#include "FLUF.UI.hpp"
+#include "ImportFlufUi.hpp"
 
 #include <RmlUi/Core.h>
+
+class RmlInterface;
+class FlufUi;
 
 /**
  * @brief A very basic wrapper around the RmlContext containing only the useful functions.
  * The original context can be accessed through the Rml::ElementDocument pointer.
  */
-class RmlContext final
+class FLUF_UI_API RmlContext final
 {
         friend RmlInterface;
+        friend FlufUi;
+
         Rml::Context* context;
 
         RmlContext(Rml::Context*);
@@ -25,35 +30,35 @@ class RmlContext final
          * @returns A pointer to an ElementDocument on success, or a nullptr if there was an error loading it.
          * @example LoadDocument("local://INTERFACE/RML/document.rml")
          */
-        API Rml::ElementDocument* LoadDocument(const Rml::String& filePath);
+        Rml::ElementDocument* LoadDocument(const Rml::String& filePath);
 
         /**
          *
          * @param documentContents A string containing a valid RML document
          * @returns A pointer to an ElementDocument on success, or a nullptr if there was an error loading it.
          */
-        API Rml::ElementDocument* LoadDocumentFromMemory(const Rml::String& documentContents);
+        Rml::ElementDocument* LoadDocumentFromMemory(const Rml::String& documentContents);
 
         /**
          * @brief Unloads the specified document.
          * @param document A pointer to the document to unload
          */
-        API void UnloadDocument(Rml::ElementDocument* document);
+        void UnloadDocument(Rml::ElementDocument* document);
 
         /**
          * @brief Unloads all loaded documents
          */
-        API void UnloadAllDocuments();
+        void UnloadAllDocuments();
 
         /**
          * @brief If a specific document has focus this function can be used to remove focus from it programmatically.
          */
-        API void UnfocusDocument(Rml::ElementDocument* document);
+        void UnfocusDocument(Rml::ElementDocument* document);
 
         /**
          * @brief Removes focus from all documents effectively removing focus from RML itself until a document is clicked again.
          */
-        API void UnfocusAllDocuments();
+        void UnfocusAllDocuments();
 
         /**
          * Creates a data model.
@@ -62,7 +67,7 @@ class RmlContext final
          * @param[in] dataTypeRegister The data type register to use for the data model, or null to use the default register.
          * @return A constructor for the data model, or empty if it could not be created.
          */
-        API Rml::DataModelConstructor CreateDataModel(const Rml::String& name, Rml::DataTypeRegister* dataTypeRegister = nullptr);
+        Rml::DataModelConstructor CreateDataModel(const Rml::String& name, Rml::DataTypeRegister* dataTypeRegister = nullptr);
 
         /**
          * Retrieves the constructor for an existing data model.
@@ -70,7 +75,7 @@ class RmlContext final
          * @param[in] name The name of the data model.
          * @returns A constructor for the data model, or empty if it could not be found.
          */
-        API Rml::DataModelConstructor GetDataModel(const Rml::String& name);
+        Rml::DataModelConstructor GetDataModel(const Rml::String& name);
 
         /** Removes the given data model.
          * @brief This also removes all data views, controllers and bindings contained by the data model.
@@ -78,5 +83,5 @@ class RmlContext final
          * @param[in] name The name of the data model.
          * @return True if successfully removed, false if no data model was found.
          */
-        API bool RemoveDataModel(const Rml::String& name);
+        bool RemoveDataModel(const Rml::String& name);
 };

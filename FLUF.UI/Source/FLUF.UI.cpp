@@ -22,9 +22,7 @@ std::shared_ptr<FlufUi> module;
 std::unique_ptr<FunctionDetour<ScriptLoadPtr>> thornLoadDetour;
 std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d8CreateDetour;
-std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d9CreateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d8CreateDeviceDetour;
-std::unique_ptr<FunctionDetour<Direct3DDevice9EndScene>> d3d9EndSceneDetour;
 
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
@@ -49,7 +47,10 @@ void FlufUi::DelayedInit()
 {
     if (d3d9)
     {
-        rmlInterface = std::make_shared<RmlInterface>(this, d3d9, d3d9device);
+        if (config->uiMode == UiMode::Rml)
+        {
+            rmlInterface = std::make_shared<RmlInterface>(this, d3d9, d3d9device);
+        }
     }
 }
 
@@ -59,7 +60,6 @@ void FlufUi::OnUpdate(const double delta)
     static double timeCounter = 0.0f;
 
     timeCounter += delta;
-    // ReSharper disable once CppDFALoopConditionNotUpdated
     while (timeCounter > SixtyFramesPerSecond)
     {
         // Fixed Update
@@ -110,38 +110,30 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
         d3d8CreateDeviceDetour->GetOriginalFunc()(context, adapter, deviceType, focusWindow, behaviorFlags, presentationParameters, returnedDeviceInterface);
     d3d9device = *returnedDeviceInterface;
 
-    // Hook the EndScene
-    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9device));
-    d3d9EndSceneDetour.reset();
-    d3d9EndSceneDetour = std::make_unique<FunctionDetour<Direct3DDevice9EndScene>>(reinterpret_cast<Direct3DDevice9EndScene>(vtable[42]));
-    d3d9EndSceneDetour->Detour(OnDirect3D9EndScene);
-
     d3d8CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
-    return result;
-}
-
-HRESULT __stdcall FlufUi::OnDirect3D9EndScene(IDirect3DDevice9* device)
-{
-    if (module->rmlInterface)
-    {
-        // module->rmlInterface->PollInput();
-        // module->rmlInterface->rmlContext->Render();
-    }
-
-    d3d9EndSceneDetour->UnDetour();
-    auto result = d3d9EndSceneDetour->GetOriginalFunc()(device);
-    d3d9EndSceneDetour->Detour(OnDirect3D9EndScene);
-
     return result;
 }
 
 std::weak_ptr<FlufUi> FlufUi::Instance() { return module; }
 std::weak_ptr<HudManager> FlufUi::GetHudManager() { return hudManager; }
-std::weak_ptr<RmlInterface> FlufUi::GetRmlInterface() { return rmlInterface; }
+std::optional<RmlContext> FlufUi::GetRmlContext()
+{
+    auto context = RmlInterface::GetRmlContext();
+    if (context.context)
+    {
+        return { context };
+    };
+
+    return std::nullopt;
+}
+
+std::shared_ptr<FlufUiConfig> FlufUi::GetConfig() { return config; }
 
 FlufUi::FlufUi()
 {
     hudManager = std::make_shared<HudManager>();
+    config = std::make_shared<FlufUiConfig>();
+    config->Load();
 
     const HMODULE common = GetModuleHandleA("common");
     thornLoadDetour = std::make_unique<FunctionDetour<ScriptLoadPtr>>(
@@ -149,9 +141,10 @@ FlufUi::FlufUi()
 
     thornLoadDetour->Detour(OnScriptLoadHook);
 
-    if (const HMODULE d3d9 = GetModuleHandleA("d3d9.dll"))
+    if (const HMODULE d3d9Handle = GetModuleHandleA("d3d9.dll"))
     {
-        d3d8CreateDetour = std::make_unique<FunctionDetour<Direct3DCreate9Ptr>>(reinterpret_cast<Direct3DCreate9Ptr>(GetProcAddress(d3d9, "Direct3DCreate9")));
+        d3d8CreateDetour =
+            std::make_unique<FunctionDetour<Direct3DCreate9Ptr>>(reinterpret_cast<Direct3DCreate9Ptr>(GetProcAddress(d3d9Handle, "Direct3DCreate9")));
         d3d8CreateDetour->Detour(OnDirect3D8Create);
     }
 

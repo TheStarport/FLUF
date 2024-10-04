@@ -31,6 +31,6 @@ class HudManager
     public:
         HudManager();
         ~HudManager();
-        API bool RegisterHud(AbstractVanillaInterface* hud);
-        API bool EraseHud(AbstractVanillaInterface* hud);
+        FLUF_UI_API bool RegisterHud(AbstractVanillaInterface* hud);
+        FLUF_UI_API bool EraseHud(AbstractVanillaInterface* hud);
 };

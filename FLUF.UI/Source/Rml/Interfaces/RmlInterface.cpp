@@ -2,6 +2,7 @@
 
 #include <FLCore/FLCoreDefs.hpp>
 
+#include "FLUF.UI.hpp"
 #include "Rml/Interfaces/FileInterface.hpp"
 #include "Rml/Interfaces/RenderInterfaceDirectX9.hpp"
 #include "Rml/Interfaces/RmlInterface.hpp"
@@ -36,7 +37,7 @@ LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const W
                 const float native_dp_ratio = float(dpi == 0 ? USER_DEFAULT_SCREEN_DPI : dpi) / float(USER_DEFAULT_SCREEN_DPI);
 
                 // See if we have any global shortcuts that take priority over the context.
-                if (!RmlWin32::ProcessKeyDownShortcuts(rmlContext, rml_key, rml_modifier, native_dp_ratio, true))
+                if (!RmlWin32::ProcessKeyDownShortcuts(module->ui, rmlContext, rml_key, rml_modifier, native_dp_ratio, true))
                 {
                     return 0;
                 }
@@ -44,7 +45,7 @@ LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const W
                 rmlContext->ProcessKeyDown(RmlWin32::ConvertKey((int)wParam), RmlWin32::GetKeyModifierState());
 
                 // The key was not consumed by the context either, try keyboard shortcuts of lower priority.
-                if (!RmlWin32::ProcessKeyDownShortcuts(rmlContext, rml_key, rml_modifier, native_dp_ratio, false))
+                if (!RmlWin32::ProcessKeyDownShortcuts(module->ui, rmlContext, rml_key, rml_modifier, native_dp_ratio, false))
                 {
                     return 0;
                 }
@@ -300,6 +301,8 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
 #ifdef _DEBUG
     Rml::Debugger::SetVisible(true);
 #endif
+
+    rmlContext->SetDensityIndependentPixelRatio(ui->GetConfig()->dpi);
 }
 
 RmlContext RmlInterface::GetRmlContext() { return { rmlContext }; }

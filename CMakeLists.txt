@@ -41,6 +41,7 @@ set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(lua REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 # Compile RML w/ Lua support
 set(RMLUI_LUA_BINDINGS TRUE)
@@ -112,6 +113,7 @@ function(set_general_targets)
     target_link_libraries(${PARSED_ARGS_PROJECT_NAME} PRIVATE
             glm::glm
             magic_enum::magic_enum
+            yaml-cpp::yaml-cpp
     )
 endfunction()
 

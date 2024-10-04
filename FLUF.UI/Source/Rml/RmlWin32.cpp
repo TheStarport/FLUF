@@ -1,5 +1,6 @@
 #include "PCH.hpp"
 
+#include <FLUF.UI.hpp>
 #include <RmlUi/Core.h>
 #include <RmlUi/Debugger/Debugger.h>
 
@@ -241,7 +242,7 @@ namespace RmlWin32
         return Rml::Input::KI_UNKNOWN;
     }
 
-    bool ProcessKeyDownShortcuts(Rml::Context* context, Rml::Input::KeyIdentifier key, int key_modifier, float native_dp_ratio, bool priority)
+    bool ProcessKeyDownShortcuts(FlufUi* fluf, Rml::Context* context, Rml::Input::KeyIdentifier key, int key_modifier, float native_dp_ratio, bool priority)
     {
         if (!context)
         {
@@ -274,13 +275,21 @@ namespace RmlWin32
             else if ((key == Rml::Input::KI_OEM_MINUS || key == Rml::Input::KI_SUBTRACT) && key_modifier & Rml::Input::KM_CTRL)
             {
                 // TODO: Save scale to config file and restore on load
-                const float new_dp_ratio = Rml::Math::Max(context->GetDensityIndependentPixelRatio() / 1.1f, 0.5f);
-                context->SetDensityIndependentPixelRatio(new_dp_ratio);
+                const float newDpi = Rml::Math::Max(context->GetDensityIndependentPixelRatio() / 1.1f, 0.5f);
+                context->SetDensityIndependentPixelRatio(newDpi);
+
+                auto config = fluf->GetConfig();
+                config->dpi = newDpi;
+                config->Save();
             }
             else if ((key == Rml::Input::KI_OEM_PLUS || key == Rml::Input::KI_ADD) && key_modifier & Rml::Input::KM_CTRL)
             {
-                const float new_dp_ratio = Rml::Math::Min(context->GetDensityIndependentPixelRatio() * 1.1f, 2.5f);
-                context->SetDensityIndependentPixelRatio(new_dp_ratio);
+                const float newDpi = Rml::Math::Min(context->GetDensityIndependentPixelRatio() * 1.1f, 2.5f);
+                context->SetDensityIndependentPixelRatio(newDpi);
+
+                auto config = fluf->GetConfig();
+                config->dpi = newDpi;
+                config->Save();
             }
             else
             {

@@ -58,8 +58,8 @@ class AbstractVanillaInterface
                                                                   unsigned int u4, unsigned int u5);
 
     protected:
-        void API OpenDialogue(unsigned int captionIds, unsigned int bodyIds);
-        void API CloseDialogue();
+        void FLUF_UI_API OpenDialogue(unsigned int captionIds, unsigned int bodyIds);
+        void FLUF_UI_API CloseDialogue();
         virtual void OnDraw(FlControl* control) = 0;
         virtual void OnUpdate(FlControl* control) = 0;
         virtual bool OnExecuteButton(FlButtonControl* control) = 0;
@@ -80,6 +80,6 @@ class AbstractVanillaInterface
         const CreateToggleControlFunction CreateToggleControl = reinterpret_cast<CreateToggleControlFunction>(0x5A0FB0);       // NOLINT(*-misplaced-const)
         const CreateWireControlFunc CreateWireControl = reinterpret_cast<CreateWireControlFunc>(0x5A0D00);                     // NOLINT(*-misplaced-const)
 
-        API FlStaticControl* CreateDefaultStaticControl(const FlControl* parent, const char* name, const char* mesh, const Vector& pos, const char* hardpoint,
-                                                        const Vector& mouseSize) const;
+        FLUF_UI_API FlStaticControl* CreateDefaultStaticControl(const FlControl* parent, const char* name, const char* mesh, const Vector& pos,
+                                                                const char* hardpoint, const Vector& mouseSize) const;
 };

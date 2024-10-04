@@ -1,12 +1,12 @@
 #pragma once
 
-#ifdef FLUF_UI
-    #define API __declspec(dllexport)
-#else
-    #define API __declspec(dllimport)
-#endif
+#include "ImportFlufUi.hpp"
 
+#include "FlufUiConfig.hpp"
+
+#include <Rml/RmlContext.hpp>
 #include <d3d9types.h>
+
 class HudManager;
 class IDirect3D9;
 class IDirect3DDevice9;
@@ -18,6 +18,7 @@ class FlufUi
 
         std::shared_ptr<HudManager> hudManager;
         std::shared_ptr<RmlInterface> rmlInterface;
+        std::shared_ptr<FlufUiConfig> config;
 
         void DelayedInit();
 
@@ -29,9 +30,10 @@ class FlufUi
         static HRESULT __stdcall OnDirect3D9EndScene(IDirect3DDevice9* device);
 
     public:
-        API static std::weak_ptr<FlufUi> Instance();
-        API std::weak_ptr<HudManager> GetHudManager();
-        API std::weak_ptr<RmlInterface> GetRmlInterface();
+        FLUF_UI_API static std::weak_ptr<FlufUi> Instance();
+        FLUF_UI_API std::weak_ptr<HudManager> GetHudManager();
+        FLUF_UI_API std::optional<RmlContext> GetRmlContext();
+        FLUF_UI_API std::shared_ptr<FlufUiConfig> GetConfig();
 
         FlufUi();
         ~FlufUi();
