@@ -39,12 +39,27 @@ else ()
     message(STATUS "venv not found, creating and installing packages")
     execute_process(COMMAND "${Python_EXECUTABLE}" -m venv "${ROOT_DIR}/venv")
     if (EXISTS "${ROOT_DIR}/venv/Scripts")
-        execute_process(COMMAND "${ROOT_DIR}/venv/Scripts/pip.exe" install click conan)
+        set(PY_DIR "${ROOT_DIR}/venv/Scripts")
+        set(ENV{Path} "${ROOT_DIR}/venv/Scripts;/venv/bin:$ENV{Path}")
     else ()
-        execute_process(COMMAND "${ROOT_DIR}/venv/bin/pip" install click conan)
+        set(PY_DIR "${ROOT_DIR}/venv/bin")
+        set(ENV{PATH} "${ROOT_DIR}/venv/bin:$ENV{PATH}")
     endif ()
-    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/venv")
 
+    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/venv")
+    set(Python_FIND_VIRTUALENV FIRST)
+    unset(Python_EXECUTABLE)
+    find_package(Python 3.11 REQUIRED)
+
+
+    execute_process(COMMAND "${PY_DIR}/pip" install click conan)
+    execute_process(COMMAND "${Python_EXECUTABLE}" cli.py dependencies WORKING_DIRECTORY ${ROOT_DIR})
+    execute_process(COMMAND "${Python_EXECUTABLE}" cli.py configure WORKING_DIRECTORY ${ROOT_DIR})
+
+    # We need to stop CMake from going further
+    message(FATAL_ERROR
+            "venv folder has been created and initial setup has automatically been run. Re-run the CMake configure step."
+    )
 endif ()
 
 set(Python_FIND_VIRTUALENV FIRST)
