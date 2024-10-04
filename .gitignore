@@ -444,6 +444,9 @@ enc_temp_folder/*
 CMakePresets.json
 ConanPresets.json
 .venv/
+venv/
 .idea/
 vendor/
 compile_commands.json
+dist/
+build.zip

@@ -29,6 +29,28 @@ set(VENDOR_PATH "${PROJECT_SOURCE_DIR}/vendor")
 set(SDK_PATH "${VENDOR_PATH}/FLHookSDK")
 set(REFLECT_PATH "${VENDOR_PATH}/reflect-cpp")
 
+# Python for post build
+find_package(Python 3.11 REQUIRED)
+if (EXISTS "${ROOT_DIR}/.venv")
+    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/.venv")
+elseif ((EXISTS "${ROOT_DIR}/venv"))
+    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/venv")
+else ()
+    message(STATUS "venv not found, creating and installing packages")
+    execute_process(COMMAND "${Python_EXECUTABLE}" -m venv "${ROOT_DIR}/venv")
+    if (EXISTS "${ROOT_DIR}/venv/Scripts")
+        execute_process(COMMAND "${ROOT_DIR}/venv/Scripts/pip.exe" install click conan)
+    else ()
+        execute_process(COMMAND "${ROOT_DIR}/venv/bin/pip" install click conan)
+    endif ()
+    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/venv")
+
+endif ()
+
+set(Python_FIND_VIRTUALENV FIRST)
+unset(Python_EXECUTABLE)
+find_package(Python 3.11 REQUIRED)
+
 # Libs
 set(RML_PATH "${VENDOR_PATH}/RmlUi")
 set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
@@ -137,6 +159,20 @@ function(reset_glob)
     unset(SOURCE_PATH PARENT_SCOPE)
     unset(INCLUDE_PATH PARENT_SCOPE)
     unset(SOURCE_FILES PARENT_SCOPE)
+endfunction()
+
+function(create_post_build)
+    cmake_parse_arguments(
+            PARSED_ARGS # prefix of output variables
+            ""
+            "TARGET_NAME" # list of names of mono-valued arguments
+            ""
+            ${ARGN} # arguments of the function to parse, here we take the all original ones
+    )
+
+    add_custom_command(TARGET ${PARSED_ARGS_TARGET_NAME} POST_BUILD
+            COMMAND ${Python_EXECUTABLE} ${ROOT_DIR}/cli.py post-build WORKING_DIRECTORY ${ROOT_DIR}
+    )
 endfunction()
 
 # Now we add our sub-projects
