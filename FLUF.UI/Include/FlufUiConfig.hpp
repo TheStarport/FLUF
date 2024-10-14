@@ -13,7 +13,7 @@ class FLUF_UI_API FlufUiConfig
         std::string_view GetSaveLocation();
 
     public:
-        UiMode uiMode = UiMode::Rml;
+        UiMode uiMode = UiMode::None;
         float dpi = 1.0f;
 
         bool Save();

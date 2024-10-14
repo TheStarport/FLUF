@@ -66,8 +66,10 @@ void FlufUi::OnUpdate(const double delta)
         timeCounter -= SixtyFramesPerSecond;
     }
 
-    const auto context = module->rmlInterface->GetRmlContext();
-    module->rmlInterface->rmlContext->Update();
+    if(module->config->uiMode == UiMode::Rml)
+    {
+        module->rmlInterface->rmlContext->Update();
+    }
 
     frameUpdateDetour->UnDetour();
     frameUpdateDetour->GetOriginalFunc()(delta);
