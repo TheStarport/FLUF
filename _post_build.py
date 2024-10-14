@@ -22,6 +22,11 @@ def post_build():
         shutil.copy2(dll, 'dist/')
         log(f'copied {dll}')
 
+    result = [y for x in os.walk('build') for y in glob(os.path.join(x[0], '*.lib'))]
+    for lib in result:
+        shutil.copy2(lib, 'dist/')
+        log(f'copied {lib}')
+
     shutil.copytree('vendor/RmlUi/Include/RmlUi', 'dist/RmlUi')
     shutil.copytree('FLUF.UI/Include', 'dist/FLUF.UI')
 
