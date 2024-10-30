@@ -1,7 +1,7 @@
 import click
 import os
 import shutil
-from _utils import cli, run, is_windows
+from .utils import cli, run, is_windows
 
 
 @cli.command(short_help='Install and build dependencies via conan')
@@ -16,11 +16,11 @@ def configure(release: bool):
         os.remove(presets)
 
     if is_windows():
-        shutil.copy2("CMakePresetsWindows.json", presets)
+        shutil.copy2("./CMakePresetsWindows.json", presets)
         run(f"conan install . --build missing -pr:b=default -pr:h=./profiles/windows-{('dbg' if release else 'rel')}")
         run(f"conan install . --build missing -pr:b=default -pr:h=./profiles/windows-{('rel' if release else 'dbg')}")
     else:
-        shutil.copy2("CMakePresetsLinux.json", presets)
+        shutil.copy2("./CMakePresetsLinux.json", presets)
         run(f"conan install . --build missing -pr:b=default -pr:h=./profiles/linux-dbg")
         run(f"conan install . --build missing -pr:b=default -pr:h=./profiles/linux-rel")
 

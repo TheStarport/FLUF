@@ -1,7 +1,10 @@
-from _utils import cli
-import _configure
-import _dependencies
-import _post_build
+from scripts.utils import cli
+# noinspection PyUnresolvedReferences
+import scripts.configure
+# noinspection PyUnresolvedReferences
+import scripts.dependencies
+# noinspection PyUnresolvedReferences
+import scripts.post_build
 
 if __name__ == '__main__':
     cli()

@@ -1,11 +1,11 @@
 import os
 import click
-from _utils import cli, download_file, log, run
+from .utils import cli, download_file, log, run
 
 
 @cli.command(short_help='Downloads and unpacks the DirectX9 SDK if needed')
 def d3d9():
-    if os.path.isdir("vendor/DXSDK"):
+    if os.path.isdir("./vendor/DXSDK"):
         log("DXSDK already exists. No need to download...")
         return
 
@@ -22,7 +22,7 @@ def d3d9():
 
 @cli.command(short_help='Downloads and unpacks libcurl if needed')
 def curl():
-    if os.path.isdir("vendor/curl-8.10.1"):
+    if os.path.isdir("./vendor/curl-8.10.1"):
         log("libcurl already exists. No need to download...")
         return
 
