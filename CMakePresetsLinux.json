@@ -5,7 +5,9 @@
         "minor": 23,
         "patch": 0
     },
-    "include": [ "./ConanPresets.json" ],
+    "include": [
+        "./ConanPresets.json"
+    ],
     "configurePresets": [
         {
             "name": "debug",
@@ -13,11 +15,27 @@
             "inherits": "conan-debug"
         },
         {
+            "name": "debug-all",
+            "displayName": "Debug (All)",
+            "inherits": "debug",
+            "cacheVariables": {
+                "BUILD_SAMPLES": true
+            }
+        },
+        {
             "name": "release",
             "displayName": "Release",
             "inherits": "conan-release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "release-all",
+            "displayName": "Release (All)",
+            "inherits": "release",
+            "cacheVariables": {
+                "BUILD_SAMPLES": true
             }
         }
     ],

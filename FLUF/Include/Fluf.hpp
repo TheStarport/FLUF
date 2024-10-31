@@ -1,0 +1,92 @@
+#pragma once
+
+#include <Utils/Detour.hpp>
+
+#include "ImportFluf.hpp"
+#include "Internal/FlufConfiguration.hpp"
+#include "Internal/VTables.hpp"
+
+#include <memory>
+
+class FlufModule;
+struct IClientImpl;
+struct IServerImpl;
+class ClientSend;
+class ClientReceive;
+class Fluf
+{
+        friend ClientSend;
+        friend ClientReceive;
+        inline static Fluf* instance;
+
+        std::unordered_set<std::shared_ptr<FlufModule>> loadedModules;
+        std::shared_ptr<FlufConfiguration> config;
+
+        // The serverClient receives data from the server
+        IClientImpl* serverClient = nullptr;
+        // The clientServer sends data to the server
+        IServerImpl* clientServer = nullptr;
+
+        std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::Start), static_cast<DWORD>(IClientVTable::End)>> clientVTable;
+        std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::Start), static_cast<DWORD>(IServerVTable::End)>> serverVTable;
+
+        static void OnUpdateHook(double delta);
+        static void* OnScriptLoadHook(const char* file);
+
+        /**
+         * @brief A detour that is called whenever the game's context switches. This happens when the player clicks the "Multiplayer" or "New Game" buttons.
+         * @param dllName The name of the dll that will be loaded. Either RemoteServer.dll (MP) or Server.dll (SP)
+         * @return A pointer to a struct representing the server client that will receive updates from the server/client
+         */
+        static IClientImpl* OnContextSwitchDetour(const char* dllName);
+        void HookServer() const;
+
+        void OnGameLoad() const;
+
+        template <typename R, typename... Args>
+        struct ReturnType;
+
+        template <class Class, typename R, typename... Args>
+        struct ReturnType<R (Class::*)(Args...)>
+        {
+                using Type = R;
+        };
+
+        template <typename FuncPtr, typename... Args>
+        bool CallModuleEvent(FuncPtr target, Args&&... args) const
+        {
+            using ReturnType = typename ReturnType<FuncPtr>::Type;
+            constexpr bool returnTypeIsVoid = std::is_same_v<ReturnType, void>;
+            using NoVoidReturnType = std::conditional_t<returnTypeIsVoid, int, ReturnType>;
+
+            NoVoidReturnType ret{};
+            for (const auto& module : loadedModules)
+            {
+                auto& moduleRef = *module;
+                if constexpr (returnTypeIsVoid)
+                {
+                    (moduleRef.*target)(std::forward<Args>(args)...);
+                }
+                else
+                {
+                    ret = (moduleRef.*target)(std::forward<Args>(args)...);
+                    if constexpr (std::is_same_v<NoVoidReturnType, bool>)
+                    {
+                        if (!static_cast<bool>(ret))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+    public:
+        Fluf();
+        ~Fluf();
+        std::weak_ptr<FlufModule> GetModule(std::string identifier);
+        FLUF_API static bool RegisterModule(std::shared_ptr<FlufModule> module);
+        FLUF_API static bool EraseModule(std::shared_ptr<FlufModule> module);
+};

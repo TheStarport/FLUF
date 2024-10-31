@@ -20,6 +20,8 @@ message(STATUS "Detected compiler: ${CMAKE_CXX_COMPILER}")
 set(PROJECT_VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 20)
 
+add_compile_options("$<$<CONFIG:DEBUG>:-D_DEBUG>")
+
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message(FATAL_ERROR "Only LLVM Clang and MSVC compilers is currently supported.")
 endif ()
@@ -152,6 +154,16 @@ function(set_general_targets)
             magic_enum::magic_enum
             yaml-cpp::yaml-cpp
     )
+
+    # Selectively skip PCH for certain files
+    set_source_files_properties(
+            ${REFLECT_PATH}/src/yyjson.c
+            ${REFLECT_PATH}/src/reflectcpp.cpp
+            PROPERTIES SKIP_PRECOMPILED_HEADERS ON
+    )
+
+    set_target_properties(${PARSED_ARGS_PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+    target_precompile_headers(${PARSED_ARGS_PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${ROOT_DIR}/PCH.hpp>")
 endfunction()
 
 function(begin_glob)
@@ -192,4 +204,14 @@ endfunction()
 
 # Now we add our sub-projects
 
-add_subdirectory(FLUF.UI)
+add_subdirectory(FLUF) # FLUF Core
+add_subdirectory(FLUF.UI) # FLUF user interface module
+
+if (BUILD_SAMPLES)
+    file(GLOB V_GLOB LIST_DIRECTORIES true "examples/*")
+    foreach (ENTRY ${V_GLOB})
+        if (IS_DIRECTORY ${ENTRY})
+            add_subdirectory(${ENTRY})
+        endif ()
+    endforeach ()
+endif ()
