@@ -3,20 +3,38 @@
 #include <Utils/Detour.hpp>
 
 #include "ImportFluf.hpp"
-#include "Internal/FlufConfiguration.hpp"
-#include "Internal/VTables.hpp"
 
+#include "VTables.hpp"
 #include <memory>
+
+enum class LogLevel
+{
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+};
+
+enum class LogSink
+{
+    Console,
+    Spew,
+    Interface,
+    File
+};
 
 class FlufModule;
 struct IClientImpl;
 struct IServerImpl;
 class ClientSend;
 class ClientReceive;
+class FlufConfiguration;
 class Fluf
 {
         friend ClientSend;
         friend ClientReceive;
+        friend FlufModule;
         inline static Fluf* instance;
 
         std::unordered_set<std::shared_ptr<FlufModule>> loadedModules;
@@ -27,8 +45,10 @@ class Fluf
         // The clientServer sends data to the server
         IServerImpl* clientServer = nullptr;
 
-        std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::Start), static_cast<DWORD>(IClientVTable::End)>> clientVTable;
-        std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::Start), static_cast<DWORD>(IServerVTable::End)>> serverVTable;
+        std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>> localClientVTable;
+        std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>> localServerVTable;
+        std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>> remoteClientVTable;
+        std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>> remoteServerVTable;
 
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
@@ -39,7 +59,6 @@ class Fluf
          * @return A pointer to a struct representing the server client that will receive updates from the server/client
          */
         static IClientImpl* OnContextSwitchDetour(const char* dllName);
-        void HookServer() const;
 
         void OnGameLoad() const;
 
@@ -86,7 +105,9 @@ class Fluf
     public:
         Fluf();
         ~Fluf();
-        std::weak_ptr<FlufModule> GetModule(std::string identifier);
+
+        FLUF_API static void Log(LogLevel level, std::string_view message);
+        FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string identifier);
         FLUF_API static bool RegisterModule(std::shared_ptr<FlufModule> module);
         FLUF_API static bool EraseModule(std::shared_ptr<FlufModule> module);
 };

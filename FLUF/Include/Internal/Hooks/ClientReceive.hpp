@@ -4,10 +4,10 @@
 
 #include <FLCore/Common.hpp>
 
-class Fluf;
+struct VTableHack;
 class ClientReceive
 {
-        friend Fluf;
+        friend VTableHack;
         static bool __fastcall FireWeapon(IClientImpl* clientImpl, void* edx, uint client, XFireWeaponInfo& info);
         static bool __fastcall ActivateEquip(IClientImpl* clientImpl, void* edx, uint client, XActivateEquip& info);
         static bool __fastcall ActivateCruise(IClientImpl* clientImpl, void* edx, uint client, XActivateCruise& info);

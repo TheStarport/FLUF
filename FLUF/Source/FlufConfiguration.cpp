@@ -2,6 +2,8 @@
 
 #include "Internal/FlufConfiguration.hpp"
 
+#include "FlufModule.hpp"
+
 #include <rfl/yaml/read.hpp>
 #include <rfl/yaml/write.hpp>
 
@@ -31,8 +33,8 @@ void FlufConfiguration::Load()
 
         for (const auto dir = std::string(buffer.data()); const auto& entry : std::filesystem::directory_iterator(dir))
         {
-            if (!entry.is_regular_file() || entry.file_size() > 1'000'000 || !entry.path().generic_string().ends_with(".dll") ||
-                !entry.path().generic_string().starts_with("FLUF"))
+            if (!entry.is_regular_file() || !entry.path().generic_string().ends_with(".dll") || !entry.path().generic_string().starts_with("FLUF") ||
+                entry.path().generic_string() == "FLUF.dll")
             {
                 continue;
             }
@@ -52,6 +54,5 @@ void FlufConfiguration::Load()
         return;
     }
 
-    // Replace this config with the new one
-    memcpy(this, &newConfig.value(), sizeof(FlufConfiguration)); // NOLINT(*-undefined-memory-manipulation)
+    *this = newConfig.value();
 }

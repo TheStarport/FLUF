@@ -2,12 +2,14 @@
 
 #include "FLCore/FLCoreRemoteClient.h"
 #include "Typedefs.hpp"
-#include "Utils/Detour.hpp"
 
 #include "Fluf.hpp"
 #include "FlufModule.hpp"
 #include "Internal/FlufConfiguration.hpp"
 #include "Internal/Hooks/ClientReceive.hpp"
+#include "Internal/Hooks/ClientSend.hpp"
+
+#include <iostream>
 
 using ScriptLoadPtr = void* (*)(const char* fileName);
 using FrameUpdatePtr = void (*)(double delta);
@@ -17,6 +19,7 @@ std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
 std::unique_ptr<FunctionDetour<ContextSwitchPtr>> contextSwitchDetour;
 
 std::shared_ptr<Fluf> fluf;
+HMODULE thisDll;
 
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
@@ -30,6 +33,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     DisableThreadLibraryCalls(mod);
     if (reason == DLL_PROCESS_ATTACH)
     {
+        thisDll = mod;
         fluf = std::make_shared<Fluf>();
     }
     else if (reason == DLL_PROCESS_DETACH)
@@ -42,6 +46,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void Fluf::OnGameLoad() const
 {
+    Log(LogLevel::Info, "Data loaded, Freelancer ready.");
     for (const auto& module : loadedModules)
     {
         module->OnGameLoad();
@@ -90,64 +95,207 @@ void* Fluf::OnScriptLoadHook(const char* file)
     return ret;
 }
 
+struct VTableHack
+{
+        template <typename ClientVTable, typename ServerVTable>
+        static void HookClientServer(ClientVTable* cvTable, ServerVTable* svTable)
+        {
+            const void* ptr;
+#define HOOK(vtable, func, entry) \
+    ptr = &func;                  \
+    (vtable)->Hook(static_cast<DWORD>(entry), &ptr);
+
+            HOOK(cvTable, ClientReceive::FireWeapon, IClientVTable::FireWeapon);
+            HOOK(cvTable, ClientReceive::ActivateEquip, IClientVTable::ActivateEquip);
+            HOOK(cvTable, ClientReceive::ActivateCruise, IClientVTable::ActivateCruise);
+            HOOK(cvTable, ClientReceive::ActivateThruster, IClientVTable::ActivateThruster);
+            HOOK(cvTable, ClientReceive::SetTarget, IClientVTable::SetTarget);
+            HOOK(cvTable, ClientReceive::EnterTradeLane, IClientVTable::EnterTradeLane);
+            HOOK(cvTable, ClientReceive::StopTradeLane, IClientVTable::LeaveTradeLane);
+            HOOK(cvTable, ClientReceive::JettisonCargo, IClientVTable::JettisonCargo);
+            HOOK(cvTable, ClientReceive::Login, IClientVTable::Login);
+            HOOK(cvTable, ClientReceive::CharacterInformationReceived, IClientVTable::CharacterInfo);
+            HOOK(cvTable, ClientReceive::CharacterSelect, IClientVTable::CharacterSelect);
+            HOOK(cvTable, ClientReceive::AddItem, IClientVTable::AddItemToCharacter);
+            HOOK(cvTable, ClientReceive::StartRoom, IClientVTable::SetStartRoom);
+            HOOK(cvTable, ClientReceive::DestroyCharacter, IClientVTable::DestroyCharacter);
+            HOOK(cvTable, ClientReceive::UpdateCharacter, IClientVTable::UpdateCharacter);
+            HOOK(cvTable, ClientReceive::SetReputation, IClientVTable::SetReputation);
+            HOOK(cvTable, ClientReceive::Land, IClientVTable::Land);
+            HOOK(cvTable, ClientReceive::Launch, IClientVTable::Launch);
+            HOOK(cvTable, ClientReceive::SystemSwitchOut, IClientVTable::SystemSwitchOut);
+            HOOK(cvTable, ClientReceive::JumpInComplete, IClientVTable::JumpInComplete);
+            HOOK(cvTable, ClientReceive::ShipCreate, IClientVTable::CreateShip);
+            HOOK(cvTable, ClientReceive::DamageObject, IClientVTable::DamageObject);
+            HOOK(cvTable, ClientReceive::ItemTractored, IClientVTable::ItemTractored);
+            HOOK(cvTable, ClientReceive::CargoObjectUpdated, IClientVTable::ObjectCargoUpdate);
+            HOOK(cvTable, ClientReceive::FuseBurnStarted, IClientVTable::BeginFuse);
+            HOOK(cvTable, ClientReceive::WeaponGroupSet, IClientVTable::SetWeaponGroup);
+            HOOK(cvTable, ClientReceive::VisitStateSet, IClientVTable::SetVisitState);
+            HOOK(cvTable, ClientReceive::BestPathResponse, IClientVTable::RequestBestPath);
+            HOOK(cvTable, ClientReceive::PlayerInformation, IClientVTable::RequestPlayerStats);
+            HOOK(cvTable, ClientReceive::GroupPositionResponse, IClientVTable::RequestGroupPositions);
+            HOOK(cvTable, ClientReceive::PlayerIsLeavingServer, IClientVTable::PlayerIsLeavingServer);
+            HOOK(cvTable, ClientReceive::FormationUpdate, IClientVTable::FormationUpdate);
+
+            HOOK(svTable, ClientSend::FireWeapon, IServerVTable::FireWeapon);
+            HOOK(svTable, ClientSend::ActivateEquip, IServerVTable::ActivateEquip);
+            HOOK(svTable, ClientSend::ActivateCruise, IServerVTable::ActivateCruise);
+            HOOK(svTable, ClientSend::ActivateThruster, IServerVTable::ActivateThruster);
+            HOOK(svTable, ClientSend::SetTarget, IServerVTable::SetTarget);
+            HOOK(svTable, ClientSend::TractorObjects, IServerVTable::TractorObjects);
+            HOOK(svTable, ClientSend::EnterTradeLane, IServerVTable::EnterTradeLane);
+            HOOK(svTable, ClientSend::LeaveTradeLane, IServerVTable::LeaveTradeLane);
+            HOOK(svTable, ClientSend::JettisonCargo, IServerVTable::JettisonCargo);
+            HOOK(svTable, ClientSend::Disconnect, IServerVTable::Disconnect);
+            HOOK(svTable, ClientSend::Connect, IServerVTable::Connect);
+            HOOK(svTable, ClientSend::Login, IServerVTable::Login);
+            HOOK(svTable, ClientSend::CharacterInfoRequest, IServerVTable::CharacterInfoRequest);
+            HOOK(svTable, ClientSend::CharacterSelect, IServerVTable::CharacterSelect);
+            HOOK(svTable, ClientSend::CreateNewCharacter, IServerVTable::CreateNewCharacter);
+            HOOK(svTable, ClientSend::DestroyCharacter, IServerVTable::DestroyCharacter);
+            HOOK(svTable, ClientSend::RequestAddItem, IServerVTable::RequestAddItem);
+            HOOK(svTable, ClientSend::RequestRemoveItem, IServerVTable::RequestRemoveItem);
+            HOOK(svTable, ClientSend::RequestModifyItem, IServerVTable::RequestModifyItem);
+            HOOK(svTable, ClientSend::RequestSetCash, IServerVTable::RequestSetCash);
+            HOOK(svTable, ClientSend::RequestChangeCash, IServerVTable::RequestChangeCash);
+            HOOK(svTable, ClientSend::BaseEnter, IServerVTable::BaseEnter);
+            HOOK(svTable, ClientSend::BaseExit, IServerVTable::BaseExit);
+            HOOK(svTable, ClientSend::LocationEnter, IServerVTable::LocationEnter);
+            HOOK(svTable, ClientSend::LocationExit, IServerVTable::LocationExit);
+            HOOK(svTable, ClientSend::ObjectSelect, IServerVTable::ObjectSelect);
+            HOOK(svTable, ClientSend::GoodVaporized, IServerVTable::GoodVaporized);
+            HOOK(svTable, ClientSend::TradeResponse, IServerVTable::TradeResponse);
+            HOOK(svTable, ClientSend::GoodBuy, IServerVTable::GoodBuy);
+            HOOK(svTable, ClientSend::GoodSell, IServerVTable::GoodSell);
+            HOOK(svTable, ClientSend::SystemSwitchOutComplete, IServerVTable::SystemSwitchOutComplete);
+            HOOK(svTable, ClientSend::PlayerLaunch, IServerVTable::PlayerLaunch);
+            HOOK(svTable, ClientSend::LaunchComplete, IServerVTable::LaunchComplete);
+            HOOK(svTable, ClientSend::JumpInComplete, IServerVTable::JumpInComplete);
+            HOOK(svTable, ClientSend::Hail, IServerVTable::Hail);
+            HOOK(svTable, ClientSend::ObjectUpdate, IServerVTable::ObjectUpdate);
+            HOOK(svTable, ClientSend::MunitionCollision, IServerVTable::MunitionCollision);
+            HOOK(svTable, ClientSend::ObjectCollision, IServerVTable::ObjectCollision);
+            HOOK(svTable, ClientSend::RequestEvent, IServerVTable::RequestEvent);
+            HOOK(svTable, ClientSend::RequestCancel, IServerVTable::RequestCancel);
+            HOOK(svTable, ClientSend::AbortMission, IServerVTable::AbortMission);
+            HOOK(svTable, ClientSend::SetWeaponGroup, IServerVTable::SetWeaponGroup);
+            HOOK(svTable, ClientSend::SetVisitedState, IServerVTable::SetVisitedState);
+            HOOK(svTable, ClientSend::RequestBestPath, IServerVTable::RequestBestPath);
+            HOOK(svTable, ClientSend::RequestPlayerStats, IServerVTable::RequestPlayerStats);
+            HOOK(svTable, ClientSend::InitiateTrade, IServerVTable::InitiateTrade);
+            HOOK(svTable, ClientSend::TerminateTrade, IServerVTable::TerminateTrade);
+            HOOK(svTable, ClientSend::AcceptTrade, IServerVTable::AcceptTrade);
+            HOOK(svTable, ClientSend::SetTradeMoney, IServerVTable::SetTradeMoney);
+            HOOK(svTable, ClientSend::AddTradeEquip, IServerVTable::AddTradeEquip);
+            HOOK(svTable, ClientSend::DelTradeEquip, IServerVTable::DelTradeEquip);
+            HOOK(svTable, ClientSend::RequestTrade, IServerVTable::RequestTrade);
+            HOOK(svTable, ClientSend::StopTradeRequest, IServerVTable::StopTradeRequest);
+            HOOK(svTable, ClientSend::RequestDifficultyScale, IServerVTable::RequestDifficultyScale);
+            HOOK(svTable, ClientSend::Dock, IServerVTable::Dock);
+            // HOOK(svTable, ClientSend::SubmitChat, IServerVTable::SubmitChat);
+
+#undef HOOK
+        }
+};
+
 IClientImpl* Fluf::OnContextSwitchDetour(const char* dllName)
 {
     contextSwitchDetour->UnDetour();
     fluf->serverClient = contextSwitchDetour->GetOriginalFunc()(dllName);
     contextSwitchDetour->Detour(OnContextSwitchDetour);
 
-    // Swap to Server.dll or RemoteServer.dll, depending on the context
-    fluf->clientServer =
-        reinterpret_cast<IServerImpl*>(GetProcAddress(GetModuleHandleA(_strcmpi(dllName, "Server.dll") == 0 ? "Server.dll" : dllName), "??_7IClient@@6B@"));
+    const bool local = SinglePlayer();
+    Log(LogLevel::Debug, std::format("Context switching to {} ({})", local ? "SP" : "MP", dllName));
 
-    fluf->clientVTable = std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::Start), static_cast<DWORD>(IClientVTable::End)>>(dllName);
-    fluf->serverVTable = std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::Start), static_cast<DWORD>(IServerVTable::End)>>(dllName);
-    fluf->HookServer();
+    // Swap to rpclocal.dll or RemoteServer.dll, depending on the context
+    fluf->clientServer = reinterpret_cast<IServerImpl*>(GetProcAddress(GetModuleHandleA(dllName), "??_7IClient@@6B@"));
+
+    if (local)
+    {
+        fluf->localClientVTable =
+            std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>>(dllName);
+        fluf->localServerVTable =
+            std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>>(dllName);
+        VTableHack::HookClientServer(fluf->localClientVTable.get(), fluf->localServerVTable.get());
+    }
+    else
+    {
+        fluf->remoteClientVTable =
+            std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>>(dllName);
+        fluf->remoteServerVTable =
+            std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>>(dllName);
+        VTableHack::HookClientServer(fluf->remoteClientVTable.get(), fluf->remoteServerVTable.get());
+    }
 
     return fluf->serverClient;
 }
 
-void Fluf::HookServer() const
+std::string SetLogMetadata(void* address, LogLevel level)
 {
-    const void* ptr;
-#define HOOK(vtable, func, entry) \
-    ptr = &func;                  \
-    vtable->Hook(static_cast<DWORD>(entry), &ptr);
+    if (HMODULE dll; RtlPcToFileHeader(address, reinterpret_cast<void**>(&dll)))
+    {
+        std::array<char, MAX_PATH> path;
+        if (GetModuleFileNameA(dll, path.data(), path.size()))
+        {
+            const std::string fullPath = path.data();
+            std::string levelStr;
+            switch (level)
+            {
+                case LogLevel::Trace: levelStr = "TRACE"; break;
+                case LogLevel::Debug: levelStr = "DBG"; break;
+                case LogLevel::Info: levelStr = "INFO"; break;
+                case LogLevel::Warn: levelStr = "WARN"; break;
+                case LogLevel::Error: levelStr = "ERR"; break;
+            }
 
-    HOOK(clientVTable, ClientReceive::FireWeapon, IClientVTable::FireWeapon);
-    HOOK(clientVTable, ClientReceive::ActivateEquip, IClientVTable::ActivateEquip);
-    HOOK(clientVTable, ClientReceive::ActivateCruise, IClientVTable::ActivateCruise);
-    HOOK(clientVTable, ClientReceive::ActivateThruster, IClientVTable::ActivateThruster);
-    HOOK(clientVTable, ClientReceive::SetTarget, IClientVTable::SetTarget);
-    HOOK(clientVTable, ClientReceive::EnterTradeLane, IClientVTable::EnterTradeLane);
-    HOOK(clientVTable, ClientReceive::StopTradeLane, IClientVTable::LeaveTradeLane);
-    HOOK(clientVTable, ClientReceive::JettisonCargo, IClientVTable::JettisonCargo);
-    HOOK(clientVTable, ClientReceive::Login, IClientVTable::Login);
-    HOOK(clientVTable, ClientReceive::CharacterInformationReceived, IClientVTable::CharacterInfo);
-    HOOK(clientVTable, ClientReceive::CharacterSelect, IClientVTable::CharacterSelect);
-    HOOK(clientVTable, ClientReceive::AddItem, IClientVTable::AddItemToCharacter);
-    HOOK(clientVTable, ClientReceive::StartRoom, IClientVTable::SetStartRoom);
-    HOOK(clientVTable, ClientReceive::DestroyCharacter, IClientVTable::DestroyCharacter);
-    HOOK(clientVTable, ClientReceive::UpdateCharacter, IClientVTable::UpdateCharacter);
-    HOOK(clientVTable, ClientReceive::SetReputation, IClientVTable::SetReputation);
-    HOOK(clientVTable, ClientReceive::Land, IClientVTable::Land);
-    HOOK(clientVTable, ClientReceive::Launch, IClientVTable::Launch);
-    HOOK(clientVTable, ClientReceive::SystemSwitchOut, IClientVTable::SystemSwitchOut);
-    HOOK(clientVTable, ClientReceive::JumpInComplete, IClientVTable::JumpInComplete);
-    HOOK(clientVTable, ClientReceive::ShipCreate, IClientVTable::CreateShip);
-    HOOK(clientVTable, ClientReceive::DamageObject, IClientVTable::DamageObject);
-    HOOK(clientVTable, ClientReceive::ItemTractored, IClientVTable::ItemTractored);
-    HOOK(clientVTable, ClientReceive::CargoObjectUpdated, IClientVTable::ObjectCargoUpdate);
-    HOOK(clientVTable, ClientReceive::FuseBurnStarted, IClientVTable::BeginFuse);
-    HOOK(clientVTable, ClientReceive::WeaponGroupSet, IClientVTable::SetWeaponGroup);
-    HOOK(clientVTable, ClientReceive::VisitStateSet, IClientVTable::SetVisitState);
-    HOOK(clientVTable, ClientReceive::BestPathResponse, IClientVTable::RequestBestPath);
-    HOOK(clientVTable, ClientReceive::PlayerInformation, IClientVTable::RequestPlayerStats);
-    HOOK(clientVTable, ClientReceive::GroupPositionResponse, IClientVTable::RequestGroupPositions);
-    HOOK(clientVTable, ClientReceive::PlayerIsLeavingServer, IClientVTable::PlayerIsLeavingServer);
-    HOOK(clientVTable, ClientReceive::FormationUpdate, IClientVTable::FormationUpdate);
+            return std::format("({} {}) {}: ", "TIME", fullPath.substr(fullPath.find_last_of("\\") + 1), levelStr);
+        }
+    }
 
-#undef HOOK
+    return "";
+}
+
+void Fluf::Log(LogLevel level, std::string_view message)
+{
+    if (level < instance->config->logLevel)
+    {
+        return;
+    }
+
+    const std::string paddedMessage = SetLogMetadata(_ReturnAddress(), level) + std::string(message);
+
+    if (instance->config->logSinks.contains(LogSink::Console))
+    {
+        enum class ConsoleColour
+        {
+            Blue = 1,
+            Green = 2,
+            Red = 4,
+            Bold = 8,
+            Cyan = Blue | Green,
+            Purple = Red | Blue,
+            Yellow = Red | Green,
+            White = Red | Green | Blue,
+            StrongWhite = White | Bold,
+            StrongCyan = Cyan | Bold,
+            StrongRed = Red | Bold,
+            StrongYellow = Yellow | Bold,
+            StrongGreen = Green | Bold,
+        };
+
+        const auto outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        switch (level)
+        {
+            case LogLevel::Trace: SetConsoleTextAttribute(outputHandle, static_cast<WORD>(ConsoleColour::StrongCyan)); break;
+            case LogLevel::Debug: SetConsoleTextAttribute(outputHandle, static_cast<WORD>(ConsoleColour::StrongGreen)); break;
+            case LogLevel::Info: SetConsoleTextAttribute(outputHandle, static_cast<WORD>(ConsoleColour::StrongWhite)); break;
+            case LogLevel::Warn: SetConsoleTextAttribute(outputHandle, static_cast<WORD>(ConsoleColour::StrongYellow)); break;
+            case LogLevel::Error: SetConsoleTextAttribute(outputHandle, static_cast<WORD>(ConsoleColour::StrongRed)); break;
+        }
+
+        std::cout << paddedMessage << std::endl;
+    }
 }
 
 Fluf::Fluf()
@@ -155,6 +303,29 @@ Fluf::Fluf()
     instance = this;
     config = std::make_shared<FlufConfiguration>();
     config->Load();
+
+    // Console sink enabled, allocate console and allow us to use std::cout
+    if (config->logSinks.contains(LogSink::Console))
+    {
+        AllocConsole();
+        SetConsoleTitleA("FLUF - Freelancer Unified Framework");
+
+        const auto console = GetConsoleWindow();
+        RECT r;
+        GetWindowRect(console, &r);
+
+        MoveWindow(console, r.left, r.top, 1366, 768, TRUE);
+
+        FILE* dummy;
+        freopen_s(&dummy, "CONOUT$", "w", stdout);
+        SetStdHandle(STD_OUTPUT_HANDLE, stdout);
+    }
+
+    Log(LogLevel::Trace, "Hello world");
+    Log(LogLevel::Debug, "Hello world");
+    Log(LogLevel::Info, "Hello world");
+    Log(LogLevel::Warn, "Hello world");
+    Log(LogLevel::Error, "Hello world");
 
     // Load all dlls as needed
     for (const auto& modulePath : config->modules)
@@ -164,28 +335,28 @@ Fluf::Fluf()
         if (lib)
         {
             // TODO: LOG
-            return;
+            continue;
         }
 
         lib = LoadLibraryA(modulePath.c_str());
         if (!lib)
         {
             // TODO: LOG
-            return;
+            continue;
         }
 
         const auto factory = reinterpret_cast<std::shared_ptr<FlufModule> (*)()>(GetProcAddress(lib, "ModuleFactory"));
         if (factory)
         {
             // TODO: LOG
-            return;
+            continue;
         }
 
         const auto module = factory();
         if (module->majorVersion != majorVersion)
         {
             // TODO: Log
-            return;
+            continue;
         }
 
         if (module->minorVersion != minorVersion)

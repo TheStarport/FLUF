@@ -11,13 +11,6 @@ class ClientSend;
 class ClientReceive;
 class Fluf;
 
-enum class LogLevel
-{
-    Error,
-    Info,
-    Debug
-};
-
 enum class ModuleMajorVersion
 {
     One = 1,
@@ -41,15 +34,14 @@ class FLUF_API FlufModule
         FlufModule() = default;
         virtual ~FlufModule() = default;
 
-        void LogInfo(std::string_view message);
-        void LogError(std::string_view message);
-        void LogDebug(std::string_view message);
+        virtual void OnLog(enum class LogLevel level, std::string_view message) {}
 
         virtual void OnUpdate(const double delta) {}
         virtual void OnFixedUpdate(const double delta){};
         virtual void OnGameLoad() {}
 
         // Before Hooks
+
         virtual bool BeforeFireWeapon(uint client, XFireWeaponInfo& fwi) { return true; }
         virtual bool BeforeActivateEquip(uint client, XActivateEquip& aq) { return true; }
         virtual bool BeforeActivateCruise(uint client, XActivateCruise& ac) { return true; }
@@ -59,10 +51,10 @@ class FLUF_API FlufModule
         virtual bool BeforeEnterTradelane(uint client, XGoTradelane& gt) { return true; }
         virtual bool BeforeLeaveTradelane(uint client, uint shipId, uint tradelaneRing1, uint tradelaneRing2) { return true; }
         virtual bool BeforeJettisonCargo(uint client, XJettisonCargo& jc) { return true; }
-        virtual bool BeforeDisConnect(uint client, EFLConnection conn) { return true; }
-        virtual bool BeforeOnConnect(uint client) { return true; }
+        virtual bool BeforeDisconnect(uint client, EFLConnection conn) { return true; }
+        virtual bool BeforeConnect(uint client) { return true; }
         virtual bool BeforeLogin(SLoginInfo& li, uint client) { return true; }
-        virtual bool BeforeCharacterInfoReq(uint client, bool) { return true; }
+        virtual bool BeforeCharacterInfoRequest(uint client, bool) { return true; }
         virtual bool BeforeCharacterSelect(struct CHARACTER_ID& cid, uint client) { return true; }
         virtual bool BeforeCreateNewCharacter(SCreateCharacterInfo&, uint client) { return true; }
         virtual bool BeforeDestroyCharacter(CHARACTER_ID const&, uint client) { return true; }
@@ -79,27 +71,42 @@ class FLUF_API FlufModule
         virtual bool BeforeLocationExit(uint locationId, uint client) { return true; }
         virtual bool BeforeBaseInfoRequest(unsigned int, unsigned int, bool) { return true; }
         virtual bool BeforeLocationInfoRequest(unsigned int, unsigned int, bool) { return true; }
-        virtual bool BeforeGFObjSelect(unsigned int, unsigned int) { return true; }
-        virtual bool BeforeGFGoodVaporized(const SGFGoodVaporizedInfo& gvi, uint client) { return true; }
+        virtual bool BeforeObjectSelect(unsigned int, unsigned int) { return true; }
+        virtual bool BeforeGoodVaporized(const SGFGoodVaporizedInfo& gvi, uint client) { return true; }
         virtual bool BeforeMissionResponse(unsigned int, unsigned long, bool, uint client) { return true; }
         virtual bool BeforeTradeResponse(const unsigned char*, int, uint client) { return true; }
-        virtual bool BeforeGFGoodBuy(const SGFGoodBuyInfo&, uint client) { return true; }
-        virtual bool BeforeGFGoodSell(const SGFGoodSellInfo&, uint client) { return true; }
+        virtual bool BeforeGoodBuy(const SGFGoodBuyInfo&, uint client) { return true; }
+        virtual bool BeforeGoodSell(const SGFGoodSellInfo&, uint client) { return true; }
         virtual bool BeforeSystemSwitchOutComplete(uint shipId, uint client) { return true; }
         virtual bool BeforePlayerLaunch(uint shipId, uint client) { return true; }
         virtual bool BeforeLaunchComplete(uint baseId, uint shipId) { return true; }
         virtual bool BeforeJumpInComplete(uint systemId, uint shipId) { return true; }
-        virtual bool BeforeSPObjUpdate(const SSPObjUpdateInfo& ui, uint client) { return true; }
-        virtual bool BeforeSPMunitionCollision(const SSPMunitionCollisionInfo& mci, uint client) { return true; }
-        virtual bool BeforeSPObjCollision(const SSPObjCollisionInfo& oci, uint client) { return true; }
+        virtual bool BeforeHail(uint unk1, uint unk2, uint unk3) { return true; }
+        virtual bool BeforeObjectUpdate(const SSPObjUpdateInfo& ui, uint client) { return true; }
+        virtual bool BeforeMunitionCollision(const SSPMunitionCollisionInfo& mci, uint client) { return true; }
+        virtual bool BeforeObjectCollision(const SSPObjCollisionInfo& oci, uint client) { return true; }
+        virtual bool BeforeRequestEvent(int eventType, uint shipId, uint dockTarget, uint unk1, ulong unk2, uint client) { return true; }
+        virtual bool BeforeRequestCancel(int eventType, uint shipId, uint unk1, ulong unk2, uint client) { return true; }
+        virtual bool BeforeAbortMission(uint client, uint unk2) { return true; }
         virtual bool BeforeSetWeaponGroup(uint client, uchar*, int) { return true; }
         virtual bool BeforeSetVisitedState(uint client, uchar*, int) { return true; }
         virtual bool BeforeRequestBestPath(uint client, uchar*, int) { return true; }
         virtual bool BeforeRequestPlayerStats(uint client, uchar*, int) { return true; }
         virtual bool BeforeRequestGroupPositions(uint client, uchar*, int) { return true; }
+        virtual bool BeforeInitiateTrade(uint client1, uint client2) { return true; }
+        virtual bool BeforeTerminateTrade(uint client, int accepted) { return true; }
+        virtual bool BeforeAcceptTrade(uint client, bool unk) { return true; }
+        virtual bool BeforeSetTradeMoney(uint client, ulong money) { return true; }
+        virtual bool BeforeAddTradeEquip(uint client, EquipDesc& desc) { return true; }
+        virtual bool BeforeRemoveTradeEquip(uint client, EquipDesc& desc) { return true; }
+        virtual bool BeforeRequestTrade(uint unk1, uint unk2) { return true; }
+        virtual bool BeforeStopTradeRequest(uint client) { return true; }
+        virtual bool BeforeRequestDifficultyScale(float scale, uint unk2) { return true; }
+        virtual bool BeforeDock(uint& unk1, uint& unk2) { return true; }
         virtual bool BeforeSubmitChat(uint from, ulong size, const void* rdlReader, uint to, int) { return true; }
 
         // After Hooks
+
         virtual void OnFireWeapon(uint client, XFireWeaponInfo& info) {}
         virtual void OnActivateEquip(uint client, XActivateEquip& aq) {}
         virtual void OnActivateCruise(uint client, XActivateCruise& aq) {}
