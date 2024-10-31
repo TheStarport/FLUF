@@ -8,13 +8,12 @@
 
 void __fastcall ClientSend::FireWeapon(IServerImpl* serverImpl, void*, uint client, XFireWeaponInfo& info)
 {
-    Fluf::Log(LogLevel::Trace, std::format("ClientReceive::FireWeapon | client: {}, object: {}", client, info.object));
+    Fluf::Log(LogLevel::Trace, __FUNCTION__);
 
     using FuncType = void(__thiscall*)(IServerImpl*, uint, XFireWeaponInfo&);
     if (Fluf::instance->CallModuleEvent(&FlufModule::BeforeFireWeapon, client, info))
     {
         static_cast<FuncType>(Fluf::instance->localServerVTable->GetOriginal(static_cast<ushort>(IServerVTable::FireWeapon)))(serverImpl, client, info);
-        ;
     }
 }
 

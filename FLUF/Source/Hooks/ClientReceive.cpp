@@ -4,7 +4,6 @@
 
 #include "Fluf.hpp"
 #include "FlufModule.hpp"
-#include "Internal/FlufConfiguration.hpp"
 
 bool __fastcall ClientReceive::FireWeapon(IClientImpl* clientImpl, void*, uint client, XFireWeaponInfo& info)
 {
