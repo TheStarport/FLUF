@@ -30,6 +30,7 @@ struct IServerImpl;
 class ClientSend;
 class ClientReceive;
 class FlufConfiguration;
+struct CShip;
 class Fluf
 {
         friend ClientSend;
@@ -107,7 +108,6 @@ class Fluf
         ~Fluf();
 
         FLUF_API static void Log(LogLevel level, std::string_view message);
-        FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string identifier);
-        FLUF_API static bool RegisterModule(std::shared_ptr<FlufModule> module);
-        FLUF_API static bool EraseModule(std::shared_ptr<FlufModule> module);
+        FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string_view identifier);
+        FLUF_API static CShip* GetCShip();
 };

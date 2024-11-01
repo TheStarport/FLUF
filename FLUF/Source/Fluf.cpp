@@ -298,6 +298,31 @@ void Fluf::Log(LogLevel level, std::string_view message)
     }
 }
 
+std::weak_ptr<FlufModule> Fluf::GetModule(const std::string_view identifier)
+{
+    for (auto& module : instance->loadedModules)
+    {
+        if (module->GetModuleName() == identifier)
+        {
+            return module;
+        }
+    }
+
+    return {};
+}
+
+CShip* Fluf::GetCShip()
+{
+    const auto ptr = reinterpret_cast<PDWORD*>(0x679744);
+    if (!*ptr)
+    {
+        return nullptr;
+    }
+
+    const auto nextPtr = *ptr + 4;
+    return reinterpret_cast<CShip*>(*(nextPtr + 4));
+}
+
 Fluf::Fluf()
 {
     instance = this;
@@ -334,38 +359,38 @@ Fluf::Fluf()
         auto lib = GetModuleHandleA(modulePath.c_str());
         if (lib)
         {
-            // TODO: LOG
+            Log(LogLevel::Warn, std::format("Module already loaded: {}", modulePath));
             continue;
         }
 
         lib = LoadLibraryA(modulePath.c_str());
         if (!lib)
         {
-            // TODO: LOG
+            Log(LogLevel::Error, std::format("Failed to load module: {}", modulePath));
             continue;
         }
 
         const auto factory = reinterpret_cast<std::shared_ptr<FlufModule> (*)()>(GetProcAddress(lib, "ModuleFactory"));
-        if (factory)
+        if (!factory)
         {
-            // TODO: LOG
+            Log(LogLevel::Error, std::format("Loaded module did not have ModuleFactory export: {}", modulePath));
             continue;
         }
 
         const auto module = factory();
         if (module->majorVersion != majorVersion)
         {
-            // TODO: Log
+            Log(LogLevel::Error, std::format("Major version did not match for module: {}", modulePath));
             continue;
         }
 
         if (module->minorVersion != minorVersion)
         {
-            // TODO: Log
+            Log(LogLevel::Warn, std::format("Minor version did not match for module: {}", modulePath));
         }
 
         loadedModules.emplace(module);
-        // TODO: LOG
+        Log(LogLevel::Info, std::format("Loaded Module: {}", module->GetModuleName()));
     }
 
     const HMODULE common = GetModuleHandleA("common");

@@ -27,6 +27,7 @@ class FLUF_API FlufModule
         friend Fluf;
         friend ClientReceive;
         friend ClientSend;
+
         ModuleMajorVersion majorVersion = ModuleMajorVersion::One;
         ModuleMinorVersion minorVersion = ModuleMinorVersion::Zero;
 
@@ -139,11 +140,14 @@ class FLUF_API FlufModule
         virtual void OnGroupPositionResponse(uint client, uint, int) {}
         virtual void OnPlayerLeavingServer(uint onlineClient, uint leavingClient) {}
         virtual void OnFormationUpdate(uint client, uint shipId, Vector& formationOffset) {}
+
+    public:
+        virtual std::string_view GetModuleName() = 0;
 };
 
-#define SETUP_MODULE(type, info)                                                \
+#define SETUP_MODULE(type)                                                      \
     __declspec(dllexport) std::shared_ptr<type> ModuleFactory()                 \
     {                                                                           \
         __pragma(comment(linker, "/EXPORT:" __FUNCTION__ "=" __FUNCDNAME__)) {} \
-        return std::move(std::make_shared<type>(info)) {}                       \
+        return std::move(std::make_shared<type>());                             \
     }

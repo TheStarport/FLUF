@@ -5,6 +5,7 @@ set(VER_MINOR 0)
 set(VER_PATCH 0)
 set(NAME "FLUF UI")
 set(DESCRIPTION "FLUF UI is a framework designed to making UI extensions for Freelancer (2003) possible")
+set(FLUF_UI_PATH ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
 configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
 add_library(FLUF.UI SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
@@ -27,7 +28,7 @@ target_include_directories(FLUF.UI PRIVATE ${CURL_PATH}/include)
 
 # RmlUi
 add_dependencies(FLUF.UI FLUF RmlUi::RmlUi RmlUi::Debugger RmlUi::Lua)
-target_link_libraries(FLUF.UI PRIVATE RmlUi::Core RmlUi::Debugger RmlUi::Lua)
+target_link_libraries(FLUF.UI PRIVATE FLUF RmlUi::Core RmlUi::Debugger RmlUi::Lua)
 
 # General
 set_general_targets(PROJECT_NAME FLUF.UI)

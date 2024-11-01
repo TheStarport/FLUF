@@ -2,6 +2,7 @@
 
 #include "FLUF.UI.hpp"
 
+#include "FLUF/Include/Fluf.hpp"
 #include "Rml/Interfaces/RenderInterfaceDirectX9.hpp"
 #include "Rml/Interfaces/RmlInterface.hpp"
 #include "Typedefs.hpp"
@@ -17,8 +18,6 @@ using Direct3DCreateDevice9 = HRESULT(__stdcall*)(IDirect3D9* context, uint adap
                                                   D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
 using Direct3DDevice9EndScene = HRESULT(__stdcall*)(IDirect3DDevice9* device);
 
-std::shared_ptr<FlufUi> module;
-
 std::unique_ptr<FunctionDetour<ScriptLoadPtr>> thornLoadDetour;
 std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d8CreateDetour;
@@ -31,19 +30,10 @@ const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModul
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
 {
     DisableThreadLibraryCalls(mod);
-    if (reason == DLL_PROCESS_ATTACH)
-    {
-        module = std::make_shared<FlufUi>();
-    }
-    else if (reason == DLL_PROCESS_DETACH)
-    {
-        module.reset();
-    }
-
     return TRUE;
 }
 
-void FlufUi::DelayedInit()
+void FlufUi::OnGameLoad()
 {
     if (d3d9)
     {
@@ -53,42 +43,12 @@ void FlufUi::DelayedInit()
         }
     }
 }
-
 void FlufUi::OnUpdate(const double delta)
 {
-    constexpr float SixtyFramesPerSecond = 1.0f / 60.0f;
-    static double timeCounter = 0.0f;
-
-    timeCounter += delta;
-    while (timeCounter > SixtyFramesPerSecond)
+    if (config->uiMode == UiMode::Rml)
     {
-        // Fixed Update
-        timeCounter -= SixtyFramesPerSecond;
+        rmlInterface->rmlContext->Update();
     }
-
-    if(module->config->uiMode == UiMode::Rml)
-    {
-        module->rmlInterface->rmlContext->Update();
-    }
-
-    frameUpdateDetour->UnDetour();
-    frameUpdateDetour->GetOriginalFunc()(delta);
-    frameUpdateDetour->Detour(OnUpdate);
-}
-
-void* FlufUi::OnScriptLoadHook(const char* file)
-{
-    static bool loaded = false;
-    if (!loaded)
-    {
-        loaded = true;
-        module->DelayedInit();
-    }
-
-    thornLoadDetour->UnDetour();
-    void* ret = thornLoadDetour->GetOriginalFunc()(file);
-    thornLoadDetour->Detour(OnScriptLoadHook);
-    return ret;
 }
 
 IDirect3D9* __stdcall FlufUi::OnDirect3D8Create(const uint sdkVersion)
@@ -116,7 +76,6 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
     return result;
 }
 
-std::weak_ptr<FlufUi> FlufUi::Instance() { return module; }
 std::weak_ptr<HudManager> FlufUi::GetHudManager() { return hudManager; }
 std::optional<RmlContext> FlufUi::GetRmlContext()
 {
@@ -137,22 +96,16 @@ FlufUi::FlufUi()
     config = std::make_shared<FlufUiConfig>();
     config->Load();
 
-    const HMODULE common = GetModuleHandleA("common");
-    thornLoadDetour = std::make_unique<FunctionDetour<ScriptLoadPtr>>(
-        reinterpret_cast<ScriptLoadPtr>(GetProcAddress(common, "?ThornScriptLoad@@YAPAUIScriptEngine@@PBD@Z"))); // NOLINT
-
-    thornLoadDetour->Detour(OnScriptLoadHook);
-
     if (const HMODULE d3d9Handle = GetModuleHandleA("d3d9.dll"))
     {
         d3d8CreateDetour =
             std::make_unique<FunctionDetour<Direct3DCreate9Ptr>>(reinterpret_cast<Direct3DCreate9Ptr>(GetProcAddress(d3d9Handle, "Direct3DCreate9")));
         d3d8CreateDetour->Detour(OnDirect3D8Create);
     }
-
-    const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
-    frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));
-    frameUpdateDetour->Detour(OnUpdate);
 }
 
 FlufUi::~FlufUi() { hudManager.reset(); }
+
+std::string_view FlufUi::GetModuleName() { return moduleName; }
+
+SETUP_MODULE(FlufUi);
