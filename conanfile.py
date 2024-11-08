@@ -20,10 +20,8 @@ class CompressorRecipe(ConanFile):
         self.requires("glm/cci.20230113")
         self.requires("magic_enum/0.9.6")
         self.requires("lua/5.4.7")
+        self.requires("lunasvg/3.0.1")
         self.requires("yaml-cpp/0.8.0")
-
-    def build_requirements(self):
-        self.tool_requires("cmake/3.23.5")
 
     def layout(self):
         multi = platform.system() == "Windows"

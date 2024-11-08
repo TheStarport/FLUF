@@ -2,23 +2,32 @@
 
 #include "Rml/RmlContext.hpp"
 
-Rml::ElementDocument* RmlContext::LoadDocument(const Rml::String& filePath) { return context->LoadDocument(filePath); }
+#include "FLUF/Include/Fluf.hpp"
 
-Rml::ElementDocument* RmlContext::LoadDocumentFromMemory(const Rml::String& documentContents) { return context->LoadDocumentFromMemory(documentContents); }
+Rml::ElementDocument* RmlContext::LoadDocument(const Rml::String& filePath) const
+{
+    Fluf::Log(LogLevel::Debug, std::format("Attempting to load document: {}", filePath));
+    return context->LoadDocument(filePath);
+}
 
-void RmlContext::UnloadDocument(Rml::ElementDocument* document) { context->UnloadDocument(document); }
+Rml::ElementDocument* RmlContext::LoadDocumentFromMemory(const Rml::String& documentContents) const
+{
+    return context->LoadDocumentFromMemory(documentContents);
+}
 
-void RmlContext::UnloadAllDocuments() { context->UnloadAllDocuments(); }
+void RmlContext::UnloadDocument(Rml::ElementDocument* document) const { context->UnloadDocument(document); }
 
-void RmlContext::UnfocusDocument(Rml::ElementDocument* document) { context->UnfocusDocument(document); }
+void RmlContext::UnloadAllDocuments() const { context->UnloadAllDocuments(); }
 
-void RmlContext::UnfocusAllDocuments() { context->UnloadAllDocuments(); }
+void RmlContext::UnfocusDocument(Rml::ElementDocument* document) const { context->UnfocusDocument(document); }
 
-bool RmlContext::RemoveDataModel(const Rml::String& name) { return context->RemoveDataModel(name); }
+void RmlContext::UnfocusAllDocuments() const { context->UnloadAllDocuments(); }
 
-Rml::DataModelConstructor RmlContext::GetDataModel(const Rml::String& name) { return context->GetDataModel(name); }
+bool RmlContext::RemoveDataModel(const Rml::String& name) const { return context->RemoveDataModel(name); }
 
-Rml::DataModelConstructor RmlContext::CreateDataModel(const Rml::String& name, Rml::DataTypeRegister* dataTypeRegister)
+Rml::DataModelConstructor RmlContext::GetDataModel(const Rml::String& name) const { return context->GetDataModel(name); }
+
+Rml::DataModelConstructor RmlContext::CreateDataModel(const Rml::String& name, Rml::DataTypeRegister* dataTypeRegister) const
 {
     return context->CreateDataModel(name, dataTypeRegister);
 }

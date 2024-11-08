@@ -1,0 +1,25 @@
+<rml>
+    <head>
+        <title>Group Info</title>
+        <link type="text/template" href="local://INTERFACE/RML/templates/window.rml"/>
+        <link type="text/rcss" href="local://INTERFACE/RML/rcss/rml.rcss"/>
+        <link type="text/rcss" href="local://INTERFACE/RML/rcss/group_info.rcss"/>
+    </head>
+    <body>
+    <br/>
+    <br/>
+    <br/>
+    <panel id="group-info" data-model="members">
+        <div>
+            <member data-for="member : members">
+                <h2>NEW MEMBER</h2><br/>
+                <h2>{{ member.name }}</h2><br/>
+                <h2>{{ member.shipArch }}</h2><br/>
+                <h2>{{ member.distance }}</h2><br/>
+                <h2>{{ member.health }}</h2><br/>
+                <h2>{{ member.shield }}</h2><br/>
+            </member>
+        </div>
+    </panel>
+    </body>
+</rml>

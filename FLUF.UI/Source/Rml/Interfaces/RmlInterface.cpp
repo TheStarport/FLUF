@@ -7,6 +7,7 @@
 #include "Rml/Interfaces/RenderInterfaceDirectX9.hpp"
 #include "Rml/Interfaces/RmlInterface.hpp"
 
+#include "FLUF/Include/Fluf.hpp"
 #include "Rml/Interfaces/SystemInterface.hpp"
 #include <FLCore/Common/INI_Reader.hpp>
 #include <Utils/Detour.hpp>
@@ -233,12 +234,19 @@ void RmlInterface::LoadFonts()
             }
 
             // Try to add the font
-            const int result = AddFontResourceExA(file.c_str(), FR_PRIVATE, nullptr);
-            if (result != 0)
+            if (const int result = AddFontResourceExA(file.c_str(), FR_PRIVATE, nullptr); result != 0)
             {
-                if (fonts.insert(file).second)
+                if (auto [font, inserted] = fonts.insert(file); inserted)
                 {
-                    Rml::LoadFontFace("file://" + file, ini.get_value_bool(1));
+
+                    if (Rml::LoadFontFace("file://" + file, ini.get_value_bool(1)))
+                    {
+                        Fluf::Log(LogLevel::Info, std::format("Font loaded: {}", *font));
+                    }
+                    else
+                    {
+                        Fluf::Log(LogLevel::Warn, std::format("Failed to load font: {}", *font));
+                    }
                 }
             }
         }
@@ -246,25 +254,32 @@ void RmlInterface::LoadFonts()
 
 fallback:
     std::array<std::string, 9> systemFonts = {
-        "segoeui.ttf ",  // Segoe UI (Latin; Greek; Cyrillic; Armenian; Georgian; Georgian Khutsuri; Arabic; Hebrew; Fraser)
-        "tahoma.ttf ",   // Tahoma (Latin; Greek; Cyrillic; Armenian; Hebrew; Arabic; Thai)
-        "meiryo.ttc ",   // Meiryo UI (Japanese)
-        "msgothic.ttc",  // MS Gothic (Japanese)
-        "msjh.ttc",      // Microsoft JhengHei (Chinese Traditional; Han; Han with Bopomofo)
-        "msyh.ttc",      // Microsoft YaHei (Chinese Simplified; Han)
-        "malgun.ttf ",   // Malgun Gothic (Korean)
-        "simsun.ttc ",   // SimSun (Han Simplified)
-        "seguiemj.ttf ", // Segoe UI (Latin; Greek; Cyrillic; Armenian; Georgian; Georgian Khutsuri; Arabic; Hebrew; Fraser)
+        "segoeui.ttf",  // Segoe UI (Latin; Greek; Cyrillic; Armenian; Georgian; Georgian Khutsuri; Arabic; Hebrew; Fraser)
+        "tahoma.ttf",   // Tahoma (Latin; Greek; Cyrillic; Armenian; Hebrew; Arabic; Thai)
+        "meiryo.ttc",   // Meiryo UI (Japanese)
+        "msgothic.ttc", // MS Gothic (Japanese)
+        "msjh.ttc",     // Microsoft JhengHei (Chinese Traditional; Han; Han with Bopomofo)
+        "msyh.ttc",     // Microsoft YaHei (Chinese Simplified; Han)
+        "malgun.ttf",   // Malgun Gothic (Korean)
+        "simsun.ttc",   // SimSun (Han Simplified)
+        "seguiemj.ttf", // Segoe UI (Latin; Greek; Cyrillic; Armenian; Georgian; Georgian Khutsuri; Arabic; Hebrew; Fraser)
     };
 
     for (auto& font : systemFonts)
     {
         std::array<char, MAX_PATH> windowsDir;
         auto len = GetSystemDirectoryA(windowsDir.data(), windowsDir.size());
-        auto f = fonts.insert(std::format(R"(file://{}\{})", std::string_view(windowsDir.data(), len), font));
+        auto f = fonts.insert(std::format(R"(file://{}\..\Fonts\{})", std::string_view(windowsDir.data(), len), font));
         if (f.second)
         {
-            Rml::LoadFontFace(*f.first, true);
+            if (Rml::LoadFontFace(*f.first, true))
+            {
+                Fluf::Log(LogLevel::Info, std::format("Font loaded: {}", *f.first));
+            }
+            else
+            {
+                Fluf::Log(LogLevel::Warn, std::format("Failed to load font: {}", *f.first));
+            }
         }
     }
 }
@@ -325,6 +340,7 @@ RmlInterface::~RmlInterface()
 bool RmlInterface::UiRenderDetour()
 {
     module->PollInput();
+    rmlContext->Update();
     rmlContext->Render();
 
     uiRenderDetour.UnDetour();

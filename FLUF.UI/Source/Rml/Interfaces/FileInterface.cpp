@@ -4,6 +4,8 @@
 
 #include "Rml/Interfaces/FileInterface.hpp"
 
+#include "FLUF/Include/Fluf.hpp"
+
 FileInterface::VirtualFileHandle::VirtualFileHandle(FILE* file)
 {
     type = HandleType::File;
@@ -26,9 +28,11 @@ Rml::FileHandle FileInterface::Open(const Rml::String& path)
     if (path.starts_with("local://") || path.starts_with("local|//"))
     {
         const auto filePath = std::filesystem::current_path().append("../DATA/").append(rawPath);
+        Fluf::Log(LogLevel::Trace, std::format("Loading file: {} ( {} )", path, filePath.generic_string()));
         auto* file = fopen(filePath.string().c_str(), "rb");
         if (!file)
         {
+            Fluf::Log(LogLevel::Warn, std::format("Failed to load file: {} ( {} )", path, filePath.generic_string()));
             return reinterpret_cast<Rml::FileHandle>(nullptr);
         }
 
@@ -38,9 +42,11 @@ Rml::FileHandle FileInterface::Open(const Rml::String& path)
     }
     if (path.starts_with("file://") || path.starts_with("file|//"))
     {
+        Fluf::Log(LogLevel::Trace, std::format("Loading file: {} ( {} )", path, rawPath));
         auto* file = fopen(rawPath.c_str(), "rb");
         if (!file)
         {
+            Fluf::Log(LogLevel::Warn, std::format("Failed to load file: {} ( {} )", path, rawPath));
             return reinterpret_cast<Rml::FileHandle>(nullptr);
         }
 

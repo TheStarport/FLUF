@@ -22,7 +22,6 @@ class FlufUi final : public FlufModule
         std::shared_ptr<FlufUiConfig> config;
 
         void OnGameLoad() override;
-        void OnUpdate(double delta) override;
 
         static IDirect3D9* __stdcall OnDirect3D8Create(uint sdkVersion);
         static HRESULT __stdcall OnDirect3D9CreateDevice(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,

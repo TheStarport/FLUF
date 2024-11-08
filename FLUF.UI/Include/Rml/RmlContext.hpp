@@ -30,35 +30,35 @@ class FLUF_UI_API RmlContext final
          * @returns A pointer to an ElementDocument on success, or a nullptr if there was an error loading it.
          * @example LoadDocument("local://INTERFACE/RML/document.rml")
          */
-        Rml::ElementDocument* LoadDocument(const Rml::String& filePath);
+        Rml::ElementDocument* LoadDocument(const Rml::String& filePath) const;
 
         /**
          *
          * @param documentContents A string containing a valid RML document
          * @returns A pointer to an ElementDocument on success, or a nullptr if there was an error loading it.
          */
-        Rml::ElementDocument* LoadDocumentFromMemory(const Rml::String& documentContents);
+        Rml::ElementDocument* LoadDocumentFromMemory(const Rml::String& documentContents) const;
 
         /**
          * @brief Unloads the specified document.
          * @param document A pointer to the document to unload
          */
-        void UnloadDocument(Rml::ElementDocument* document);
+        void UnloadDocument(Rml::ElementDocument* document) const;
 
         /**
          * @brief Unloads all loaded documents
          */
-        void UnloadAllDocuments();
+        void UnloadAllDocuments() const;
 
         /**
          * @brief If a specific document has focus this function can be used to remove focus from it programmatically.
          */
-        void UnfocusDocument(Rml::ElementDocument* document);
+        void UnfocusDocument(Rml::ElementDocument* document) const;
 
         /**
          * @brief Removes focus from all documents effectively removing focus from RML itself until a document is clicked again.
          */
-        void UnfocusAllDocuments();
+        void UnfocusAllDocuments() const;
 
         /**
          * Creates a data model.
@@ -67,7 +67,7 @@ class FLUF_UI_API RmlContext final
          * @param[in] dataTypeRegister The data type register to use for the data model, or null to use the default register.
          * @return A constructor for the data model, or empty if it could not be created.
          */
-        Rml::DataModelConstructor CreateDataModel(const Rml::String& name, Rml::DataTypeRegister* dataTypeRegister = nullptr);
+        Rml::DataModelConstructor CreateDataModel(const Rml::String& name, Rml::DataTypeRegister* dataTypeRegister = nullptr) const;
 
         /**
          * Retrieves the constructor for an existing data model.
@@ -75,7 +75,7 @@ class FLUF_UI_API RmlContext final
          * @param[in] name The name of the data model.
          * @returns A constructor for the data model, or empty if it could not be found.
          */
-        Rml::DataModelConstructor GetDataModel(const Rml::String& name);
+        Rml::DataModelConstructor GetDataModel(const Rml::String& name) const;
 
         /** Removes the given data model.
          * @brief This also removes all data views, controllers and bindings contained by the data model.
@@ -83,5 +83,5 @@ class FLUF_UI_API RmlContext final
          * @param[in] name The name of the data model.
          * @return True if successfully removed, false if no data model was found.
          */
-        bool RemoveDataModel(const Rml::String& name);
+        bool RemoveDataModel(const Rml::String& name) const;
 };

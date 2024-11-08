@@ -49,8 +49,26 @@ void Fluf::OnGameLoad() const
     Log(LogLevel::Info, "Data loaded, Freelancer ready.");
     for (const auto& module : loadedModules)
     {
+        Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
         module->OnGameLoad();
     }
+}
+
+// ReSharper disable twice CppPassValueParameterByConstReference
+bool Fluf::ModuleSorter(std::shared_ptr<FlufModule> a, std::shared_ptr<FlufModule> b) // NOLINT(*-unnecessary-value-param)
+{
+    // Sort all modules so they are in alphabetical order, but with the FLUF* core modules being loaded first
+    if (a->GetModuleName().starts_with("FLUF") && !b->GetModuleName().starts_with("FLUF"))
+    {
+        return true;
+    }
+
+    if (b->GetModuleName().starts_with("FLUF") && !a->GetModuleName().starts_with("FLUF"))
+    {
+        return false;
+    }
+
+    return a->GetModuleName() < b->GetModuleName();
 }
 
 void Fluf::OnUpdateHook(const double delta)
@@ -311,16 +329,19 @@ std::weak_ptr<FlufModule> Fluf::GetModule(const std::string_view identifier)
     return {};
 }
 
-CShip* Fluf::GetCShip()
+__declspec(naked) CShip* Fluf::GetCShip()
 {
-    const auto ptr = reinterpret_cast<PDWORD*>(0x679744);
-    if (!*ptr)
-    {
-        return nullptr;
-    }
-
-    const auto nextPtr = *ptr + 4;
-    return reinterpret_cast<CShip*>(*(nextPtr + 4));
+    __asm
+   {
+       mov	eax, 0x54baf0
+       call	eax
+       test	eax, eax
+       jz	noship
+       add	eax, 12
+       mov	eax, [eax + 4]
+       noship:
+       ret
+   }
 }
 
 Fluf::Fluf()
@@ -389,7 +410,7 @@ Fluf::Fluf()
             Log(LogLevel::Warn, std::format("Minor version did not match for module: {}", modulePath));
         }
 
-        loadedModules.emplace(module);
+        loadedModules.emplace_hint(loadedModules.end(), module);
         Log(LogLevel::Info, std::format("Loaded Module: {}", module->GetModuleName()));
     }
 

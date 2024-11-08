@@ -18,8 +18,6 @@ using Direct3DCreateDevice9 = HRESULT(__stdcall*)(IDirect3D9* context, uint adap
                                                   D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
 using Direct3DDevice9EndScene = HRESULT(__stdcall*)(IDirect3DDevice9* device);
 
-std::unique_ptr<FunctionDetour<ScriptLoadPtr>> thornLoadDetour;
-std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d8CreateDetour;
 std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d8CreateDeviceDetour;
 
@@ -39,15 +37,9 @@ void FlufUi::OnGameLoad()
     {
         if (config->uiMode == UiMode::Rml)
         {
+            Fluf::Log(LogLevel::Info, "Create RmlInterface");
             rmlInterface = std::make_shared<RmlInterface>(this, d3d9, d3d9device);
         }
-    }
-}
-void FlufUi::OnUpdate(const double delta)
-{
-    if (config->uiMode == UiMode::Rml)
-    {
-        rmlInterface->rmlContext->Update();
     }
 }
 

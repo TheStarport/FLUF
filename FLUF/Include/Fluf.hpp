@@ -38,7 +38,8 @@ class Fluf
         friend FlufModule;
         inline static Fluf* instance;
 
-        std::unordered_set<std::shared_ptr<FlufModule>> loadedModules;
+        static bool ModuleSorter(std::shared_ptr<FlufModule> a, std::shared_ptr<FlufModule> b);
+        std::set<std::shared_ptr<FlufModule>, bool (*)(std::shared_ptr<FlufModule>, std::shared_ptr<FlufModule>)> loadedModules{ ModuleSorter };
         std::shared_ptr<FlufConfiguration> config;
 
         // The serverClient receives data from the server

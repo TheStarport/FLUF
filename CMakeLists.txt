@@ -10,6 +10,22 @@ if (CCACHE_FOUND)
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
 endif ()
 
+if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
+    if (NOT DEFINED ENV{MSVC})
+        message(FATAL_ERROR "MSVC env was not found and running on Linux")
+    endif ()
+
+    if (NOT DEFINED ENV{INCLUDE})
+        message(FATAL_ERROR "'INCLUDE' env not found. Have you run 'source $ENV{MSVC}/bin/x86/msvcenv.sh' ?")
+    endif ()
+
+    string(REPLACE "z:\\" "/" MSVC_INCLUDE "$ENV{INCLUDE}")
+    string(REPLACE "\\" "/" MSVC_INCLUDE "${MSVC_INCLUDE}")
+    string(REPLACE ";" " " MSVC_INCLUDE "${MSVC_INCLUDE}")
+    separate_arguments(MSVC_INCLUDE)
+    include_directories(${MSVC_INCLUDE})
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D \"SAFESEH:NO\"")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
@@ -81,19 +97,24 @@ find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(lua REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(lunasvg REQUIRED)
 
-# Compile RML w/ Lua support
+# Compile RML w/ Lua and SVG support
 set(RMLUI_LUA_BINDINGS TRUE)
 set(RML_LUA_BINDINGS_LIBRARY lua)
+set(RMLUI_SVG_PLUGIN ON)
 set(LUA_INCLUDE_DIR ${lua_INCLUDE_DIR})
 
 if (CMAKE_BUILD_TYPE_INIT STREQUAL "Debug")
+    set(lunasvg_ROOT "${lunasvg_LIB_DIRS_DEBUG}")
     set(LUA_LIBRARIES ${lua_LIB_DIRS_DEBUG}/lua.lib)
 else ()
+    set(lunasvg_ROOT "${${lunasvg_LIB_DIRS_RELEASE}}")
     set(LUA_LIBRARIES ${lua_LIB_DIRS_RELEASE}/lua.lib)
 endif ()
 
 add_subdirectory(${RML_PATH})
+target_include_directories(rmlui_core PUBLIC ${lunasvg_INCLUDE_DIRS}/lunasvg)
 
 function(set_linux_msvc_includes)
     cmake_parse_arguments(
@@ -106,16 +127,6 @@ function(set_linux_msvc_includes)
 
     if (NOT PARSED_ARGS_PROJECT_NAME)
         message(FATAL_ERROR "set_linux_msvc_includes called without specifying a project name")
-    endif ()
-
-    # If we are building on Linux, import the MSVC headers
-    if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
-        if (NOT DEFINED ENV{MSVC_INCLUDE})
-            message(FATAL_ERROR "MSVC_INCLUDE was not found and running on Linux")
-        endif ()
-        string(REPLACE ":" " " MSVC_INCLUDES $ENV{MSVC_INCLUDE})
-        separate_arguments(MSVC_INCLUDES)
-        target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${MSVC_INCLUDES})
     endif ()
 endfunction()
 
@@ -210,7 +221,9 @@ add_subdirectory(FLUF.UI) # FLUF user interface module
 if (BUILD_SAMPLES)
     file(GLOB V_GLOB LIST_DIRECTORIES true "examples/*")
     foreach (ENTRY ${V_GLOB})
-        if (IS_DIRECTORY ${ENTRY})
+        get_filename_component(DIR ${ENTRY} NAME_WLE)
+        if (IS_DIRECTORY ${ENTRY} AND NOT ${DIR} STREQUAL "shared_assets")
+            message(STATUS "Configuring Example: ${DIR}")
             add_subdirectory(${ENTRY})
         endif ()
     endforeach ()
