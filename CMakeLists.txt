@@ -24,7 +24,7 @@ if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
     string(REPLACE ";" " " MSVC_INCLUDE "${MSVC_INCLUDE}")
     separate_arguments(MSVC_INCLUDE)
     include_directories(${MSVC_INCLUDE})
-endif()
+endif ()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D \"SAFESEH:NO\"")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
@@ -47,46 +47,11 @@ set(VENDOR_PATH "${PROJECT_SOURCE_DIR}/vendor")
 set(SDK_PATH "${VENDOR_PATH}/FLHookSDK")
 set(REFLECT_PATH "${VENDOR_PATH}/reflect-cpp")
 
-# Python for post build
-find_package(Python 3.11 REQUIRED)
-if (EXISTS "${ROOT_DIR}/.venv")
-    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/.venv")
-elseif ((EXISTS "${ROOT_DIR}/venv"))
-    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/venv")
-else ()
-    message(STATUS "venv not found, creating and installing packages")
-    execute_process(COMMAND "${Python_EXECUTABLE}" -m venv "${ROOT_DIR}/venv")
-    if (EXISTS "${ROOT_DIR}/venv/Scripts")
-        set(PY_DIR "${ROOT_DIR}/venv/Scripts")
-        set(ENV{Path} "${ROOT_DIR}/venv/Scripts;/venv/bin:$ENV{Path}")
-    else ()
-        set(PY_DIR "${ROOT_DIR}/venv/bin")
-        set(ENV{PATH} "${ROOT_DIR}/venv/bin:$ENV{PATH}")
-    endif ()
-
-    set(ENV{VIRTUAL_ENV} "${ROOT_DIR}/venv")
-    set(Python_FIND_VIRTUALENV FIRST)
-    unset(Python_EXECUTABLE)
-    find_package(Python 3.11 REQUIRED)
-
-
-    execute_process(COMMAND "${PY_DIR}/pip" install click conan)
-    execute_process(COMMAND "${Python_EXECUTABLE}" cli.py dependencies WORKING_DIRECTORY ${ROOT_DIR})
-    execute_process(COMMAND "${Python_EXECUTABLE}" cli.py configure WORKING_DIRECTORY ${ROOT_DIR})
-
-    # We need to stop CMake from going further
-    message(FATAL_ERROR
-            "venv folder has been created and initial setup has automatically been run. Re-run the CMake configure step."
-    )
-endif ()
-
-set(Python_FIND_VIRTUALENV FIRST)
-unset(Python_EXECUTABLE)
 find_package(Python 3.11 REQUIRED)
 
 # Libs
 set(RML_PATH "${VENDOR_PATH}/RmlUi")
-set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
+#set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
 
 # Set Freetype requirements for RML
 set(FREETYPE_LIBRARY "${VENDOR_PATH}/freetype.lib")

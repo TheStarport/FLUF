@@ -25,11 +25,16 @@ def configure(release: bool):
         run(f"conan install . --build missing -pr:b=default -pr:h=./profiles/linux-rel")
 
 
+# noinspection PyShadowingBuiltins
 @cli.command(short_help='Runs a first-time build, downloading any needed dependencies, and generating preset files.')
 @click.option("-r", "--release", is_flag=True, help="Build in release mode")
+@click.option("-a", "--all", is_flag=True, help="Build all projects")
 @click.pass_context
-def build(ctx: click.Context, release: bool):
+def build(ctx: click.Context, release: bool, all: bool):
     preset = 'build' if is_windows() else ('release' if release else 'debug')
+
+    if all:
+        preset += '-all'
 
     # noinspection PyTypeChecker
     ctx.invoke(configure, release=release)

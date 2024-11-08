@@ -30,8 +30,10 @@ def download_file(url: str, filename: str):
                 dl += len(data)
                 f.write(data)
                 done = int(50 * dl / total_length)
-                stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50 - done)))
-                stdout.flush()
+                # Disable logging if we are in a github action
+                if os.getenv("GITHUB_ACTIONS") is None:
+                    stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50 - done)))
+                    stdout.flush()
 
 
 def run(cmd: str, no_log: bool = False, allow_error: bool = False) -> int:

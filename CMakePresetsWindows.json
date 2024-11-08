@@ -5,12 +5,17 @@
         "minor": 23,
         "patch": 0
     },
-    "include": [ "./ConanPresets.json" ],
+    "include": [
+        "./ConanPresets.json"
+    ],
     "configurePresets": [
         {
             "name": "build",
             "displayName": "Build",
-            "inherits": "conan-default"
+            "inherits": "conan-default",
+            "cacheVariables": {
+                "BUILD_SAMPLES": true
+            }
         }
     ],
     "buildPresets": [

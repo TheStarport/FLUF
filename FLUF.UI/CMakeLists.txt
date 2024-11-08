@@ -11,7 +11,7 @@ configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.r
 add_library(FLUF.UI SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
 
 target_include_directories(FLUF.UI PRIVATE ${RML_PATH}/Include)
-target_include_directories(FLUF.UI PRIVATE ${CURL_PATH}/include)
+# target_include_directories(FLUF.UI PRIVATE ${CURL_PATH}/include)
 
 target_link_libraries(FLUF.UI PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
 
@@ -23,7 +23,7 @@ target_include_directories(FLUF.UI PRIVATE ${DXSDK}/Include)
 target_link_libraries(FLUF.UI PRIVATE ${DXSDK}/Lib/x86/d3dx9.lib)
 
 # LibCurl
-target_include_directories(FLUF.UI PRIVATE ${CURL_PATH}/include)
+# target_include_directories(FLUF.UI PRIVATE ${CURL_PATH}/include)
 #target_link_libraries(FLUF.UI PRIVATE ${VENDOR_PATH}/libcurl.lib)
 
 # RmlUi

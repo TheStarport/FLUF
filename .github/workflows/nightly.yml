@@ -1,0 +1,44 @@
+name: Nightly Release
+on:
+  # This can be used to automatically publish nightlies at UTC nighttime
+  schedule:
+    - cron: '0 3 * * *' # run at 3 AM UTC
+  # This can be used to allow manually triggering nightlies from the web interface
+  workflow_dispatch:
+    inputs:
+      release_name:
+        description: 'The release name for this release. If not specified, will overwrite the nightly release.'
+        type: string
+        required: false
+
+jobs:
+  date-check:
+    runs-on: ubuntu-latest
+    name: Check latest commit
+    outputs:
+      should_run: ${{ steps.should_run.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: print latest_commit
+        run: echo ${{ github.sha }}
+
+      - id: should_run
+        continue-on-error: true
+        name: check latest commit is less than a day
+        if: ${{ github.event_name == 'schedule' }}
+        run: test -z $(git rev-list  --after="24 hours"  ${{ github.sha }}) && echo "::set-output name=should_run::false"
+
+  build:
+    needs: date-check
+    if: ${{ needs.date-check.outputs.should_run != 'false' }}
+    runs-on: windows-latest
+    steps:
+      # Clone this repo
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+      # Build the modules
+      - name: "Build FLUF"
+        id: "build"
+        uses: "./.github/actions/build"
