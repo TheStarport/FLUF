@@ -7,15 +7,22 @@ on:
   workflow_dispatch:
     inputs:
       release_name:
-        description: 'The release name for this release. If not specified, will overwrite the nightly release.'
+        description: 'The release name for this release. If nightly specified, will overwrite the nightly release.'
+        type: string
+        required: true
+        default: "nightly"
+      version:
+        description: 'The version number to give to a named release. Defaults to the current date if not specified.'
         type: string
         required: false
+        default: ''
 
 jobs:
   date-check:
     runs-on: ubuntu-latest
     name: Check latest commit
     outputs:
+      date: ${{ steps.current_date.outputs.date }}
       should_run: ${{ steps.should_run.outputs.should_run }}
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +34,11 @@ jobs:
         name: check latest commit is less than a day
         if: ${{ github.event_name == 'schedule' }}
         run: test -z $(git rev-list  --after="24 hours"  ${{ github.sha }}) && echo "::set-output name=should_run::false"
+
+      - id: current_date
+        name: 'Get Current Date'
+        shell: bash
+        run: echo "date=$(date +'%Y-%m-%d-%H-%M')" >> "$GITHUB_OUTPUT"
 
   build:
     needs: date-check
@@ -42,3 +54,23 @@ jobs:
       - name: "Build FLUF"
         id: "build"
         uses: "./.github/actions/build"
+
+      - name: "Publish Nightly"
+        if: ${{ inputs.release_name == 'nightly' }}
+        uses: WebFreak001/deploy-nightly@v3.1.0
+        with:
+          upload_url: 'https://uploads.github.com/repos/TheStarport/FLUF/releases/184417266/assets{?name,label}'
+          release_id: 184417266
+          asset_path: ${{ github.workspace }}/build.zip
+          asset_name: fluf-nightly.zip
+          asset_content_type: application/zip
+          max_releases: '1'
+
+      - name: "Publish Named Release"
+        if: ${{ inputs.release_name != 'nightly' }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ github.workspace }}/build.zip"
+          name: '${{ inputs.release_name }}'
+          body: 'Changelog: https://github.com/TheStarport/FLUF/blob/master/CHANGELOG.md'
+          tag: ${{ inputs.version != '' && inputs.version || needs.date-check.outputs.date }}
