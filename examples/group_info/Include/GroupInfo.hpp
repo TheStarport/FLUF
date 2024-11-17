@@ -32,7 +32,7 @@ class GroupInfo final : public FlufModule
         void OnGameLoad() override;
 
     public:
-        static constexpr std::string_view moduleName = "GroupInfo";
+        static constexpr std::string_view moduleName = "group_info";
 
         GroupInfo();
         std::string_view GetModuleName() override;

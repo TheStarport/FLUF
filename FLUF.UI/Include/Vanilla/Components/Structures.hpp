@@ -28,7 +28,6 @@ typedef unsigned char byte;
 class FlControl
 {
     public:
-        virtual ~FlControl() = default;
         virtual void u00();
         virtual void u04();
         virtual void IO_streaminit();
@@ -72,6 +71,9 @@ class FlControl
         virtual void uA0();
         virtual void uA4();
         virtual int Perform(int Message, unsigned int LPARAM, unsigned int WPARAM);
+        virtual void uAC();
+        virtual void uB0();
+        virtual void Execute();
         // byte dunno[0xAC];
 
         [[nodiscard]]

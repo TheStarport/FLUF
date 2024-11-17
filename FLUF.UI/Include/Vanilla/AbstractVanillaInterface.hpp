@@ -60,13 +60,13 @@ class AbstractVanillaInterface
     protected:
         void FLUF_UI_API OpenDialogue(unsigned int captionIds, unsigned int bodyIds);
         void FLUF_UI_API CloseDialogue();
-        virtual void OnDraw(FlControl* control) = 0;
-        virtual void OnUpdate(FlControl* control) = 0;
-        virtual bool OnExecuteButton(FlButtonControl* control) = 0;
-        virtual bool OnExecuteText(FlTextControl* control) = 0;
-        virtual void OnExecuteScroll(FlScrollControl* control) = 0;
-        virtual void OnExecuteCycle(FlCycleControl* control) = 0;
-        virtual void OnTerminate(FlControl* control) = 0;
+        virtual void OnDraw(FlControl* control) {}
+        virtual void OnUpdate(FlControl* control) {}
+        virtual bool OnExecuteButton(FlButtonControl* control) { return true; }
+        virtual bool OnExecuteText(FlTextControl* control) { return true; }
+        virtual void OnExecuteScroll(FlScrollControl* control) {}
+        virtual void OnExecuteCycle(FlCycleControl* control) {}
+        virtual void OnTerminate(FlControl* control) {}
         virtual ~AbstractVanillaInterface() = default;
 
     public:

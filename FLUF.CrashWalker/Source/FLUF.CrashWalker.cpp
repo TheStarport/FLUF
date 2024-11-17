@@ -102,8 +102,8 @@ long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* 
         GetUserDataPath(totalPath.data());
 
         const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        auto dumpPath =
-            config->useOnlySingleDumpFile ? std::format("{}/crash.dmp") : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), time);
+        auto dumpPath = config->useOnlySingleDumpFile ? std::format("{}/crash.dmp", std::string(totalPath.data()))
+                                                      : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), time);
 
         if (HANDLE file = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             file != INVALID_HANDLE_VALUE)
