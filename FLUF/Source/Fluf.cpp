@@ -332,7 +332,7 @@ std::weak_ptr<FlufModule> Fluf::GetModule(const std::string_view identifier)
 __declspec(naked) CShip* Fluf::GetCShip()
 {
     __asm
-   {
+    {
        mov	eax, 0x54baf0
        call	eax
        test	eax, eax
@@ -341,7 +341,7 @@ __declspec(naked) CShip* Fluf::GetCShip()
        mov	eax, [eax + 4]
        noship:
        ret
-   }
+    }
 }
 
 Fluf::Fluf()

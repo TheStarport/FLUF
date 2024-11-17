@@ -47,11 +47,12 @@ set(VENDOR_PATH "${PROJECT_SOURCE_DIR}/vendor")
 set(SDK_PATH "${VENDOR_PATH}/FLHookSDK")
 set(REFLECT_PATH "${VENDOR_PATH}/reflect-cpp")
 
+set(Python_FIND_VIRTUALENV FIRST)
 find_package(Python 3.11 REQUIRED)
 
 # Libs
 set(RML_PATH "${VENDOR_PATH}/RmlUi")
-#set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
+set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
 
 # Set Freetype requirements for RML
 set(FREETYPE_LIBRARY "${VENDOR_PATH}/freetype.lib")
@@ -61,6 +62,7 @@ set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(lua REQUIRED)
+find_package(xbyak REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(lunasvg REQUIRED)
 
@@ -128,6 +130,7 @@ function(set_general_targets)
     target_link_libraries(${PARSED_ARGS_PROJECT_NAME} PRIVATE
             glm::glm
             magic_enum::magic_enum
+            xbyak::xbyak
             yaml-cpp::yaml-cpp
     )
 
@@ -182,6 +185,7 @@ endfunction()
 
 add_subdirectory(FLUF) # FLUF Core
 add_subdirectory(FLUF.UI) # FLUF user interface module
+add_subdirectory(FLUF.CrashWalker) # FLUF anti-crash protections
 
 if (BUILD_SAMPLES)
     file(GLOB V_GLOB LIST_DIRECTORIES true "examples/*")

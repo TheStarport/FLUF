@@ -21,6 +21,7 @@ class CompressorRecipe(ConanFile):
         self.requires("magic_enum/0.9.6")
         self.requires("lua/5.4.7")
         self.requires("lunasvg/3.0.1")
+        self.requires("xbyak/7.07")
         self.requires("yaml-cpp/0.8.0")
 
     def layout(self):
