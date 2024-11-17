@@ -2,6 +2,7 @@
 
 #include "CrashCatcher.hpp"
 #include "FLUF/Include/FlufModule.hpp"
+#include "FlufCrashWalkerConfig.hpp"
 #include "FlufWalker.hpp"
 
 #include <rfl/Hex.hpp>
@@ -19,8 +20,10 @@ class CrashCatcher;
 class FlufCrashWalker final : public FlufModule
 {
         void OnGameLoad() override;
+        static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* exceptionPointers);
         static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
         inline static std::unique_ptr<CrashCatcher> crashCatcher;
+        inline static std::unique_ptr<FlufCrashWalkerConfig> config;
         std::vector<ErrorPayload> possibleErrors;
 
     public:

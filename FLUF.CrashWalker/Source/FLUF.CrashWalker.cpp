@@ -4,6 +4,7 @@
 
 #include "FLCore/Common/CommonMethods.hpp"
 #include "FLUF/Include/Fluf.hpp"
+#include "Utils/MemUtils.hpp"
 
 #include <curl/curl.h>
 #include <minidumpapiset.h>
@@ -51,7 +52,7 @@ static BOOL PreventSetUnhandledExceptionFilter()
     return ret;
 }
 
-static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* exceptionPointers)
+long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* exceptionPointers)
 {
     if (exceptionPointers->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW)
     {
@@ -77,8 +78,7 @@ static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* exceptionP
     MODULEINFO mod;
     if (RtlPcToFileHeader(reinterpret_cast<void*>(exOffset), reinterpret_cast<void**>(&dll)))
     {
-        CHAR maxPath[MAX_PATH];
-        if (GetModuleFileNameA(dll, maxPath, MAX_PATH))
+        if (CHAR maxPath[MAX_PATH]; GetModuleFileNameA(dll, maxPath, MAX_PATH))
         {
             const std::string path = maxPath;
             dllName = path.substr(path.find_last_of('\\') + 1);
@@ -111,13 +111,9 @@ static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* exceptionP
             mdei.ExceptionPointers = exceptionPointers;
             mdei.ClientPointers = 0;
 
-            if (MiniDumpWriteDump(GetCurrentProcess(),
-                                  GetCurrentProcessId(),
-                                  file,
-                                  static_cast<MINIDUMP_TYPE>(MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders),
-                                  &mdei,
-                                  nullptr,
-                                  nullptr) != 0)
+            auto flags =
+                config->miniDumpFlags > 0 ? config->miniDumpFlags : MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders;
+            if (MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, static_cast<MINIDUMP_TYPE>(flags), &mdei, nullptr, nullptr) != 0)
             {
                 CloseHandle(file);
             }
@@ -161,7 +157,6 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 HINSTANCE __stdcall FlufCrashWalker::LoadLibraryDetour(const char* libName)
 {
-
     loadLibraryDetour.UnDetour();
     const auto res = LoadLibraryA(libName);
     loadLibraryDetour.Detour(LoadLibraryDetour);
@@ -190,8 +185,8 @@ struct MemoryBuffer
 
 size_t DownloadCallback(void* ptr, size_t size, size_t nmemb, void* data)
 {
-    size_t totalSize = size * nmemb;
-    MemoryBuffer* mem = (MemoryBuffer*)data;
+    const size_t totalSize = size * nmemb;
+    auto* mem = static_cast<MemoryBuffer*>(data);
 
     mem->data = static_cast<char*>(realloc(mem->data, mem->size + totalSize + 1));
     if (mem->data == nullptr)
@@ -201,7 +196,7 @@ size_t DownloadCallback(void* ptr, size_t size, size_t nmemb, void* data)
         return 0;
     }
 
-    memcpy(&(mem->data[mem->size]), ptr, totalSize);
+    memcpy(&mem->data[mem->size], ptr, totalSize);
     mem->size += totalSize;
     mem->data[mem->size] = 0; // Null-terminate the string
 
@@ -255,8 +250,24 @@ void FlufCrashWalker::OnGameLoad()
 
 FlufCrashWalker::FlufCrashWalker()
 {
-    loadLibraryDetour.Detour(LoadLibraryDetour);
     module = this;
+    loadLibraryDetour.Detour(LoadLibraryDetour);
+    config = std::make_unique<FlufCrashWalkerConfig>();
+    config->Load();
+
+    if (const auto server = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll")); server && config->applyRestartFlPatch)
+    {
+        // Server.dll should always be loaded, but let's make sure. Additionally, this offset should only be relevant on startup.
+        // These offsets will patch server.dll to regenerate restart.fl on every launch.
+        // Also ensure restart.fl only gets loaded after being regenerated.
+
+        constexpr std::array<byte, 35> patch1{ 0x8D, 0x8C, 0x24, 0x5C, 0x01, 0x00, 0x00, 0x51, 0x8D, 0x54, 0x24, 0x5C, 0x52, 0xEB, 0x13, 0xFF, 0x11, 0x83,
+                                               0xC4, 0x08, 0x85, 0xC0, 0x74, 0x11, 0x8B, 0xCD, 0xE8, 0x22, 0xFD, 0xFF, 0xFF, 0xEB, 0x0F, 0x90, 0xB9 };
+        constexpr std::array<byte, 6> patch2{ 0xEB, 0xE6, 0x83, 0xC4, 0x08, 0xEB };
+
+        MemUtils::WriteProcMem(server + 0x06900F, patch1.data(), patch1.size());
+        MemUtils::WriteProcMem(server + 0x069036, patch2.data(), patch2.size());
+    }
 }
 
 FlufCrashWalker::~FlufCrashWalker() = default;
