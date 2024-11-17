@@ -1,9 +1,12 @@
 #include "PCH.hpp"
 
 #include "FLUF.CrashWalker.hpp"
+
+#include "FLCore/Common/CommonMethods.hpp"
 #include "FLUF/Include/Fluf.hpp"
 
 #include <curl/curl.h>
+#include <minidumpapiset.h>
 #include <rfl/Result.hpp>
 #include <rfl/json.hpp>
 #include <tchar.h>
@@ -48,9 +51,9 @@ static BOOL PreventSetUnhandledExceptionFilter()
     return ret;
 }
 
-static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* pExPtrs)
+static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* exceptionPointers)
 {
-    if (pExPtrs->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW)
+    if (exceptionPointers->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW)
     {
         static char MyStack[1024 * 128]; // be sure that we have enough space...
         // it assumes that DS and SS are the same!!! (this is the case for Win32)
@@ -63,11 +66,10 @@ static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* pExPtrs)
 
     FlufWalker sw;
 
-    sw.ShowCallstack(GetCurrentThread(), pExPtrs->ContextRecord);
+    sw.ShowCallstack(GetCurrentThread(), exceptionPointers->ContextRecord);
     std::stringstream str;
-    LPCSTR caption = "Fatal Crash. Unknown Error Code";
 
-    auto exOffset = reinterpret_cast<size_t>(pExPtrs->ExceptionRecord->ExceptionAddress);
+    auto exOffset = reinterpret_cast<size_t>(exceptionPointers->ExceptionRecord->ExceptionAddress);
 
     // Extract dll name
     std::string dllName;
@@ -96,16 +98,46 @@ static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* pExPtrs)
     auto error = module->FindError(dllName, relativeAddress);
     if (!error)
     {
+        std::array<char, MAX_PATH> totalPath{};
+        GetUserDataPath(totalPath.data());
+        const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+        auto dumpPath = std::format("{}/{:%Y-%m-%d %X}-dump.dmp", std::string(totalPath.data()), time);
+
+        if (HANDLE file = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+            file != INVALID_HANDLE_VALUE)
+        {
+            MINIDUMP_EXCEPTION_INFORMATION mdei;
+            mdei.ThreadId = GetCurrentThreadId();
+            mdei.ExceptionPointers = exceptionPointers;
+            mdei.ClientPointers = 0;
+
+            if (MiniDumpWriteDump(GetCurrentProcess(),
+                                  GetCurrentProcessId(),
+                                  file,
+                                  static_cast<MINIDUMP_TYPE>(MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders),
+                                  &mdei,
+                                  nullptr,
+                                  nullptr) != 0)
+            {
+                CloseHandle(file);
+            }
+            else
+            {
+                CloseHandle(file);
+                DeleteFileA(dumpPath.c_str());
+            }
+        }
+
         str << "\tUnhandled Exception!\n\t-- Important Information --\n"
             << std::endl
             << "\tSource: " << dllName << std::endl
             << "\tRelExpAddr: 0x" << std::hex << relativeAddress << std::endl
-            << "\tExpCode: 0x" << pExPtrs->ExceptionRecord->ExceptionCode << std::endl
-            << "\tExpFlags: " << pExPtrs->ExceptionRecord->ExceptionFlags << std::endl
+            << "\tExpCode: 0x" << exceptionPointers->ExceptionRecord->ExceptionCode << std::endl
+            << "\tExpFlags: " << exceptionPointers->ExceptionRecord->ExceptionFlags << std::endl
             << "\tExpAddress: 0x" << exOffset << std::endl
             << "\tIf you discover how to reproduce this and the reason, report this to Starport!" << std::endl;
 
-        MessageBoxA(nullptr, str.str().c_str(), caption, MB_ICONWARNING | MB_OK);
+        MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Unknown Error Code", MB_ICONWARNING | MB_OK);
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
@@ -116,7 +148,7 @@ static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* pExPtrs)
         "\nSuspected Reason: " << error->description << std::endl;
     // clang-format on
 
-    MessageBoxA(nullptr, str.str().c_str(), caption, MB_ICONWARNING | MB_OK);
+    MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Known Error Code", MB_ICONWARNING | MB_OK);
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
@@ -152,14 +184,14 @@ HINSTANCE __stdcall FlufCrashWalker::LoadLibraryDetour(const char* libName)
 
 struct MemoryBuffer
 {
-    char* data;
-    size_t size;
+        char* data;
+        size_t size;
 };
 
-size_t DownloadCallback(void *ptr, size_t size, size_t nmemb, void* data)
+size_t DownloadCallback(void* ptr, size_t size, size_t nmemb, void* data)
 {
     size_t totalSize = size * nmemb;
-    MemoryBuffer *mem = (MemoryBuffer *)data;
+    MemoryBuffer* mem = (MemoryBuffer*)data;
 
     mem->data = static_cast<char*>(realloc(mem->data, mem->size + totalSize + 1));
     if (mem->data == nullptr)
@@ -171,7 +203,7 @@ size_t DownloadCallback(void *ptr, size_t size, size_t nmemb, void* data)
 
     memcpy(&(mem->data[mem->size]), ptr, totalSize);
     mem->size += totalSize;
-    mem->data[mem->size] = 0;  // Null-terminate the string
+    mem->data[mem->size] = 0; // Null-terminate the string
 
     return totalSize;
 }

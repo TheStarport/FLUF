@@ -23,6 +23,7 @@ target_include_directories(FLUF.CrashWalker PRIVATE
 
 target_compile_definitions(FLUF.CrashWalker PRIVATE FLUF_UI FLCore)
 target_link_libraries(FLUF.CrashWalker PRIVATE
+        "Dbghelp.lib"
         "${SDK_PATH}/lib/FLCoreCommon.lib"
         FLUF
         ${VENDOR_PATH}/libcurl.lib
