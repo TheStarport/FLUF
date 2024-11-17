@@ -32,6 +32,12 @@ def post_build():
         shutil.copy2(lib, './dist/')
         log(f'copied {lib}')
 
+    # DLL files inside vendor folder
+    result = [y for x in os.walk('./vendor') for y in glob(os.path.join(x[0], '*.dll'))]
+    for dll in result:
+        shutil.copy2(dll, './dist/')
+        log(f'copied {dll}')
+
     # Include Files
     shutil.copytree('./vendor/RmlUi/Include/RmlUi', 'dist/RmlUi')
     shutil.copytree('./FLUF.UI/Include', 'dist/FLUF.UI')
@@ -39,7 +45,7 @@ def post_build():
 
     # RML/RCSS/Lua files, only run if examples are compiled
     if os.path.exists('./dist/group_info.dll'):
-        shutil.copytree('./examples/group_info/Rml', 'dist/DATA/INTERFACE/RML', dirs_exist_ok=True )
+        shutil.copytree('./examples/group_info/Rml', 'dist/DATA/INTERFACE/RML', dirs_exist_ok=True)
         shutil.copytree('./examples/shared_assets', 'dist/DATA/INTERFACE/RML', dirs_exist_ok=True)
 
     log('Zipping up dist folder to build.zip')
