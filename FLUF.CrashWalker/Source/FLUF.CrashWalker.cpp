@@ -92,13 +92,14 @@ static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* pExPtrs)
     }
 
     // Lookup the error!
-    auto error = module->FindError(dllName, exOffset);
+    size_t relativeAddress = reinterpret_cast<size_t>(mod.lpBaseOfDll) + mod.SizeOfImage - exOffset;
+    auto error = module->FindError(dllName, relativeAddress);
     if (!error)
     {
         str << "\tUnhandled Exception!\n\t-- Important Information --\n"
             << std::endl
             << "\tSource: " << dllName << std::endl
-            << "\tRelExpAddr: 0x" << reinterpret_cast<size_t>(mod.lpBaseOfDll) + mod.SizeOfImage - exOffset << std::endl
+            << "\tRelExpAddr: 0x" << std::hex << relativeAddress << std::endl
             << "\tExpCode: 0x" << pExPtrs->ExceptionRecord->ExceptionCode << std::endl
             << "\tExpFlags: " << pExPtrs->ExceptionRecord->ExceptionFlags << std::endl
             << "\tExpAddress: 0x" << exOffset << std::endl
@@ -110,9 +111,9 @@ static long __stdcall CrashHandlerExceptionFilter(EXCEPTION_POINTERS* pExPtrs)
 
     // clang-format off
     str << "Source: " << dllName <<
-        "\nFaulting Offset: " << std::hex << error->offset.value() <<
-        "\nSuspected Reason: " << error->description <<
-        "\nFound by: " << error->author << std::endl;
+        "\nFaulting Offset: 0x" << std::hex << error->offset.value() <<
+        "\nFound by: " << error->author <<
+        "\nSuspected Reason: " << error->description << std::endl;
     // clang-format on
 
     MessageBoxA(nullptr, str.str().c_str(), caption, MB_ICONWARNING | MB_OK);
@@ -149,6 +150,32 @@ HINSTANCE __stdcall FlufCrashWalker::LoadLibraryDetour(const char* libName)
     return res;
 }
 
+struct MemoryBuffer
+{
+    char* data;
+    size_t size;
+};
+
+size_t DownloadCallback(void *ptr, size_t size, size_t nmemb, void* data)
+{
+    size_t totalSize = size * nmemb;
+    MemoryBuffer *mem = (MemoryBuffer *)data;
+
+    mem->data = static_cast<char*>(realloc(mem->data, mem->size + totalSize + 1));
+    if (mem->data == nullptr)
+    {
+        // Memory allocation failed
+        Fluf::Log(LogLevel::Error, "Not enough memory (realloc failed)");
+        return 0;
+    }
+
+    memcpy(&(mem->data[mem->size]), ptr, totalSize);
+    mem->size += totalSize;
+    mem->data[mem->size] = 0;  // Null-terminate the string
+
+    return totalSize;
+}
+
 void FlufCrashWalker::OnGameLoad()
 {
     crashCatcher = std::make_unique<CrashCatcher>();
@@ -161,21 +188,26 @@ void FlufCrashWalker::OnGameLoad()
     }
 
     // Reserve 100KB of space for our json payload. It's 33KB at the time of writing, so 100KB should always be enough.
-    std::array<char, 1024 * 100> buffer{};
+    MemoryBuffer buffer{};
     const auto url = "https://raw.githubusercontent.com/TheStarport/KnowledgeBase/refs/heads/master/static/payloads/crash-offsets.json";
     curl_easy_setopt(curl, CURLOPT_URL, url);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, 0);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer.data());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, DownloadCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "curl-ca-bundle.crt");
     const CURLcode res = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
 
     if (res != CURLE_OK)
     {
+        free(buffer.data);
         Fluf::Log(LogLevel::Error, std::format("Curl error: {}", curl_easy_strerror(res)));
         return;
     }
 
-    auto result = rfl::json::read<std::vector<ErrorPayload>>(std::string(buffer.data(), buffer.size()));
+    auto result = rfl::json::read<std::vector<ErrorPayload>>(std::string(buffer.data, buffer.size));
+    free(buffer.data);
     if (result.error().has_value())
     {
         Fluf::Log(LogLevel::Error, std::format("Error reading payload: {}", result.error().value().what()));
