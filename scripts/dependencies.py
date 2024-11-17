@@ -59,6 +59,6 @@ def curl():
 @cli.command(short_help='Downloads and unpacks all (non-conan) dependencies')
 @click.pass_context
 def dependencies(ctx: click.Context):
-    # ctx.invoke(curl)
+    ctx.invoke(curl)
     ctx.invoke(d3d9)
     ctx.invoke(stack_walker)
