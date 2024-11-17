@@ -8,6 +8,7 @@ class FlufCrashWalkerConfig
     public:
         int miniDumpFlags = MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders;
         bool applyRestartFlPatch = true;
+        bool useOnlySingleDumpFile = true;
 
         bool Save();
         void Load();

@@ -100,20 +100,22 @@ long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* 
     {
         std::array<char, MAX_PATH> totalPath{};
         GetUserDataPath(totalPath.data());
+
         const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        auto dumpPath = std::format("{}/{:%Y-%m-%d %X}-dump.dmp", std::string(totalPath.data()), time);
+        auto dumpPath =
+            config->useOnlySingleDumpFile ? std::format("{}/crash.dmp") : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), time);
 
         if (HANDLE file = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             file != INVALID_HANDLE_VALUE)
         {
-            MINIDUMP_EXCEPTION_INFORMATION mdei;
-            mdei.ThreadId = GetCurrentThreadId();
-            mdei.ExceptionPointers = exceptionPointers;
-            mdei.ClientPointers = 0;
+            MINIDUMP_EXCEPTION_INFORMATION dumpInformation;
+            dumpInformation.ThreadId = GetCurrentThreadId();
+            dumpInformation.ExceptionPointers = exceptionPointers;
+            dumpInformation.ClientPointers = 0;
 
             auto flags =
                 config->miniDumpFlags > 0 ? config->miniDumpFlags : MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders;
-            if (MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, static_cast<MINIDUMP_TYPE>(flags), &mdei, nullptr, nullptr) != 0)
+            if (MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, static_cast<MINIDUMP_TYPE>(flags), &dumpInformation, nullptr, nullptr) != 0)
             {
                 CloseHandle(file);
             }
