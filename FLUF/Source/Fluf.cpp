@@ -326,6 +326,7 @@ __declspec(naked) CShip* Fluf::GetCShip()
        ret
     }
 }
+
 // Returns the last Win32 error, in string format. Returns an empty string if there is no error.
 std::string GetLastErrorAsString()
 {

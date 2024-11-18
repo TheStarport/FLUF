@@ -450,3 +450,4 @@ vendor/
 compile_commands.json
 dist/
 build.zip
+build.conf
