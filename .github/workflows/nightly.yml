@@ -56,7 +56,7 @@ jobs:
         uses: "./.github/actions/build"
 
       - name: "Publish Nightly"
-        if: ${{ inputs.release_name == 'nightly' }}
+        if: ${{ !inputs.release_name || inputs.release_name == 'nightly' }}
         uses: WebFreak001/deploy-nightly@v3.1.0
         with:
           upload_url: 'https://uploads.github.com/repos/TheStarport/FLUF/releases/184417266/assets{?name,label}'
