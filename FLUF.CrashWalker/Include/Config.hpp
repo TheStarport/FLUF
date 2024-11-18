@@ -1,7 +1,7 @@
 #pragma once
 #include <minidumpapiset.h>
 
-class FlufCrashWalkerConfig
+class Config
 {
         std::string_view GetSaveLocation();
 

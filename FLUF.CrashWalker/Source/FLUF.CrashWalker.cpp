@@ -18,41 +18,7 @@ const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModul
 
 FlufCrashWalker* module;
 
-static BOOL PreventSetUnhandledExceptionFilter()
-{
-    const auto hKernel32 = LoadLibraryA("kernel32.dll");
-    if (hKernel32 == nullptr)
-    {
-        return 0;
-    }
-
-    void* pOrgEntry = GetProcAddress(hKernel32, "SetUnhandledExceptionFilter");
-    if (pOrgEntry == nullptr)
-    {
-        return 0;
-    }
-
-    // Code for x86:
-    // 33 C0                xor         eax,eax
-    // C2 04 00             ret         4
-    unsigned char executePatch[] = { 0x33, 0xC0, 0xC2, 0x04, 0x00 };
-
-    DWORD dwOldProtect = 0;
-    BOOL bProt = VirtualProtect(pOrgEntry, sizeof executePatch, PAGE_EXECUTE_READWRITE, &dwOldProtect);
-
-    SIZE_T bytesWritten = 0;
-    const BOOL ret = WriteProcessMemory(GetCurrentProcess(), pOrgEntry, executePatch, sizeof executePatch, &bytesWritten);
-
-    if (bProt != false && dwOldProtect != PAGE_EXECUTE_READWRITE)
-    {
-        DWORD dwBuf;
-        VirtualProtect(pOrgEntry, sizeof executePatch, dwOldProtect, &dwBuf);
-    }
-
-    return ret;
-}
-
-long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* exceptionPointers)
+void FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointers)
 {
     if (exceptionPointers->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW)
     {
@@ -64,10 +30,6 @@ long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* 
         __asm mov eax, offset MyStack[1024 * 128];
         __asm mov esp, eax;
     }
-
-    FlufWalker sw;
-
-    sw.ShowCallstack(GetCurrentThread(), exceptionPointers->ContextRecord);
     std::stringstream str;
 
     auto exOffset = reinterpret_cast<size_t>(exceptionPointers->ExceptionRecord->ExceptionAddress);
@@ -90,7 +52,7 @@ long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* 
     if (dllName.empty())
     {
         Fluf::Log(LogLevel::Trace, "Unable to extract dll name during exception filtering. Likely a datasection? " + std::to_string(exOffset));
-        return EXCEPTION_CONTINUE_SEARCH;
+        return;
     }
 
     // Lookup the error!
@@ -136,7 +98,6 @@ long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* 
             << "\tIf you discover how to reproduce this and the reason, report this to Starport!" << std::endl;
 
         MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Unknown Error Code", MB_ICONWARNING | MB_OK);
-        return EXCEPTION_CONTINUE_SEARCH;
     }
 
     // clang-format off
@@ -147,13 +108,48 @@ long __stdcall FlufCrashWalker::CrashHandlerExceptionFilter(EXCEPTION_POINTERS* 
     // clang-format on
 
     MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Known Error Code", MB_ICONWARNING | MB_OK);
-    return EXCEPTION_CONTINUE_SEARCH;
+    return;
+}
+
+using GameLoopFunc = void (*)(double time);
+GameLoopFunc CallGameLoop = reinterpret_cast<GameLoopFunc>(0x5B2890);
+
+struct SEHException
+{
+        SEHException(const uint code, const EXCEPTION_POINTERS* exceptionPointers)
+            : code(code), record(*exceptionPointers->ExceptionRecord), context(*exceptionPointers->ContextRecord)
+        {}
+        SEHException() = default;
+
+        uint code;
+        EXCEPTION_RECORD record;
+        CONTEXT context;
+
+        static void Translator(uint code, EXCEPTION_POINTERS* ep) { throw SEHException(code, ep); }
+};
+
+void FlufCrashWalker::TryCatchDetour(double time)
+{
+    try
+    {
+        _set_se_translator(SEHException::Translator);
+        CallGameLoop(time);
+    }
+    catch (SEHException& seh)
+    {
+        EXCEPTION_POINTERS exceptionPointers = { &seh.record, &seh.context };
+        GlobalExceptionHandler(&exceptionPointers);
+        PostQuitMessage(static_cast<int>(seh.code));
+    }
 }
 
 FunctionDetour loadLibraryDetour(LoadLibraryA);
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
 {
     DisableThreadLibraryCalls(mod);
+
+    // Add a global try/catch to the application
+    MemUtils::PatchCallAddr(GetModuleHandle(nullptr), 0x1B3378, FlufCrashWalker::TryCatchDetour);
     return TRUE;
 }
 
@@ -205,14 +201,48 @@ size_t DownloadCallback(void* ptr, size_t size, size_t nmemb, void* data)
     return totalSize;
 }
 
+void FlufCrashWalker::LoadErrorPayloadFromCache(std::string_view path)
+{
+    if (!std::filesystem::exists(path))
+    {
+        return;
+    }
+
+    const std::ifstream file(path.data(), std::ios::binary);
+    if (!file.is_open())
+    {
+        Fluf::Log(LogLevel::Error, "Unable to open cache file for reading");
+        return;
+    }
+
+    std::string buffer;
+    std::copy(std::istreambuf_iterator(file.rdbuf()), std::istreambuf_iterator<char>(), std::back_inserter(buffer));
+
+    auto result = rfl::json::read<std::vector<ErrorPayload>>(buffer);
+    if (result.error().has_value())
+    {
+        Fluf::Log(LogLevel::Error, std::format("Error reading payload: {}", result.error().value().what()));
+        return;
+    }
+
+    possibleErrors = result.value();
+    Fluf::Log(LogLevel::Info, "Loaded possible errors from local crash walker cache.");
+}
+
 void FlufCrashWalker::OnGameLoad()
 {
     crashCatcher = std::make_unique<CrashCatcher>();
 
-    // Download latest crash payload
+    std::array<char, MAX_PATH> totalPath{};
+    GetUserDataPath(totalPath.data());
+
+    const std::string cachePath = std::format("{}/crash_cache.json", std::string(totalPath.data()));
+
+    // Download latest crash payload, or load from the cache if not possible
     CURL* curl = curl_easy_init();
     if (!curl)
     {
+        Fluf::Log(LogLevel::Error, "Unable to initialise cURL");
         return;
     }
 
@@ -232,29 +262,38 @@ void FlufCrashWalker::OnGameLoad()
     {
         free(buffer.data);
         Fluf::Log(LogLevel::Error, std::format("Curl error: {}", curl_easy_strerror(res)));
+        LoadErrorPayloadFromCache(cachePath);
         return;
     }
 
-    auto result = rfl::json::read<std::vector<ErrorPayload>>(std::string(buffer.data, buffer.size));
+    const auto errorPayload = std::string(buffer.data, buffer.size);
+    auto result = rfl::json::read<std::vector<ErrorPayload>>(errorPayload);
     free(buffer.data);
     if (result.error().has_value())
     {
         Fluf::Log(LogLevel::Error, std::format("Error reading payload: {}", result.error().value().what()));
+        LoadErrorPayloadFromCache(cachePath);
         return;
     }
 
     possibleErrors = result.value();
+    std::ofstream file(cachePath, std::ios::binary | std::ios::trunc);
+    if (!file.is_open())
+    {
+        Fluf::Log(LogLevel::Error, "Unable to open cache file for writing");
+        LoadErrorPayloadFromCache(cachePath);
+        return;
+    }
 
-    // Now we have our payload we setup our exception handler
-    SetUnhandledExceptionFilter(CrashHandlerExceptionFilter);
-    PreventSetUnhandledExceptionFilter();
+    file.write(errorPayload.c_str(), errorPayload.size());
+    file.close();
 }
 
 FlufCrashWalker::FlufCrashWalker()
 {
     module = this;
     loadLibraryDetour.Detour(LoadLibraryDetour);
-    config = std::make_unique<FlufCrashWalkerConfig>();
+    config = std::make_unique<Config>();
     config->Load();
 
     if (const auto server = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll")); server && config->applyRestartFlPatch)

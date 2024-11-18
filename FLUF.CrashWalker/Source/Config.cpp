@@ -1,10 +1,10 @@
 #include "PCH.hpp"
 
+#include "Config.hpp"
 #include "FLCore/Common/CommonMethods.hpp"
-#include "FlufCrashWalkerConfig.hpp"
 #include <rfl/yaml.hpp>
 
-std::string_view FlufCrashWalkerConfig::GetSaveLocation()
+std::string_view Config::GetSaveLocation()
 {
     static std::string savePath;
     if (savePath.empty())
@@ -17,7 +17,7 @@ std::string_view FlufCrashWalkerConfig::GetSaveLocation()
     return { savePath };
 }
 
-bool FlufCrashWalkerConfig::Save()
+bool Config::Save()
 {
     std::ofstream outFile(GetSaveLocation().data(), std::ios::trunc);
     if (!outFile.is_open())
@@ -31,7 +31,7 @@ bool FlufCrashWalkerConfig::Save()
     return true;
 }
 
-void FlufCrashWalkerConfig::Load()
+void Config::Load()
 {
     std::ifstream inFile(GetSaveLocation().data());
     if (!inFile.is_open())
@@ -40,7 +40,7 @@ void FlufCrashWalkerConfig::Load()
         return;
     }
 
-    auto newConfig = rfl::yaml::read<FlufCrashWalkerConfig>(inFile);
+    auto newConfig = rfl::yaml::read<Config>(inFile);
     if (newConfig.error().has_value())
     {
         inFile.close();
@@ -49,5 +49,5 @@ void FlufCrashWalkerConfig::Load()
     }
 
     // Replace this config with the new one
-    memcpy(this, &newConfig.value(), sizeof(FlufCrashWalkerConfig));
+    memcpy(this, &newConfig.value(), sizeof(Config));
 }
