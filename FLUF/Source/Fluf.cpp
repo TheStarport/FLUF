@@ -54,23 +54,6 @@ void Fluf::OnGameLoad() const
     }
 }
 
-// ReSharper disable twice CppPassValueParameterByConstReference
-bool Fluf::ModuleSorter(std::shared_ptr<FlufModule> a, std::shared_ptr<FlufModule> b) // NOLINT(*-unnecessary-value-param)
-{
-    // Sort all modules so they are in alphabetical order, but with the FLUF* core modules being loaded first
-    if (a->GetModuleName().starts_with("FLUF") && !b->GetModuleName().starts_with("FLUF"))
-    {
-        return true;
-    }
-
-    if (b->GetModuleName().starts_with("FLUF") && !a->GetModuleName().starts_with("FLUF"))
-    {
-        return false;
-    }
-
-    return a->GetModuleName() < b->GetModuleName();
-}
-
 void Fluf::OnUpdateHook(const double delta)
 {
     constexpr float SixtyFramesPerSecond = 1.0f / 60.0f;
@@ -343,26 +326,32 @@ __declspec(naked) CShip* Fluf::GetCShip()
        ret
     }
 }
-//Returns the last Win32 error, in string format. Returns an empty string if there is no error.
+// Returns the last Win32 error, in string format. Returns an empty string if there is no error.
 std::string GetLastErrorAsString()
 {
-    //Get the error message ID, if any.
+    // Get the error message ID, if any.
     DWORD errorMessageID = ::GetLastError();
-    if(errorMessageID == 0) {
-        return std::string(); //No error message has been recorded
+    if (errorMessageID == 0)
+    {
+        return std::string(); // No error message has been recorded
     }
 
     LPSTR messageBuffer = nullptr;
 
-    //Ask Win32 to give us the string version of that message ID.
-    //The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
+    // Ask Win32 to give us the string version of that message ID.
+    // The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
     size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                                 NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+                                 NULL,
+                                 errorMessageID,
+                                 MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                 (LPSTR)&messageBuffer,
+                                 0,
+                                 NULL);
 
-    //Copy the error message into a std::string.
+    // Copy the error message into a std::string.
     std::string message(messageBuffer, size);
 
-    //Free the Win32's string's buffer.
+    // Free the Win32's string's buffer.
     LocalFree(messageBuffer);
 
     return message;
@@ -398,7 +387,10 @@ Fluf::Fluf()
     Log(LogLevel::Error, "Hello world");
 
     // Load all dlls as needed
-    for (const auto& modulePath : config->modules)
+    std::vector<std::string> preloadModules;
+    std::copy(config->modules.begin(), config->modules.end(), std::back_inserter(preloadModules));
+    std::ranges::sort(preloadModules, [](const std::string& a, const std::string& b) { return a.starts_with("FLUF") && !b.starts_with("FLUF"); });
+    for (const auto& modulePath : preloadModules)
     {
         // Ensure it is not already loaded
         auto lib = GetModuleHandleA(modulePath.c_str());
@@ -434,7 +426,7 @@ Fluf::Fluf()
             Log(LogLevel::Warn, std::format("Minor version did not match for module: {}", modulePath));
         }
 
-        loadedModules.emplace_hint(loadedModules.end(), module);
+        loadedModules.emplace_back(module);
         Log(LogLevel::Info, std::format("Loaded Module: {}", module->GetModuleName()));
     }
 
