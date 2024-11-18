@@ -18,7 +18,7 @@ const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModul
 
 FlufCrashWalker* module;
 
-void FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointers)
+int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointers)
 {
     if (exceptionPointers->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW)
     {
@@ -52,7 +52,7 @@ void FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointe
     if (dllName.empty())
     {
         Fluf::Log(LogLevel::Trace, "Unable to extract dll name during exception filtering. Likely a datasection? " + std::to_string(exOffset));
-        return;
+        return EXCEPTION_EXECUTE_HANDLER;
     }
 
     // Lookup the error!
@@ -98,6 +98,7 @@ void FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointe
             << "\tIf you discover how to reproduce this and the reason, report this to Starport!" << std::endl;
 
         MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Unknown Error Code", MB_ICONWARNING | MB_OK);
+        return EXCEPTION_EXECUTE_HANDLER;
     }
 
     // clang-format off
@@ -108,38 +109,21 @@ void FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointe
     // clang-format on
 
     MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Known Error Code", MB_ICONWARNING | MB_OK);
-    return;
+    return EXCEPTION_EXECUTE_HANDLER;
 }
 
 using GameLoopFunc = void (*)(double time);
 GameLoopFunc CallGameLoop = reinterpret_cast<GameLoopFunc>(0x5B2890);
 
-struct SEHException
-{
-        SEHException(const uint code, const EXCEPTION_POINTERS* exceptionPointers)
-            : code(code), record(*exceptionPointers->ExceptionRecord), context(*exceptionPointers->ContextRecord)
-        {}
-        SEHException() = default;
-
-        uint code;
-        EXCEPTION_RECORD record;
-        CONTEXT context;
-
-        static void Translator(uint code, EXCEPTION_POINTERS* ep) { throw SEHException(code, ep); }
-};
-
 void FlufCrashWalker::TryCatchDetour(double time)
 {
-    try
+    __try
     {
-        _set_se_translator(SEHException::Translator);
         CallGameLoop(time);
     }
-    catch (SEHException& seh)
+    __except (GlobalExceptionHandler(GetExceptionInformation()))
     {
-        EXCEPTION_POINTERS exceptionPointers = { &seh.record, &seh.context };
-        GlobalExceptionHandler(&exceptionPointers);
-        PostQuitMessage(static_cast<int>(seh.code));
+        std::exit(1);
     }
 }
 
