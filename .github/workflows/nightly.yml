@@ -63,12 +63,11 @@ jobs:
           draft-drop: false
           pre-release-drop: true
           pre-release-keep-count: -1
-          pre-release-drop-tag: true
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: "Publish Nightly Release"
-        if: ${{ inputs.release_name != 'nightly' }}
+        if: ${{ inputs.release_name == 'nightly' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "${{ github.workspace }}/build.zip"

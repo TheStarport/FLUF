@@ -43,5 +43,5 @@ runs:
       shell: powershell
 
     - name: "Run post build via Python"
-      run: python cli.py post-build
+      run: python cli.py post-build --release
       shell: powershell

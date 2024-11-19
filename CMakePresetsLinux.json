@@ -12,12 +12,7 @@
         {
             "name": "debug",
             "displayName": "Debug",
-            "inherits": "conan-debug"
-        },
-        {
-            "name": "debug-all",
-            "displayName": "Debug (All)",
-            "inherits": "debug",
+            "inherits": "conan-debug",
             "cacheVariables": {
                 "BUILD_SAMPLES": true
             }
@@ -27,14 +22,7 @@
             "displayName": "Release",
             "inherits": "conan-release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "release-all",
-            "displayName": "Release (All)",
-            "inherits": "release",
-            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
                 "BUILD_SAMPLES": true
             }
         }
