@@ -55,16 +55,24 @@ jobs:
         id: "build"
         uses: "./.github/actions/build"
 
-      - name: "Publish Nightly"
+      - name: "Delete Nightly"
         if: ${{ !inputs.release_name || inputs.release_name == 'nightly' }}
-        uses: WebFreak001/deploy-nightly@v3.1.0
+        uses: sgpublic/delete-release-action@v1.1
         with:
-          upload_url: 'https://uploads.github.com/repos/TheStarport/FLUF/releases/184417266/assets{?name,label}'
-          release_id: 184417266
-          asset_path: ${{ github.workspace }}/build.zip
-          asset_name: fluf-nightly.zip
-          asset_content_type: application/zip
-          max_releases: '1'
+          release-drop: false
+          draft-drop: false
+          pre-release-drop: true
+          pre-release-keep-count: -1
+          pre-release-drop-tag: true
+
+      - name: "Publish Nightly Release"
+        if: ${{ inputs.release_name != 'nightly' }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ github.workspace }}/build.zip"
+          name: 'FLUF Nightly Release'
+          body: 'This build is automatically generated from the latest commit every night (3 AM UTC). No build will be generated if no commit happens in a day.'
+          tag: 'nightly'
 
       - name: "Publish Named Release"
         if: ${{ inputs.release_name != 'nightly' }}
