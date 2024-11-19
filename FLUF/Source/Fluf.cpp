@@ -381,12 +381,6 @@ Fluf::Fluf()
         SetStdHandle(STD_OUTPUT_HANDLE, stdout);
     }
 
-    Log(LogLevel::Trace, "Hello world");
-    Log(LogLevel::Debug, "Hello world");
-    Log(LogLevel::Info, "Hello world");
-    Log(LogLevel::Warn, "Hello world");
-    Log(LogLevel::Error, "Hello world");
-
     // Load all dlls as needed
     std::vector<std::string> preloadModules;
     std::copy(config->modules.begin(), config->modules.end(), std::back_inserter(preloadModules));
