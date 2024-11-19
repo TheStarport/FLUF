@@ -178,7 +178,7 @@ function(create_post_build)
             ${ARGN} # arguments of the function to parse, here we take the all original ones
     )
 
-    if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
         set(RELEASE_FLAG "--release")
     endif ()
     if (DEFINED BINARY_COPY_DESTINATION)
