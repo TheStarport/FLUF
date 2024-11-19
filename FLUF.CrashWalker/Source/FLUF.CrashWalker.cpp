@@ -64,9 +64,10 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
         GetUserDataPath(totalPath.data());
 
         const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        auto dumpPath = config->useOnlySingleDumpFile ? std::format("{}/crash.dmp", std::string(totalPath.data()))
+        auto dumpPath = config->useOnlySingleDumpFile ? std::format("{}\\crash.dmp", std::string(totalPath.data()))
                                                       : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), time);
 
+        bool createdDump = false;
         if (HANDLE file = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
             file != INVALID_HANDLE_VALUE)
         {
@@ -75,10 +76,11 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
             dumpInformation.ExceptionPointers = exceptionPointers;
             dumpInformation.ClientPointers = 0;
 
-            auto flags =
-                config->miniDumpFlags > 0 ? config->miniDumpFlags : MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders;
-            if (MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, static_cast<MINIDUMP_TYPE>(flags), &dumpInformation, nullptr, nullptr) != 0)
+            if (auto flags =
+                    config->miniDumpFlags > 0 ? config->miniDumpFlags : MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders;
+                MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, static_cast<MINIDUMP_TYPE>(flags), &dumpInformation, nullptr, nullptr) != 0)
             {
+                createdDump = true;
                 CloseHandle(file);
             }
             else
@@ -94,8 +96,12 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
             << "\tRelExpAddr: 0x" << std::hex << relativeAddress << std::endl
             << "\tExpCode: 0x" << exceptionPointers->ExceptionRecord->ExceptionCode << std::endl
             << "\tExpFlags: " << exceptionPointers->ExceptionRecord->ExceptionFlags << std::endl
-            << "\tExpAddress: 0x" << exOffset << std::endl
-            << "\tIf you discover how to reproduce this and the reason, report this to Starport!" << std::endl;
+            << "\tExpAddress: 0x" << exOffset << std::endl;
+        if (createdDump)
+        {
+            str << std::format("\nA crash dump has been generated here: {}\n", dumpPath) << std::endl;
+        }
+        str << "If you discover how to reproduce this issue, report this to Starport and your mod developer (if you're running one)!" << std::endl;
 
         MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Unknown Error Code", MB_ICONWARNING | MB_OK);
         return EXCEPTION_EXECUTE_HANDLER;
@@ -115,7 +121,7 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
 using GameLoopFunc = void (*)(double time);
 GameLoopFunc CallGameLoop = reinterpret_cast<GameLoopFunc>(0x5B2890);
 
-void FlufCrashWalker::TryCatchDetour(double time)
+void FlufCrashWalker::TryCatchDetour(const double time)
 {
     __try
     {
@@ -165,7 +171,7 @@ struct MemoryBuffer
         size_t size;
 };
 
-size_t DownloadCallback(void* ptr, size_t size, size_t nmemb, void* data)
+size_t DownloadCallback(const void* ptr, const size_t size, const size_t nmemb, void* data)
 {
     const size_t totalSize = size * nmemb;
     auto* mem = static_cast<MemoryBuffer*>(data);
@@ -185,7 +191,7 @@ size_t DownloadCallback(void* ptr, size_t size, size_t nmemb, void* data)
     return totalSize;
 }
 
-void FlufCrashWalker::LoadErrorPayloadFromCache(std::string_view path)
+void FlufCrashWalker::LoadErrorPayloadFromCache(const std::string_view path)
 {
     if (!std::filesystem::exists(path))
     {
@@ -299,7 +305,7 @@ FlufCrashWalker::~FlufCrashWalker() = default;
 
 std::string_view FlufCrashWalker::GetModuleName() { return moduleName; }
 
-ErrorPayload* FlufCrashWalker::FindError(std::string_view module, size_t offset)
+ErrorPayload* FlufCrashWalker::FindError(const std::string_view module, const size_t offset)
 {
     for (auto& error : possibleErrors)
     {

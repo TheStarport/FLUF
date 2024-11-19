@@ -252,7 +252,7 @@ void CrashCatcher::PatchServer()
 {
     if (const auto serverModule = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll")))
     {
-        auto hook = reinterpret_cast<FARPROC>(CrashCatcher::GetRoot);
+        const auto hook = reinterpret_cast<FARPROC>(CrashCatcher::GetRoot);
         MemUtils::ReadProcMem(serverModule + 0x84018, &oldGetRootProc, 4);
         MemUtils::WriteProcMem(serverModule + 0x84018, &hook, 4);
     }

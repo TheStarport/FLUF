@@ -4,7 +4,7 @@
 
 #include "FLUF/Include/Fluf.hpp"
 
-void FlufWalker::OnCallstackEntry(CallstackEntryType eType, CallstackEntry& entry)
+void FlufWalker::OnCallstackEntry(const CallstackEntryType eType, CallstackEntry& entry)
 {
 #define StrCpy(x, y, z)            \
     if ((y) <= 0)                  \
