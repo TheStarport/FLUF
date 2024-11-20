@@ -38,8 +38,14 @@ runs:
       run: python cli.py dependencies
       shell: powershell
 
-    - name: "Build the project via Python"
-      run: python cli.py build -r
+    - name: "Build the project"
+      run: |
+        conan profile detect
+        Copy-Item -Path "CMakePresetsWindows.json" -Destination "CMakePresets.json"
+        conan install . --build missing -pr:b=default -pr:h=./profiles/windows-dbg
+        conan install . --build missing -pr:b=default -pr:h=./profiles/windows-rel
+        cmake --preset="build"
+        cmake --build build
       shell: powershell
 
     - name: "Run post build via Python"
