@@ -1,6 +1,6 @@
-#include "PCH.hpp"
-
 #include "FLUF.CrashWalker.hpp"
+
+#include "PCH.hpp"
 
 #include "FLCore/Common/CommonMethods.hpp"
 #include "FLUF/Include/Fluf.hpp"
@@ -11,6 +11,7 @@
 #include <rfl/Result.hpp>
 #include <rfl/json.hpp>
 #include <tchar.h>
+#include <winapifamily.h>
 
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));

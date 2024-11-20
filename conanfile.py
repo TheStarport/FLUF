@@ -14,6 +14,7 @@ class CompressorRecipe(ConanFile):
         tc = CMakeToolchain(self)
         tc.user_presets_path = 'ConanPresets.json'
         tc.cache_variables["CMAKE_MSVC_DEBUG_INFORMATION_FORMAT"] = "Embedded"
+        tc.generator = 'Ninja'
         tc.generate()
 
     def requirements(self):
@@ -25,13 +26,8 @@ class CompressorRecipe(ConanFile):
         self.requires("yaml-cpp/0.8.0")
 
     def layout(self):
-        multi = platform.system() == "Windows"
-        if multi:
-            self.folders.generators = os.path.join("build", "generators")
-            self.folders.build = "build"
-        else:
-            self.folders.generators = os.path.join("build", str(self.settings.build_type), "generators")
-            self.folders.build = os.path.join("build", str(self.settings.build_type))
+        self.folders.generators = os.path.join("build", str(self.settings.build_type), "generators")
+        self.folders.build = os.path.join("build", str(self.settings.build_type))
 
     def build(self):
         cmake = CMake(self)

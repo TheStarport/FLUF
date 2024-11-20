@@ -3,7 +3,6 @@
 #include "Config.hpp"
 #include "CrashCatcher.hpp"
 #include "FLUF/Include/FlufModule.hpp"
-#include "FlufWalker.hpp"
 
 #include <rfl/Hex.hpp>
 
@@ -13,7 +12,7 @@ struct ErrorPayload
         rfl::Hex<unsigned long> offset;
         std::string author;
         std::string description;
-        i64 dateAdded;
+        int64_t dateAdded;
 };
 
 class CrashCatcher;

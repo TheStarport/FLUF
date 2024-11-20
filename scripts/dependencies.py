@@ -5,25 +5,6 @@ import click
 from .utils import cli, download_file, log, run
 
 
-@cli.command(short_help='Downloads stackwalker from github')
-def stack_walker():
-    if os.path.isdir("./vendor/stack_walker"):
-        log("stack_walker already exists. No need to download...")
-        return
-
-    download_file('https://github.com/JochenKalmbach/StackWalker/archive/refs/tags/2023-06-24.tar.gz',
-                  'stack_walker.tar.gz')
-
-    log("Extracting contents from stack_walker.tar.gz ...")
-
-    run('7z x "stack_walker.tar.gz" -so | 7z x -aoa -si -ttar -ovendor', no_log=True)
-    os.rename('./vendor/StackWalker-2023-06-24/Main/StackWalker', './vendor/stack_walker')
-    shutil.rmtree('./vendor/StackWalker-2023-06-24')
-
-    log("Extracted contents successfully. Cleaning up...")
-    os.remove("stack_walker.tar.gz")
-
-
 @cli.command(short_help='Downloads and unpacks the DirectX9 SDK if needed')
 def d3d9():
     if os.path.isdir("./vendor/DXSDK"):
@@ -61,4 +42,3 @@ def curl():
 def dependencies(ctx: click.Context):
     ctx.invoke(curl)
     ctx.invoke(d3d9)
-    ctx.invoke(stack_walker)

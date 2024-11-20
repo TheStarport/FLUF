@@ -9,7 +9,7 @@ runs:
 
     - uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.13'
         cache: 'pip'
 
     - name: "Install Pip Packages"
@@ -39,13 +39,7 @@ runs:
       shell: powershell
 
     - name: "Build the project"
-      run: |
-        conan profile detect
-        Copy-Item -Path "CMakePresetsWindows.json" -Destination "CMakePresets.json"
-        conan install . --build missing -pr:b=default -pr:h=./profiles/windows-dbg
-        conan install . --build missing -pr:b=default -pr:h=./profiles/windows-rel
-        cmake --preset="build"
-        cmake --build build
+      run: python cli.py build --no-post-build --release
       shell: powershell
 
     - name: "Run post build via Python"

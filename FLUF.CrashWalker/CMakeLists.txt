@@ -13,11 +13,9 @@ add_library(FLUF.CrashWalker SHARED
         ${ROOT_DIR}/PCH.cpp
         ${ROOT_DIR}/PCH.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc
-        ${VENDOR_PATH}/stack_walker/StackWalker.cpp
 )
 
 target_include_directories(FLUF.CrashWalker PRIVATE
-        ${VENDOR_PATH}/stack_walker
         ${CURL_PATH}/include
 )
 

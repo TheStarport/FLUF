@@ -22,8 +22,8 @@
             "displayName": "Release",
             "inherits": "conan-release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "BUILD_SAMPLES": true
+                "BUILD_SAMPLES": true,
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],

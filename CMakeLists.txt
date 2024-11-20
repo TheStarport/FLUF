@@ -13,6 +13,7 @@ endif ()
 include("LoadConf.cmake")
 
 if (${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
+    add_compile_definitions("WINAPI_FAMILY=100")
     if (NOT DEFINED ENV{MSVC})
         message(FATAL_ERROR "MSVC env was not found and running on Linux")
     endif ()
@@ -178,16 +179,18 @@ function(create_post_build)
             ${ARGN} # arguments of the function to parse, here we take the all original ones
     )
 
-    if (CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(RELEASE_FLAG "--release")
-    endif ()
-    if (DEFINED BINARY_COPY_DESTINATION)
-        set(DEST_FLAG --dest=\"${BINARY_COPY_DESTINATION}\")
-    endif ()
+    if (NOT DEFINED NO_POST_BUILD)
+        if (CMAKE_BUILD_TYPE STREQUAL "Release")
+            set(RELEASE_FLAG "--release")
+        endif ()
+        if (DEFINED BINARY_COPY_DESTINATION)
+            set(DEST_FLAG --dest=\"${BINARY_COPY_DESTINATION}\")
+        endif ()
 
-    add_custom_command(TARGET ${PARSED_ARGS_TARGET_NAME} POST_BUILD
-            COMMAND ${Python_EXECUTABLE} ${ROOT_DIR}/cli.py post-build ${RELEASE_FLAG} ${DEST_FLAG} WORKING_DIRECTORY ${ROOT_DIR}
-    )
+        add_custom_command(TARGET ${PARSED_ARGS_TARGET_NAME} POST_BUILD
+                COMMAND ${Python_EXECUTABLE} ${ROOT_DIR}/cli.py post-build ${RELEASE_FLAG} ${DEST_FLAG} WORKING_DIRECTORY ${ROOT_DIR}
+        )
+    endif ()
 endfunction()
 
 # Now we add our sub-projects
