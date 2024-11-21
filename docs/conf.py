@@ -2,8 +2,7 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-from sphinx.builders.html import StandaloneHTMLBuilder
+import os
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -70,9 +69,8 @@ html_baseurl = "localhost:8080/"
 github_url = 'https://github.com/TheStarport/FLUF'
 
 # -- Breathe configuration -------------------------------------------------
-
 breathe_projects = {
-    "FLUF": "_build/xml/"
+    "FLUF": "_build/html/xml/"
 }
 breathe_default_project = "FLUF"
 breathe_default_members = ('members', 'protected-members', 'private-members')
