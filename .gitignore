@@ -449,5 +449,7 @@ venv/
 vendor/
 compile_commands.json
 dist/
+build/
+_build/
 build.zip
 build.conf
