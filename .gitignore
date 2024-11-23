@@ -438,6 +438,9 @@ FodyWeavers.xsd
 *.bak
 *.lnk
 
+# CmakeBuild
+cmake-*/
+
 #Temporary Folders
 enc_temp_folder/*
 
