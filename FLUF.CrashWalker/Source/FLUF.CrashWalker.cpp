@@ -49,15 +49,19 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
         }
     }
 
+    size_t relativeAddress;
     // Couldn't even get the DLL name, what now?
     if (dllName.empty())
     {
-        Fluf::Log(LogLevel::Trace, "Unable to extract dll name during exception filtering. Likely a datasection? " + std::to_string(exOffset));
-        return EXCEPTION_EXECUTE_HANDLER;
+        dllName = "Unknown DLL";
+        relativeAddress = 0;
+    }
+    else
+    {
+        relativeAddress = reinterpret_cast<size_t>(mod.lpBaseOfDll) + mod.SizeOfImage - exOffset;
     }
 
     // Lookup the error!
-    size_t relativeAddress = reinterpret_cast<size_t>(mod.lpBaseOfDll) + mod.SizeOfImage - exOffset;
     auto error = module->FindError(dllName, relativeAddress);
     if (!error)
     {
