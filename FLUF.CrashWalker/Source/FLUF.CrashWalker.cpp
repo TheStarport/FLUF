@@ -58,7 +58,7 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
     }
     else
     {
-        relativeAddress = reinterpret_cast<size_t>(mod.lpBaseOfDll) + mod.SizeOfImage - exOffset;
+        relativeAddress = exOffset - reinterpret_cast<size_t>(mod.lpBaseOfDll);
     }
 
     // Lookup the error!
