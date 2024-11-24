@@ -202,6 +202,11 @@ struct VTableHack
 
 IClientImpl* Fluf::OnContextSwitchDetour(const char* dllName)
 {
+    fluf->remoteClientVTable.reset();
+    fluf->remoteServerVTable.reset();
+    fluf->localClientVTable.reset();
+    fluf->localServerVTable.reset();
+
     contextSwitchDetour->UnDetour();
     fluf->serverClient = contextSwitchDetour->GetOriginalFunc()(dllName);
     contextSwitchDetour->Detour(OnContextSwitchDetour);
@@ -212,7 +217,7 @@ IClientImpl* Fluf::OnContextSwitchDetour(const char* dllName)
     // Swap to rpclocal.dll or RemoteServer.dll, depending on the context
     fluf->clientServer = reinterpret_cast<IServerImpl*>(GetProcAddress(GetModuleHandleA(dllName), "??_7IClient@@6B@"));
 
-    if (local)
+    if (local && GetModuleHandleA("rpclocal"))
     {
         fluf->localClientVTable =
             std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>>(dllName);
@@ -220,7 +225,7 @@ IClientImpl* Fluf::OnContextSwitchDetour(const char* dllName)
             std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>>(dllName);
         VTableHack::HookClientServer(fluf->localClientVTable.get(), fluf->localServerVTable.get());
     }
-    else
+    else if (!local && GetModuleHandleA("remoteserver"))
     {
         fluf->remoteClientVTable =
             std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>>(dllName);
