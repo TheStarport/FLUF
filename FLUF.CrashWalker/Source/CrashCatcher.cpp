@@ -261,6 +261,7 @@ void CrashCatcher::PatchServer()
 void CrashCatcher::PatchContent()
 {
     static FixContent47bc4 fixContent47Bc4;
+    static FixContent6F8B330 fixContent6F8B330;
     static FixContent6F78DD0 fixContent6F78DD0;
 
     if (contentModule = reinterpret_cast<DWORD>(GetModuleHandleA("content.dll")); contentModule)
@@ -292,6 +293,12 @@ void CrashCatcher::PatchContent()
             MemUtils::WriteProcMem(contentModule + 0x47bc2, patch, 2);
             MemUtils::PatchCallAddr(contentModule, 0x47bc2 + 1, (void*)fixContent47Bc4.getCode());
         }
+
+        // Hook for crash at 0xEB4B5 (confirmed)
+        const auto hook = (FARPROC)fixContent6F8B330.getCode();
+        MemUtils::ReadProcMem(contentModule + 0x11C970, &crashProc6F8B330Old, 4);
+        MemUtils::WriteProcMem(contentModule + 0x11C970, &hook, 4);
+        MemUtils::WriteProcMem(contentModule + 0x11CA00, &hook, 4);
 
         // Hook for crash at 0xD8E14 (confirmed)
         crashProc6F78DD0Old = MemUtils::PatchCallAddr(contentModule, 0x5ED4B, (void*)fixContent6F78DD0.getCode());
