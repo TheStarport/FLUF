@@ -132,13 +132,13 @@ CrashCatcher::FixEngBase124BD::FixEngBase124BD()
 CrashCatcher::FixContent6F8B330::FixContent6F8B330()
 {
     mov(ptr[CrashCatcher::savedEcx], ecx);
-    jmp(CrashCatcher::FixCommon6F8B330Detour);
+    jmp(CrashCatcher::FixContentF8B330Detour);
 }
 
 CrashCatcher::FixContent6F78DD0::FixContent6F78DD0()
 {
     mov(ptr[CrashCatcher::savedEcx], ecx);
-    jmp(CrashCatcher::FixCommon6F78DD0Detour);
+    jmp(CrashCatcher::FixContent6F78DD0Detour);
 }
 
 void CrashCatcher::CrashProc6F671A0(int arg1)
@@ -205,7 +205,7 @@ int CrashCatcher::C4800Hook(int* a1, int* a2, int* zone, double* a4, int a5, int
     }
 }
 
-char __stdcall CrashCatcher::FixCommon6F8B330Detour(int arg1)
+char __stdcall CrashCatcher::FixContentF8B330Detour(int arg1)
 {
     int res = 0;
     try
@@ -228,7 +228,7 @@ char __stdcall CrashCatcher::FixCommon6F8B330Detour(int arg1)
     return static_cast<char>(res);
 }
 
-void __stdcall CrashCatcher::FixCommon6F78DD0Detour(int arg1, int arg2)
+void __stdcall CrashCatcher::FixContent6F78DD0Detour(int arg1, int arg2)
 {
     try
     {

@@ -18,10 +18,6 @@ class CrashCatcher
         static void __stdcall LogContent47bc4();
 
         // Naked Assembly
-        struct FixContent47bc4 final : Xbyak::CodeGenerator
-        {
-                FixContent47bc4();
-        };
 
         struct FixEngBase11A6D final : Xbyak::CodeGenerator
         {
@@ -31,6 +27,11 @@ class CrashCatcher
         struct FixEngBase124BD final : Xbyak::CodeGenerator
         {
                 FixEngBase124BD();
+        };
+
+        struct FixContent47bc4 final : Xbyak::CodeGenerator
+        {
+                FixContent47bc4();
         };
 
         struct FixContent6F8B330 final : Xbyak::CodeGenerator
@@ -57,8 +58,8 @@ class CrashCatcher
         static CObject* GetRoot(CObject* child);
         static DWORD __stdcall C4800HookNaked();
         static int C4800Hook(int* a1, int* a2, int* zone, double* a4, int a5, int a6);
-        static char __stdcall FixCommon6F8B330Detour(int arg1);
-        static void __stdcall FixCommon6F78DD0Detour(int arg1, int arg2);
+        static char __stdcall FixContentF8B330Detour(int arg1);
+        static void __stdcall FixContent6F78DD0Detour(int arg1, int arg2);
 
     public:
         // We have to explicitly patch content over and over as switching between SP and MP will unload the dll (unpatching it)
