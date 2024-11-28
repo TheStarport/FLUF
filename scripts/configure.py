@@ -1,6 +1,8 @@
 import click
 import os
 import shutil
+
+from .dependencies import dependencies
 from .utils import cli, run, is_windows
 
 
@@ -23,6 +25,9 @@ def configure():
 @click.pass_context
 def build(ctx: click.Context, release: bool, no_post_build: bool, no_hooks: bool):
     preset = 'release' if release else 'debug'
+
+    # noinspection PyTypeChecker
+    ctx.invoke(dependencies)
 
     # noinspection PyTypeChecker
     ctx.invoke(configure)
