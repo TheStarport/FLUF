@@ -623,7 +623,7 @@ void __fastcall ClientSend::Dock(IServerImpl* serverImpl, void* edx, uint& unk1,
         static_cast<FuncType>(Fluf::instance->localServerVTable->GetOriginal(static_cast<ushort>(IServerVTable::Dock)))(serverImpl, unk1, unk2);
     }
 }
-
+/*
 void __fastcall ClientSend::SubmitChat(IServerImpl* serverImpl, void* edx, uint from, ulong size, void* rdlReader, uint to, int unk2)
 {
     Fluf::Log(LogLevel::Trace, __FUNCTION__);
@@ -635,3 +635,4 @@ void __fastcall ClientSend::SubmitChat(IServerImpl* serverImpl, void* edx, uint 
             serverImpl, from, size, rdlReader, to, unk2);
     }
 }
+*/

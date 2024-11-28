@@ -138,7 +138,6 @@ void FlufCrashWalker::TryCatchDetour(const double time)
     }
 }
 
-FunctionDetour loadLibraryDetour(LoadLibraryA);
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
 {
     DisableThreadLibraryCalls(mod);
@@ -146,28 +145,6 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     // Add a global try/catch to the application
     MemUtils::PatchCallAddr(GetModuleHandle(nullptr), 0x1B3378, FlufCrashWalker::TryCatchDetour);
     return TRUE;
-}
-
-HINSTANCE __stdcall FlufCrashWalker::LoadLibraryDetour(const char* libName)
-{
-    loadLibraryDetour.UnDetour();
-    const auto res = LoadLibraryA(libName);
-    loadLibraryDetour.Detour(LoadLibraryDetour);
-
-    // Successfully loaded, lets check what the str was
-    if (res)
-    {
-        if (_strcmpi(libName, "server.dll") == 0 && crashCatcher)
-        {
-            CrashCatcher::PatchServer();
-        }
-        else if (_strcmpi(libName, "content.dll") == 0 && crashCatcher)
-        {
-            CrashCatcher::PatchContent();
-        }
-    }
-
-    return res;
 }
 
 struct MemoryBuffer
@@ -284,10 +261,33 @@ void FlufCrashWalker::OnGameLoad()
     file.close();
 }
 
+void FlufCrashWalker::OnDllLoaded(std::string_view dllName, HMODULE dllPtr)
+{
+    if (dllName == "server.dll" && crashCatcher)
+    {
+        CrashCatcher::PatchServer();
+    }
+    else if (dllName == "content.dll" && crashCatcher)
+    {
+        CrashCatcher::PatchContent();
+    }
+}
+
+void FlufCrashWalker::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
+{
+    if (dllName == "server.dll" && crashCatcher)
+    {
+        CrashCatcher::UnpatchServer();
+    }
+    else if (dllName == "content.dll" && crashCatcher)
+    {
+        CrashCatcher::UnpatchContent();
+    }
+}
+
 FlufCrashWalker::FlufCrashWalker()
 {
     module = this;
-    loadLibraryDetour.Detour(LoadLibraryDetour);
     config = std::make_unique<Config>();
     config->Load();
 

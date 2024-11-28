@@ -16,7 +16,6 @@ using FrameUpdatePtr = void (*)(double delta);
 using ContextSwitchPtr = IClientImpl* (*)(const char* dllName);
 std::unique_ptr<FunctionDetour<ScriptLoadPtr>> thornLoadDetour;
 std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
-std::unique_ptr<FunctionDetour<ContextSwitchPtr>> contextSwitchDetour;
 
 std::shared_ptr<Fluf> fluf;
 HMODULE thisDll;
@@ -27,74 +26,6 @@ const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModul
 
 constexpr auto majorVersion = ModuleMajorVersion::One;
 constexpr auto minorVersion = ModuleMinorVersion::Zero;
-
-BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
-{
-    DisableThreadLibraryCalls(mod);
-    if (reason == DLL_PROCESS_ATTACH)
-    {
-        thisDll = mod;
-        fluf = std::make_shared<Fluf>();
-    }
-    else if (reason == DLL_PROCESS_DETACH)
-    {
-        fluf.reset();
-    }
-
-    return TRUE;
-}
-
-void Fluf::OnGameLoad() const
-{
-    Log(LogLevel::Info, "Data loaded, Freelancer ready.");
-    for (const auto& module : loadedModules)
-    {
-        Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
-        module->OnGameLoad();
-    }
-}
-
-void Fluf::OnUpdateHook(const double delta)
-{
-    constexpr float SixtyFramesPerSecond = 1.0f / 60.0f;
-    static double timeCounter = 0.0f;
-
-    timeCounter += delta;
-    // ReSharper disable once CppDFALoopConditionNotUpdated
-    while (timeCounter > SixtyFramesPerSecond)
-    {
-        for (auto& module : fluf->loadedModules)
-        {
-            module->OnFixedUpdate(SixtyFramesPerSecond);
-        }
-
-        timeCounter -= SixtyFramesPerSecond;
-    }
-
-    for (auto& module : fluf->loadedModules)
-    {
-        module->OnUpdate(delta);
-    }
-
-    frameUpdateDetour->UnDetour();
-    frameUpdateDetour->GetOriginalFunc()(delta);
-    frameUpdateDetour->Detour(OnUpdateHook);
-}
-
-void* Fluf::OnScriptLoadHook(const char* file)
-{
-    static bool loaded = false;
-    if (!loaded)
-    {
-        loaded = true;
-        fluf->OnGameLoad();
-    }
-
-    thornLoadDetour->UnDetour();
-    void* ret = thornLoadDetour->GetOriginalFunc()(file);
-    thornLoadDetour->Detour(OnScriptLoadHook);
-    return ret;
-}
 
 struct VTableHack
 {
@@ -200,24 +131,15 @@ struct VTableHack
         }
 };
 
-IClientImpl* Fluf::OnContextSwitchDetour(const char* dllName)
+FunctionDetour loadLibraryDetour(LoadLibraryA);
+
+HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
 {
-    fluf->remoteClientVTable.reset();
-    fluf->remoteServerVTable.reset();
-    fluf->localClientVTable.reset();
-    fluf->localServerVTable.reset();
+    loadLibraryDetour.UnDetour();
+    const auto res = LoadLibraryA(dllName);
+    loadLibraryDetour.Detour(LoadLibraryDetour);
 
-    contextSwitchDetour->UnDetour();
-    fluf->serverClient = contextSwitchDetour->GetOriginalFunc()(dllName);
-    contextSwitchDetour->Detour(OnContextSwitchDetour);
-
-    const bool local = SinglePlayer();
-    Log(LogLevel::Debug, std::format("Context switching to {} ({})", local ? "SP" : "MP", dllName));
-
-    // Swap to rpclocal.dll or RemoteServer.dll, depending on the context
-    fluf->clientServer = reinterpret_cast<IServerImpl*>(GetProcAddress(GetModuleHandleA(dllName), "??_7IClient@@6B@"));
-
-    if (local && GetModuleHandleA("rpclocal"))
+    if (_stricmp(dllName, "rpclocal.dll") == 0)
     {
         fluf->localClientVTable =
             std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>>(dllName);
@@ -225,7 +147,7 @@ IClientImpl* Fluf::OnContextSwitchDetour(const char* dllName)
             std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>>(dllName);
         VTableHack::HookClientServer(fluf->localClientVTable.get(), fluf->localServerVTable.get());
     }
-    else if (!local && GetModuleHandleA("remoteserver"))
+    else if (_stricmp(dllName, "remoteserver.dll") == 0)
     {
         fluf->remoteClientVTable =
             std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>>(dllName);
@@ -234,7 +156,118 @@ IClientImpl* Fluf::OnContextSwitchDetour(const char* dllName)
         VTableHack::HookClientServer(fluf->remoteClientVTable.get(), fluf->remoteServerVTable.get());
     }
 
-    return fluf->serverClient;
+    // Successfully loaded, lets check what the str was
+    if (res && instance)
+    {
+        for (const auto& module : instance->loadedModules)
+        {
+            Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
+            module->OnDllLoaded(dllName, res);
+        }
+    }
+
+    return res;
+}
+
+FunctionDetour freeLibraryDetour(FreeLibrary);
+
+BOOL __stdcall Fluf::FreeLibraryDetour(HMODULE unloadedDll)
+{
+    std::array<char, MAX_PATH> dllNameBuf{};
+    const uint len = GetModuleFileNameA(unloadedDll, dllNameBuf.data(), MAX_PATH);
+    std::string_view dllName{ dllNameBuf.data(), len };
+    dllName = dllName.substr(dllName.find_last_of('\\') + 1);
+
+    if (dllName == "rpclocal.dll")
+    {
+        fluf->localClientVTable.reset();
+        fluf->localServerVTable.reset();
+    }
+    else if (dllName == "remoteserver.dll")
+    {
+        fluf->remoteClientVTable.reset();
+        fluf->remoteServerVTable.reset();
+    }
+
+    for (const auto& module : instance->loadedModules)
+    {
+        Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
+        module->OnDllUnloaded(dllName, unloadedDll);
+    }
+
+    freeLibraryDetour.UnDetour();
+    const auto res = FreeLibrary(unloadedDll);
+    freeLibraryDetour.Detour(FreeLibraryDetour);
+
+    return res;
+}
+
+BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
+{
+    DisableThreadLibraryCalls(mod);
+    if (reason == DLL_PROCESS_ATTACH)
+    {
+        thisDll = mod;
+        fluf = std::make_shared<Fluf>();
+    }
+    else if (reason == DLL_PROCESS_DETACH)
+    {
+        fluf.reset();
+    }
+
+    return TRUE;
+}
+
+void Fluf::OnGameLoad() const
+{
+    Log(LogLevel::Info, "Data loaded, Freelancer ready.");
+    for (const auto& module : loadedModules)
+    {
+        Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
+        module->OnGameLoad();
+    }
+}
+
+void Fluf::OnUpdateHook(const double delta)
+{
+    constexpr float SixtyFramesPerSecond = 1.0f / 60.0f;
+    static double timeCounter = 0.0f;
+
+    timeCounter += delta;
+    // ReSharper disable once CppDFALoopConditionNotUpdated
+    while (timeCounter > SixtyFramesPerSecond)
+    {
+        for (auto& module : fluf->loadedModules)
+        {
+            module->OnFixedUpdate(SixtyFramesPerSecond);
+        }
+
+        timeCounter -= SixtyFramesPerSecond;
+    }
+
+    for (auto& module : fluf->loadedModules)
+    {
+        module->OnUpdate(delta);
+    }
+
+    frameUpdateDetour->UnDetour();
+    frameUpdateDetour->GetOriginalFunc()(delta);
+    frameUpdateDetour->Detour(OnUpdateHook);
+}
+
+void* Fluf::OnScriptLoadHook(const char* file)
+{
+    static bool loaded = false;
+    if (!loaded)
+    {
+        loaded = true;
+        fluf->OnGameLoad();
+    }
+
+    thornLoadDetour->UnDetour();
+    void* ret = thornLoadDetour->GetOriginalFunc()(file);
+    thornLoadDetour->Detour(OnScriptLoadHook);
+    return ret;
 }
 
 std::string SetLogMetadata(void* address, LogLevel level)
@@ -369,6 +402,9 @@ Fluf::Fluf()
     config = std::make_shared<FlufConfiguration>();
     config->Load();
 
+    loadLibraryDetour.Detour(LoadLibraryDetour);
+    freeLibraryDetour.Detour(FreeLibraryDetour);
+
     // Console sink enabled, allocate console and allow us to use std::cout
     if (config->logSinks.contains(LogSink::Console))
     {
@@ -439,9 +475,10 @@ Fluf::Fluf()
     const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
     frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));
     frameUpdateDetour->Detour(OnUpdateHook);
-
-    contextSwitchDetour = std::make_unique<FunctionDetour<ContextSwitchPtr>>(reinterpret_cast<ContextSwitchPtr>(fl + 0x1B6F40));
-    contextSwitchDetour->Detour(OnContextSwitchDetour);
 }
 
-Fluf::~Fluf() = default;
+Fluf::~Fluf()
+{
+    loadLibraryDetour.UnDetour();
+    freeLibraryDetour.UnDetour();
+}

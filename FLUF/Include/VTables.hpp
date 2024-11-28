@@ -129,7 +129,7 @@ enum class IClientVTable
     RemoteStart = 0x3B2A0,
     RemoteEnd = 0x3B494,
     LocalStart = 0x33250,
-    LocalEnd = 0x33448
+    LocalEnd = 0x33444
 };
 
 enum class IServerVTable
@@ -226,9 +226,9 @@ enum class IServerVTable
     GetServerSig,
     DumpPacketStats,
     Dock,
-    SubmitChat,
+    PushToServer,
     RemoteStart = 0x3B4A0,
-    RemoteEnd = 0x3B614,
+    RemoteEnd = 0x3B610,
     LocalStart = 0x33450,
-    LocalEnd = 0x335C4
+    LocalEnd = 0x335C0
 };

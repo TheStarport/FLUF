@@ -20,8 +20,9 @@ class FlufCrashWalker final : public FlufModule
 {
         void LoadErrorPayloadFromCache(std::string_view path);
         void OnGameLoad() override;
+        void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
+        void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
         static int __stdcall GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointers);
-        static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
         inline static std::unique_ptr<CrashCatcher> crashCatcher;
         inline static std::unique_ptr<Config> config;
         std::vector<ErrorPayload> possibleErrors;

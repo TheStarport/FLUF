@@ -54,12 +54,8 @@ class Fluf
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
 
-        /**
-         * @brief A detour that is called whenever the game's context switches. This happens when the player clicks the "Multiplayer" or "New Game" buttons.
-         * @param dllName The name of the dll that will be loaded. Either RemoteServer.dll (MP) or Server.dll (SP)
-         * @return A pointer to a struct representing the server client that will receive updates from the server/client
-         */
-        static IClientImpl* OnContextSwitchDetour(const char* dllName);
+        static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
+        static BOOL __stdcall FreeLibraryDetour(HMODULE module);
 
         void OnGameLoad() const;
 

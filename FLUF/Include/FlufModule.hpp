@@ -40,6 +40,8 @@ class FLUF_API FlufModule
         virtual void OnUpdate(const double delta) {}
         virtual void OnFixedUpdate(const double delta){};
         virtual void OnGameLoad() {}
+        virtual void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) {}
+        virtual void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) {}
 
         // Before Hooks
 
