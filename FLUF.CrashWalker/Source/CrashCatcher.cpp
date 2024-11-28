@@ -129,15 +129,15 @@ CrashCatcher::FixEngBase124BD::FixEngBase124BD()
     ret();
 }
 
-CrashCatcher::FixContent6F8B330::FixContent6F8B330()
+CrashCatcher::FixContent6F8B330::FixContent6F8B330(void* savePtr)
 {
-    mov(ptr[CrashCatcher::savedEcx], ecx);
+    mov(ptr[savePtr], ecx);
     jmp(CrashCatcher::FixContentF8B330Detour);
 }
 
-CrashCatcher::FixContent6F78DD0::FixContent6F78DD0()
+CrashCatcher::FixContent6F78DD0::FixContent6F78DD0(void* savePtr)
 {
-    mov(ptr[CrashCatcher::savedEcx], ecx);
+    mov(ptr[savePtr], ecx);
     jmp(CrashCatcher::FixContent6F78DD0Detour);
 }
 
@@ -260,12 +260,12 @@ void CrashCatcher::PatchServer()
 
 void CrashCatcher::PatchContent()
 {
-    static FixContent47bc4 fixContent47Bc4;
-    static FixContent6F8B330 fixContent6F8B330;
-    static FixContent6F78DD0 fixContent6F78DD0;
-
     if (contentModule = reinterpret_cast<DWORD>(GetModuleHandleA("content.dll")); contentModule)
     {
+        fixContent47Bc4 = std::make_unique<FixContent47bc4>();
+        fixContent6F8B330 = std::make_unique<FixContent6F8B330>(&savedEcx);
+        fixContent6F78DD0 = std::make_unique<FixContent6F78DD0>(&savedEcx);
+
         // Patch for crash at content.dll + blarg
         MemUtils::PatchCallAddr(contentModule, 0xC608D, C4800Hook);
 
@@ -291,18 +291,18 @@ void CrashCatcher::PatchContent()
         {
             constexpr uchar patch[] = { 0x90, 0xe8 }; // nop call
             MemUtils::WriteProcMem(contentModule + 0x47bc2, patch, 2);
-            MemUtils::PatchCallAddr(contentModule, 0x47bc2 + 1, (void*)fixContent47Bc4.getCode());
+            MemUtils::PatchCallAddr(contentModule, 0x47bc2 + 1, (void*)fixContent47Bc4->getCode());
         }
 
         // Hook for crash at 0xEB4B5 (confirmed)
-        const auto hook = (FARPROC)fixContent6F8B330.getCode();
+        const auto hook = (FARPROC)fixContent6F8B330->getCode();
         MemUtils::ReadProcMem(contentModule + 0x11C970, &crashProc6F8B330Old, 4);
         MemUtils::WriteProcMem(contentModule + 0x11C970, &hook, 4);
         MemUtils::WriteProcMem(contentModule + 0x11CA00, &hook, 4);
 
         // Hook for crash at 0xD8E14 (confirmed)
-        crashProc6F78DD0Old = MemUtils::PatchCallAddr(contentModule, 0x5ED4B, (void*)fixContent6F78DD0.getCode());
-        MemUtils::PatchCallAddr(contentModule, 0xBD96A, (void*)fixContent6F78DD0.getCode());
+        crashProc6F78DD0Old = MemUtils::PatchCallAddr(contentModule, 0x5ED4B, (void*)fixContent6F78DD0->getCode());
+        MemUtils::PatchCallAddr(contentModule, 0xBD96A, (void*)fixContent6F78DD0->getCode());
 
         // Hook for crash at 0xC71AE (confirmed)
         crashProc6F671A0Old = MemUtils::PatchCallAddr(contentModule, 0xBDC80, CrashProc6F671A0);

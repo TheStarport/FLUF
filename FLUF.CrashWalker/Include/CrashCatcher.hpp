@@ -36,12 +36,12 @@ class CrashCatcher
 
         struct FixContent6F8B330 final : Xbyak::CodeGenerator
         {
-                FixContent6F8B330();
+                explicit FixContent6F8B330(void* savePtr);
         };
 
         struct FixContent6F78DD0 final : Xbyak::CodeGenerator
         {
-                FixContent6F78DD0();
+                explicit FixContent6F78DD0(void* savePtr);
         };
 
         friend FixContent6F8B330;
@@ -49,6 +49,11 @@ class CrashCatcher
 
         // Inter-function Variables
         inline static DWORD savedEcx = 0;
+
+        // Delay init of asm functions
+        inline static std::unique_ptr<FixContent47bc4> fixContent47Bc4;
+        inline static std::unique_ptr<FixContent6F8B330> fixContent6F8B330;
+        inline static std::unique_ptr<FixContent6F78DD0> fixContent6F78DD0;
 
         // Detours
 
