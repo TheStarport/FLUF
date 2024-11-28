@@ -139,6 +139,7 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
     const auto res = LoadLibraryA(dllName);
     loadLibraryDetour.Detour(LoadLibraryDetour);
 
+#ifndef FLUF_DISABLE_HOOKS
     if (_stricmp(dllName, "rpclocal.dll") == 0)
     {
         fluf->localClientVTable =
@@ -155,6 +156,7 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
             std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>>(dllName);
         VTableHack::HookClientServer(fluf->remoteClientVTable.get(), fluf->remoteServerVTable.get());
     }
+#endif
 
     // Successfully loaded, lets check what the str was
     if (res && instance)

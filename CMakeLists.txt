@@ -41,6 +41,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_compile_options("$<$<CONFIG:DEBUG>:-D_DEBUG>")
 
+if (DEFINED NO_HOOKS)
+    add_definitions("-DFLUF_DISABLE_HOOKS")
+endif ()
+
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     message(FATAL_ERROR "Only LLVM Clang and MSVC compilers is currently supported.")
 endif ()
