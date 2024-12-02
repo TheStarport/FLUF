@@ -44,6 +44,11 @@ class CrashCatcher
                 explicit FixContent6F78DD0(void* savePtr);
         };
 
+        struct FixCommon6329B78 final : Xbyak::CodeGenerator
+        {
+                explicit FixCommon6329B78();
+        };
+
         friend FixContent6F8B330;
         friend FixContent6F78DD0;
 
@@ -54,6 +59,7 @@ class CrashCatcher
         inline static std::unique_ptr<FixContent47bc4> fixContent47Bc4;
         inline static std::unique_ptr<FixContent6F8B330> fixContent6F8B330;
         inline static std::unique_ptr<FixContent6F78DD0> fixContent6F78DD0;
+        inline static std::unique_ptr<FixCommon6329B78> fixCommon6329B78;
 
         // Detours
 
@@ -71,8 +77,10 @@ class CrashCatcher
 
         static void PatchContent();
         static void PatchServer();
+        static void PatchCommon();
         static void UnpatchContent();
         static void UnpatchServer();
+        static void UnpatchCommon();
 
         CrashCatcher();
         ~CrashCatcher();

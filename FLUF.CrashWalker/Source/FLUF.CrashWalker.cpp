@@ -271,6 +271,10 @@ void FlufCrashWalker::OnDllLoaded(std::string_view dllName, HMODULE dllPtr)
     {
         CrashCatcher::PatchContent();
     }
+    else if (dllName == "common.dll" && crashCatcher)
+    {
+        CrashCatcher::PatchCommon();
+    }
 }
 
 void FlufCrashWalker::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
@@ -282,6 +286,10 @@ void FlufCrashWalker::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
     else if (dllName == "content.dll" && crashCatcher)
     {
         CrashCatcher::UnpatchContent();
+    }
+    else if (dllName == "common.dll" && crashCatcher)
+    {
+        CrashCatcher::UnpatchCommon();
     }
 }
 

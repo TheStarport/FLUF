@@ -141,6 +141,18 @@ CrashCatcher::FixContent6F78DD0::FixContent6F78DD0(void* savePtr)
     jmp(CrashCatcher::FixContent6F78DD0Detour);
 }
 
+CrashCatcher::FixCommon6329B78::FixCommon6329B78()
+{
+    test(eax, eax);
+    jz("earlyExit");
+    mov(esi, ptr[eax]);
+    cmp(esi, eax);
+    jz("earlyExit");
+    jmp(reinterpret_cast<const void*>(0x6329B7E));
+    L("earlyExit");
+    jmp(reinterpret_cast<const void*>(0x6329B94));
+}
+
 void CrashCatcher::CrashProc6F671A0(int arg1)
 {
     try
@@ -248,6 +260,20 @@ void __stdcall CrashCatcher::FixContent6F78DD0Detour(int arg1, int arg2)
     }
 }
 
+void CrashCatcher::PatchCommon()
+{
+    if (const auto commonModule = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll")))
+    {
+        fixCommon6329B78 = std::make_unique<FixCommon6329B78>();
+
+        {
+            constexpr uchar patch[] = { 0xe9 };
+            MemUtils::WriteProcMem(commonModule + 0xC9B78, patch, 1);
+            MemUtils::PatchCallAddr(commonModule, 0xC9B78, (void*)fixCommon6329B78->getCode());
+        }
+    }
+}
+
 void CrashCatcher::PatchServer()
 {
     if (const auto serverModule = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll")))
@@ -325,6 +351,16 @@ void CrashCatcher::UnpatchServer()
         MemUtils::WriteProcMem(serverModule + 0x84018, &oldGetRootProc, 4);
     }
 }
+void CrashCatcher::UnpatchCommon()
+{
+    if (const auto commonModule = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll")))
+    {
+        {
+            constexpr uchar patch[] = { 0x8B, 0x30, 0x3B, 0xF0, 0x74 };
+            MemUtils::WriteProcMem(commonModule + 0xC9B78, patch, sizeof(patch));
+        }
+    }
+}
 
 void CrashCatcher::UnpatchContent()
 {
@@ -363,6 +399,7 @@ CrashCatcher::CrashCatcher()
 {
     PatchContent();
     PatchServer();
+    PatchCommon();
 
     static FixEngBase11A6D fixEngBase11A6D;
     static FixEngBase124BD fixEngBase124BD;
