@@ -260,6 +260,30 @@ void __stdcall CrashCatcher::FixContent6F78DD0Detour(int arg1, int arg2)
     }
 }
 
+void CrashCatcher::PatchAlchemy()
+{
+    if (const auto alchemyModule = reinterpret_cast<DWORD>(GetModuleHandleA("alchemy.dll")); alchemyModule)
+    {
+        {
+            // check for an invalid pointer (0xFFFFFFFF) passed into the method, skip processing if so. (confirmed)
+            const std::array<BYTE, 16> patch = { 0x83, 0xF9, 0xFF, 0x74, 0x05, 0xE8, 0x33, 0xE7, 0xFF, 0xFF, 0x89, 0xf0, 0x5e, 0xc2, 0x04, 0x00 };
+            MemUtils::WriteProcMem(alchemyModule + 0xA1D3, patch.data(), patch.size());
+        }
+    }
+}
+
+void CrashCatcher::UnpatchAlchemy()
+{
+    if (const auto alchemyModule = reinterpret_cast<DWORD>(GetModuleHandleA("alchemy.dll")); alchemyModule)
+    {
+        {
+            // check for an invalid pointer (0xFFFFFFFF) passed into the method, skip processing if so. (confirmed)
+            const std::array<BYTE, 16> patch = { 0xE8, 0x38, 0xE7, 0xFF, 0xFF, 0xF6, 0x44, 0x24, 0x08, 0x01, 0x74, 0x09, 0x56, 0xE8, 0xFB, 0xBE };
+            MemUtils::WriteProcMem(alchemyModule + 0xA1D3, patch.data(), patch.size());
+        }
+    }
+}
+
 void CrashCatcher::PatchCommon()
 {
     if (const auto commonModule = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll")))
@@ -400,6 +424,7 @@ CrashCatcher::CrashCatcher()
     PatchContent();
     PatchServer();
     PatchCommon();
+    PatchAlchemy();
 
     static FixEngBase11A6D fixEngBase11A6D;
     static FixEngBase124BD fixEngBase124BD;
@@ -423,9 +448,15 @@ CrashCatcher::~CrashCatcher()
 {
     const auto engBaseModule = reinterpret_cast<DWORD>(GetModuleHandleA("engbase.dll"));
 
-    const uchar patch[] = { 0x8B, 0x40, 0x10, 0x85, 0xc0 };
-    MemUtils::WriteProcMem(engBaseModule + 0x0124BD, patch, 5);
+    if (engBaseModule)
+    {
+        const uchar patch[] = { 0x8B, 0x40, 0x10, 0x85, 0xc0 };
+        MemUtils::WriteProcMem(engBaseModule + 0x0124BD, patch, 5);
 
-    const uchar patch2[] = { 0x8B, 0x40, 0x28, 0xC2, 0x08, 0x00 };
-    MemUtils::WriteProcMem(engBaseModule + 0x011a6d, patch2, 6);
+        const uchar patch2[] = { 0x8B, 0x40, 0x28, 0xC2, 0x08, 0x00 };
+        MemUtils::WriteProcMem(engBaseModule + 0x011a6d, patch2, 6);
+    }
+
+    UnpatchCommon();
+    UnpatchAlchemy();
 }

@@ -78,9 +78,11 @@ class CrashCatcher
         static void PatchContent();
         static void PatchServer();
         static void PatchCommon();
+        static void PatchAlchemy();
         static void UnpatchContent();
         static void UnpatchServer();
         static void UnpatchCommon();
+        static void UnpatchAlchemy();
 
         CrashCatcher();
         ~CrashCatcher();
