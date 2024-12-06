@@ -153,6 +153,36 @@ CrashCatcher::FixCommon6329B78::FixCommon6329B78()
     jmp(reinterpret_cast<const void*>(0x6329B94));
 }
 
+void __fastcall BaseWatcherSetPointerDetour(BaseWatcher* bw, void* edx, Watchable* passedWatchable)
+{
+    if (Watchable* watchable = bw->watchable; watchable && reinterpret_cast<uint>(watchable) != 0xFFFFFFFF)
+    {
+        while (true)
+        {
+            BaseWatcher* baseWatcher2 = watchable->newestBaseWatcher;
+            if (baseWatcher2 == bw)
+            {
+                break;
+            }
+
+            watchable = reinterpret_cast<Watchable*>(&baseWatcher2->nextBaseWatcher);
+            if (!baseWatcher2 || reinterpret_cast<uint>(baseWatcher2) == 0xFFFFFFFF)
+            {
+                goto earlyExit;
+            }
+        }
+        watchable->newestBaseWatcher = bw->nextBaseWatcher;
+        bw->nextBaseWatcher = nullptr;
+    }
+earlyExit:
+    if (passedWatchable)
+    {
+        bw->nextBaseWatcher = passedWatchable->newestBaseWatcher;
+        passedWatchable->newestBaseWatcher = bw;
+    }
+    bw->watchable = passedWatchable;
+}
+
 void CrashCatcher::CrashProc6F671A0(int arg1)
 {
     try
@@ -295,6 +325,10 @@ void CrashCatcher::PatchCommon()
             MemUtils::WriteProcMem(commonModule + 0xC9B78, patch, 1);
             MemUtils::PatchCallAddr(commonModule, 0xC9B78, (void*)fixCommon6329B78->getCode());
         }
+
+        fixCommon6341616Detour =
+            std::make_unique<FunctionDetour<CommonBasewatcherSetPointerFunc>>(reinterpret_cast<CommonBasewatcherSetPointerFunc>(commonModule + 0xE1610));
+        fixCommon6341616Detour->Detour(BaseWatcherSetPointerDetour);
     }
 }
 

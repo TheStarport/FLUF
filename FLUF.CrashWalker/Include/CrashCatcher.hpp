@@ -1,5 +1,8 @@
 #pragma once
 
+#include "FLCore/Common/Watchable.hpp"
+#include "Utils/Detour.hpp"
+
 #include <xbyak/xbyak.h>
 
 struct CObject;
@@ -49,6 +52,11 @@ class CrashCatcher
                 explicit FixCommon6329B78();
         };
 
+        struct FixCommon6341616 final : Xbyak::CodeGenerator
+        {
+                explicit FixCommon6341616();
+        };
+
         friend FixContent6F8B330;
         friend FixContent6F78DD0;
 
@@ -61,6 +69,8 @@ class CrashCatcher
         inline static std::unique_ptr<FixContent6F78DD0> fixContent6F78DD0;
         inline static std::unique_ptr<FixCommon6329B78> fixCommon6329B78;
 
+        using CommonBasewatcherSetPointerFunc = void(__fastcall*)(BaseWatcher*, void*, Watchable*);
+        inline static std::unique_ptr<FunctionDetour<CommonBasewatcherSetPointerFunc>> fixCommon6341616Detour;
         // Detours
 
         static void CrashProc6F671A0(int arg1);
