@@ -302,6 +302,35 @@ void CrashCatcher::PatchAlchemy()
     }
 }
 
+int* __stdcall FixEngbase12580Detour(int a1, int* a2)
+{
+    if (reinterpret_cast<int>(a2) == -1 || !a2)
+    {
+        return nullptr;
+    }
+    try
+    {
+        if (a2[4])
+        {
+            return a2 + 0x17;
+        }
+    }
+    catch (...)
+    {
+        return nullptr;
+    }
+    return nullptr;
+}
+
+void CrashCatcher::PatchEngBase()
+{
+    if (const auto engbaseModule = reinterpret_cast<DWORD>(GetModuleHandleA("engbase.dll")); engbaseModule)
+    {
+        fixEngbase12580Detour = std::make_unique<FunctionDetour<EngBase12580Func>>(reinterpret_cast<EngBase12580Func>(engbaseModule + 0x12580));
+        fixEngbase12580Detour->Detour(FixEngbase12580Detour);
+    }
+}
+
 void CrashCatcher::UnpatchAlchemy()
 {
     if (const auto alchemyModule = reinterpret_cast<DWORD>(GetModuleHandleA("alchemy.dll")); alchemyModule)
@@ -459,6 +488,7 @@ CrashCatcher::CrashCatcher()
     PatchServer();
     PatchCommon();
     PatchAlchemy();
+    PatchEngBase();
 
     static FixEngBase11A6D fixEngBase11A6D;
     static FixEngBase124BD fixEngBase124BD;

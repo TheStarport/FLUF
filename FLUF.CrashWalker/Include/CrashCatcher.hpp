@@ -71,6 +71,9 @@ class CrashCatcher
 
         using CommonBasewatcherSetPointerFunc = void(__fastcall*)(BaseWatcher*, void*, Watchable*);
         inline static std::unique_ptr<FunctionDetour<CommonBasewatcherSetPointerFunc>> fixCommon6341616Detour;
+
+        using EngBase12580Func = int*(__stdcall*)(int a1, int* a2);
+        inline static std::unique_ptr<FunctionDetour<EngBase12580Func>> fixEngbase12580Detour;
         // Detours
 
         static void CrashProc6F671A0(int arg1);
@@ -89,6 +92,7 @@ class CrashCatcher
         static void PatchServer();
         static void PatchCommon();
         static void PatchAlchemy();
+        static void PatchEngBase();
         static void UnpatchContent();
         static void UnpatchServer();
         static void UnpatchCommon();
