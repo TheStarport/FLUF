@@ -270,6 +270,18 @@ char __stdcall CrashCatcher::FixContentF8B330Detour(int arg1)
     return static_cast<char>(res);
 }
 
+void __thiscall CrashCatcher::FixFreelancer669c0Detour(void* a1, unsigned int a2, unsigned int a3)
+{
+    static const auto groupUIItem = reinterpret_cast<PDWORD>(0x66DA84);
+    if (!*groupUIItem)
+    {
+        return;
+    }
+    fixFreelancer669c0Detour->UnDetour();
+    fixFreelancer669c0Detour->GetOriginalFunc()(a1, a2, a3);
+    fixFreelancer669c0Detour->Detour(FixFreelancer669c0Detour);
+}
+
 void __stdcall CrashCatcher::FixContent6F78DD0Detour(int arg1, int arg2)
 {
     try
@@ -287,6 +299,14 @@ void __stdcall CrashCatcher::FixContent6F78DD0Detour(int arg1, int arg2)
     catch (...)
     {
         Fluf::Log(LogLevel::Error, std::format("Crash suppression in CrashProc6F78DD0(arg1={:#X}, arg2={:#X})", arg1, arg2));
+    }
+}
+void CrashCatcher::PatchFreelancer()
+{
+    if (const auto freelancerModule = reinterpret_cast<DWORD>(GetModuleHandleA("freelancer.exe")); freelancerModule)
+    {
+        fixFreelancer669c0Detour = std::make_unique<FunctionDetour<Freelancer669c0Func>>(reinterpret_cast<Freelancer669c0Func>(freelancerModule + 0x669c0));
+        fixFreelancer669c0Detour->Detour(FixFreelancer669c0Detour);
     }
 }
 
@@ -484,6 +504,7 @@ void CrashCatcher::UnpatchContent()
 
 CrashCatcher::CrashCatcher()
 {
+    PatchFreelancer();
     PatchContent();
     PatchServer();
     PatchCommon();

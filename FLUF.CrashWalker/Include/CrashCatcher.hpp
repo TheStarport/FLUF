@@ -74,6 +74,9 @@ class CrashCatcher
 
         using EngBase12580Func = int*(__stdcall*)(int a1, int* a2);
         inline static std::unique_ptr<FunctionDetour<EngBase12580Func>> fixEngbase12580Detour;
+
+        using Freelancer669c0Func = void(__thiscall*)(void* a1, unsigned int a2, unsigned int a3);
+        inline static std::unique_ptr<FunctionDetour<Freelancer669c0Func>> fixFreelancer669c0Detour;
         // Detours
 
         static void CrashProc6F671A0(int arg1);
@@ -83,11 +86,13 @@ class CrashCatcher
         static DWORD __stdcall C4800HookNaked();
         static int C4800Hook(int* a1, int* a2, int* zone, double* a4, int a5, int a6);
         static char __stdcall FixContentF8B330Detour(int arg1);
+        static void __thiscall FixFreelancer669c0Detour(void* a1, unsigned int a2, unsigned int a3);
         static void __stdcall FixContent6F78DD0Detour(int arg1, int arg2);
 
     public:
         // We have to explicitly patch content over and over as switching between SP and MP will unload the dll (unpatching it)
 
+        static void PatchFreelancer();
         static void PatchContent();
         static void PatchServer();
         static void PatchCommon();
