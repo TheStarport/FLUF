@@ -308,7 +308,7 @@ void CrashCatcher::PatchFreelancer()
         fixFreelancer669c0Detour = std::make_unique<FunctionDetour<Freelancer669c0Func>>(reinterpret_cast<Freelancer669c0Func>(freelancerModule + 0x669c0));
         fixFreelancer669c0Detour->Detour(FixFreelancer669c0Detour);
 
-        MemUtils::NopAddress(freelancerModule + 0x4F7E17, 5);
+        MemUtils::NopAddress(freelancerModule + 0xF7E17, 5);
     }
 }
 
