@@ -330,17 +330,15 @@ int* __stdcall FixEngbase12580Detour(int a1, int* a2)
     {
         return nullptr;
     }
-    try
+    __try
     {
         if (a2[4])
         {
             return a2 + 0x17;
         }
     }
-    catch (...)
-    {
-        return nullptr;
-    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {}
     return nullptr;
 }
 
