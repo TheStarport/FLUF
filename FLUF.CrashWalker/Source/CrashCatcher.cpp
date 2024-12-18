@@ -348,6 +348,11 @@ void CrashCatcher::PatchEngBase()
     {
         fixEngbase12580Detour = std::make_unique<FunctionDetour<EngBase12580Func>>(reinterpret_cast<EngBase12580Func>(engbaseModule + 0x12580));
         fixEngbase12580Detour->Detour(FixEngbase12580Detour);
+
+        {
+            constexpr uchar patch[] = { 0x85, 0xC0, 0x75, 0x02, 0xEB, 0xEF, 0x89, 0x4C, 0x24, 0x08, 0x89, 0x44, 0x24, 0x04, 0x8B, 0x10, 0xFF, 0x62, 0x20 };
+            MemUtils::WriteProcMem(engbaseModule + 0x11C18, patch, sizeof(patch));
+        }
     }
 }
 
