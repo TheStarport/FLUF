@@ -61,39 +61,40 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
         relativeAddress = exOffset - reinterpret_cast<size_t>(mod.lpBaseOfDll);
     }
 
+    std::array<char, MAX_PATH> totalPath{};
+    GetUserDataPath(totalPath.data());
+
+    const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
+    auto dumpPath = config->useOnlySingleDumpFile ? std::format("{}\\crash.dmp", std::string(totalPath.data()))
+                                                  : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), time);
+
+    bool createdDump = false;
+    if (HANDLE file = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+        file != INVALID_HANDLE_VALUE)
+    {
+        MINIDUMP_EXCEPTION_INFORMATION dumpInformation;
+        dumpInformation.ThreadId = GetCurrentThreadId();
+        dumpInformation.ExceptionPointers = exceptionPointers;
+        dumpInformation.ClientPointers = 0;
+
+        if (auto flags =
+                config->miniDumpFlags > 0 ? config->miniDumpFlags : MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders;
+            MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, static_cast<MINIDUMP_TYPE>(flags), &dumpInformation, nullptr, nullptr) != 0)
+        {
+            createdDump = true;
+            CloseHandle(file);
+        }
+        else
+        {
+            CloseHandle(file);
+            DeleteFileA(dumpPath.c_str());
+        }
+    }
+
     // Lookup the error!
     auto error = module->FindError(dllName, relativeAddress);
     if (!error)
     {
-        std::array<char, MAX_PATH> totalPath{};
-        GetUserDataPath(totalPath.data());
-
-        const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        auto dumpPath = config->useOnlySingleDumpFile ? std::format("{}\\crash.dmp", std::string(totalPath.data()))
-                                                      : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), time);
-
-        bool createdDump = false;
-        if (HANDLE file = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-            file != INVALID_HANDLE_VALUE)
-        {
-            MINIDUMP_EXCEPTION_INFORMATION dumpInformation;
-            dumpInformation.ThreadId = GetCurrentThreadId();
-            dumpInformation.ExceptionPointers = exceptionPointers;
-            dumpInformation.ClientPointers = 0;
-
-            if (auto flags =
-                    config->miniDumpFlags > 0 ? config->miniDumpFlags : MiniDumpScanMemory | MiniDumpWithIndirectlyReferencedMemory | MiniDumpWithModuleHeaders;
-                MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, static_cast<MINIDUMP_TYPE>(flags), &dumpInformation, nullptr, nullptr) != 0)
-            {
-                createdDump = true;
-                CloseHandle(file);
-            }
-            else
-            {
-                CloseHandle(file);
-                DeleteFileA(dumpPath.c_str());
-            }
-        }
 
         str << "\tUnhandled Exception!\n\t-- Important Information --\n"
             << std::endl
@@ -118,6 +119,11 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
         "\nFound by: " << error->author <<
         "\nSuspected Reason: " << error->description << std::endl;
     // clang-format on
+
+    if (createdDump)
+    {
+        str << std::format("\nA crash dump has been generated here: {}\n", dumpPath) << std::endl;
+    }
 
     MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Known Error Code", MB_ICONWARNING | MB_OK);
     return EXCEPTION_EXECUTE_HANDLER;
