@@ -21,34 +21,29 @@
 
 RmlInterface* module = nullptr;
 
-using WinKeyType = bool (*)(uint msg, WPARAM wParam, LPARAM lParam);
-using OriginalWndProc = LRESULT(__stdcall*)(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
-FunctionDetour winKeyDetour(reinterpret_cast<WinKeyType>(0x577850));
-FunctionDetour wndProcDetour(reinterpret_cast<OriginalWndProc>(0x5B2570));
-
-LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const WPARAM wParam, const LPARAM lParam)
+bool RmlInterface::WndProc(const HWND hWnd, const uint msg, const WPARAM wParam, const LPARAM lParam)
 {
     switch (msg)
     {
         case WM_KEYDOWN:
             {
-                const Rml::Input::KeyIdentifier rml_key = RmlWin32::ConvertKey((int)wParam);
+                const Rml::Input::KeyIdentifier rml_key = RmlWin32::ConvertKey(static_cast<int>(wParam));
                 const int rml_modifier = RmlWin32::GetKeyModifierState();
-                auto dpi = GetDpiForWindow(hWnd);
-                const float native_dp_ratio = float(dpi == 0 ? USER_DEFAULT_SCREEN_DPI : dpi) / float(USER_DEFAULT_SCREEN_DPI);
+                const auto dpi = GetDpiForWindow(hWnd);
+                const float native_dp_ratio = static_cast<float>(dpi == 0 ? USER_DEFAULT_SCREEN_DPI : dpi) / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
 
                 // See if we have any global shortcuts that take priority over the context.
-                if (!RmlWin32::ProcessKeyDownShortcuts(module->ui, rmlContext, rml_key, rml_modifier, native_dp_ratio, true))
+                if (!RmlWin32::ProcessKeyDownShortcuts(ui, rmlContext, rml_key, rml_modifier, native_dp_ratio, true))
                 {
-                    return 0;
+                    return false;
                 }
 
-                rmlContext->ProcessKeyDown(RmlWin32::ConvertKey((int)wParam), RmlWin32::GetKeyModifierState());
+                rmlContext->ProcessKeyDown(RmlWin32::ConvertKey(static_cast<int>(wParam)), RmlWin32::GetKeyModifierState());
 
                 // The key was not consumed by the context either, try keyboard shortcuts of lower priority.
-                if (!RmlWin32::ProcessKeyDownShortcuts(module->ui, rmlContext, rml_key, rml_modifier, native_dp_ratio, false))
+                if (!RmlWin32::ProcessKeyDownShortcuts(ui, rmlContext, rml_key, rml_modifier, native_dp_ratio, false))
                 {
-                    return 0;
+                    return false;
                 }
 
                 break;
@@ -67,7 +62,7 @@ LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const W
 
                 if (msg == WM_DESTROY || msg == WM_QUIT)
                 {
-                    module->shutDown = true;
+                    shutDown = true;
                     Rml::Debugger::Shutdown();
                     Rml::Shutdown();
                 }
@@ -75,15 +70,15 @@ LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const W
             }
         case WM_KEYUP:
             {
-                rmlContext->ProcessKeyUp(RmlWin32::ConvertKey((int)wParam), RmlWin32::GetKeyModifierState());
+                rmlContext->ProcessKeyUp(RmlWin32::ConvertKey(static_cast<int>(wParam)), RmlWin32::GetKeyModifierState());
                 break;
             }
         case WM_CHAR:
             {
                 static wchar_t first_u16_code_unit = 0;
 
-                const wchar_t c = (wchar_t)wParam;
-                Rml::Character character = (Rml::Character)c;
+                const auto c = static_cast<wchar_t>(wParam);
+                auto character = static_cast<Rml::Character>(c);
 
                 // Windows sends two-wide characters as two messages.
                 if (c >= 0xD800 && c < 0xDC00)
@@ -96,19 +91,20 @@ LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const W
                     if (c >= 0xDC00 && c < 0xE000 && first_u16_code_unit != 0)
                     {
                         // Second 16-bit code unit of a two-wide character.
-                        Rml::String utf8 = StringUtils::wstos(std::wstring{ first_u16_code_unit, c });
+                        const Rml::String utf8 = StringUtils::wstos(std::wstring{ first_u16_code_unit, c });
                         character = Rml::StringUtilities::ToCharacter(utf8.data(), utf8.data() + utf8.size());
                     }
                     else if (c == '\r')
                     {
                         // Windows sends new-lines as carriage returns, convert to endlines.
-                        character = (Rml::Character)'\n';
+                        character = static_cast<Rml::Character>('\n');
                     }
 
                     first_u16_code_unit = 0;
 
                     // Only send through printable characters.
-                    if (((char32_t)character >= 32 || character == (Rml::Character)'\n') && character != (Rml::Character)127)
+                    if ((static_cast<char32_t>(character) >= 32 || character == static_cast<Rml::Character>('\n')) &&
+                        character != static_cast<Rml::Character>(127))
                     {
                         rmlContext->ProcessTextInput(character);
                     }
@@ -117,14 +113,10 @@ LRESULT __stdcall RmlInterface::WndProc(const HWND hWnd, const uint msg, const W
             }
     }
 
-    wndProcDetour.UnDetour();
-    const auto result = wndProcDetour.GetOriginalFunc()(hWnd, msg, wParam, lParam);
-    wndProcDetour.Detour(WndProc);
-
-    return result;
+    return true;
 }
 
-bool RmlInterface::WinKeyDetour(const uint msg, const WPARAM wParam, const LPARAM lParam)
+bool RmlInterface::WinKey(const uint msg, const WPARAM wParam, const LPARAM lParam)
 {
     switch (msg)
     {
@@ -132,20 +124,19 @@ bool RmlInterface::WinKeyDetour(const uint msg, const WPARAM wParam, const LPARA
         case WM_KEYDOWN:
         case WM_CHAR:
             {
-                auto el = rmlContext->GetFocusElement();
+                const auto el = rmlContext->GetFocusElement();
                 if (!el || el->GetTagName() != "input")
                 {
                     break;
                 }
 
-                auto attr = el->GetAttribute("type");
-                if (!attr || attr->GetType() != attr->STRING)
+                const auto attr = el->GetAttribute("type");
+                if (!attr || attr->GetType() != Rml::Variant::STRING)
                 {
                     break;
                 }
 
-                auto attrValue = attr->Get<Rml::String>();
-                if (attrValue == "text" || attrValue == "password")
+                if (const auto attrValue = attr->Get<Rml::String>(); attrValue == "text" || attrValue == "password")
                 {
                     return false;
                 }
@@ -153,11 +144,7 @@ bool RmlInterface::WinKeyDetour(const uint msg, const WPARAM wParam, const LPARA
         default: break;
     }
 
-    winKeyDetour.UnDetour();
-    const auto result = winKeyDetour.GetOriginalFunc()(msg, wParam, lParam);
-    winKeyDetour.Detour(WinKeyDetour);
-
-    return result;
+    return true;
 }
 
 void RmlInterface::PollMouse()
@@ -179,7 +166,7 @@ void RmlInterface::PollMouse()
 
     for (int i = 0; i < currentMouseState.size(); ++i)
     {
-        bool down = currentMouseState[i];
+        const bool down = currentMouseState[i];
         if (down != lastMouseState[i])
         {
             down ? rmlContext->ProcessMouseButtonDown(i, 0) : rmlContext->ProcessMouseButtonUp(i, RmlWin32::GetKeyModifierState());
@@ -268,7 +255,7 @@ fallback:
     for (auto& font : systemFonts)
     {
         std::array<char, MAX_PATH> windowsDir;
-        auto len = GetSystemDirectoryA(windowsDir.data(), windowsDir.size());
+        const auto len = GetSystemDirectoryA(windowsDir.data(), windowsDir.size());
         auto f = fonts.insert(std::format(R"(file://{}\..\Fonts\{})", std::string_view(windowsDir.data(), len), font));
         if (f.second)
         {
@@ -288,9 +275,6 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
     : ui(fluf), renderInterface(std::make_unique<RenderInterfaceDirectX9>(d3d9, device))
 {
     module = this;
-    winKeyDetour.Detour(WinKeyDetour);
-    wndProcDetour.Detour(WndProc);
-    uiRenderDetour.Detour(UiRenderDetour);
 
     // TODO: Support OpenGL as well
     systemInterface = std::make_unique<SystemInterface>();
@@ -317,16 +301,12 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
     Rml::Debugger::SetVisible(true);
 #endif
 
-    rmlContext->SetDensityIndependentPixelRatio(ui->GetConfig()->dpi);
+    rmlContext->SetDensityIndependentPixelRatio(ui->GetConfig(true)->dpi);
 }
 
 RmlContext RmlInterface::GetRmlContext() { return { rmlContext }; }
 RmlInterface::~RmlInterface()
 {
-    winKeyDetour.UnDetour();
-    wndProcDetour.UnDetour();
-    uiRenderDetour.UnDetour();
-
     if (!shutDown)
     {
         Rml::ReleaseCompiledGeometry();
@@ -337,14 +317,9 @@ RmlInterface::~RmlInterface()
     module = nullptr;
 }
 
-bool RmlInterface::UiRenderDetour()
+void RmlInterface::Render()
 {
-    module->PollInput();
+    PollInput();
     rmlContext->Update();
     rmlContext->Render();
-
-    uiRenderDetour.UnDetour();
-    auto result = uiRenderDetour.GetOriginalFunc()();
-    uiRenderDetour.Detour(UiRenderDetour);
-    return result;
 }

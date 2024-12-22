@@ -17,8 +17,6 @@ target_link_libraries(FLUF PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
 
 target_compile_definitions(FLUF PRIVATE FLUF FLCore)
 
-target_precompile_headers(FLUF PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${ROOT_DIR}/PCH.hpp>")
-
 set_general_targets(PROJECT_NAME FLUF)
 set_linux_msvc_includes(PROJECT_NAME FLUF)
 create_post_build(TARGET_NAME FLUF)

@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200px" height="200px" viewBox="0 0 800 800">
+	<defs>
+		<style type="text/css"><![CDATA[
+			.glow { stop-color: #00AEEF; }
+		]]></style>
+		<linearGradient id="border-glow-vertical" spreadMethod="reflect" x1="0%" y1="0%" x2="0%" y2="50%">
+			<stop class="glow" offset="0.0%" stop-opacity=".3750"/>
+			<stop class="glow" offset="2.5%" stop-opacity=".2294"/>
+			<stop class="glow" offset="5.0%" stop-opacity=".1431"/>
+			<stop class="glow" offset="7.5%" stop-opacity=".0892"/>
+			<stop class="glow" offset="10.0%" stop-opacity=".0545"/>
+			<stop class="glow" offset="12.5%" stop-opacity=".0320"/>
+			<stop class="glow" offset="15.0%" stop-opacity=".0176"/>
+			<stop class="glow" offset="17.5%" stop-opacity=".0085"/>
+			<stop class="glow" offset="20.0%" stop-opacity=".0033"/>
+			<stop class="glow" offset="22.5%" stop-opacity=".0007"/>
+			<stop class="glow" offset="25.0%" stop-opacity=".0000"/>
+		</linearGradient>
+		<linearGradient id="border-glow-horizontal" spreadMethod="reflect" x1="0%" y1="0%" x2="50%" y2="0%">
+			<stop class="glow" offset="0.0%" stop-opacity=".3750"/>
+			<stop class="glow" offset="2.5%" stop-opacity=".2294"/>
+			<stop class="glow" offset="5.0%" stop-opacity=".1431"/>
+			<stop class="glow" offset="7.5%" stop-opacity=".0892"/>
+			<stop class="glow" offset="10.0%" stop-opacity=".0545"/>
+			<stop class="glow" offset="12.5%" stop-opacity=".0320"/>
+			<stop class="glow" offset="15.0%" stop-opacity=".0176"/>
+			<stop class="glow" offset="17.5%" stop-opacity=".0085"/>
+			<stop class="glow" offset="20.0%" stop-opacity=".0033"/>
+			<stop class="glow" offset="22.5%" stop-opacity=".0007"/>
+			<stop class="glow" offset="25.0%" stop-opacity=".0000"/>
+		</linearGradient>
+		<linearGradient id="corner-fill" x1="0%" y1="0%" x2="0%" y2="100%">
+			<stop offset="0%" stop-color="#002244"/>
+			<stop offset="100%" stop-color="#003366"/>
+		</linearGradient>
+		<rect id="border" x="3" y="3" width="794" height="794"/>
+		<clipPath id="border-clip">
+			<rect x="394" y="0" width="12" height="800"/>
+			<rect x="0" y="394" width="800" height="12"/>
+		</clipPath>
+		<path id="corner-top" d="m3 265v-246l20-16h263l16 8h84v14h-355v90l-6 21v86z"/>
+		<path id="corner-bottom" d="m3 211v-199l19 37v44l6 19v95h210l34-8h99v21h-252l-14 6h-84z"/>
+		<g id="corners-left">
+			<use xlink:href="#corner-top" x="0" y="0"/>
+			<use xlink:href="#corner-bottom" x="6" y="571"/>
+		</g>
+		<g id="corners">
+			<use xlink:href="#corners-left"/>
+			<use xlink:href="#corners-left" transform="matrix(-1, 0, 0, 1, 800, 0)"/>
+		</g>
+	</defs>
+	<g clip-path="url(#border-clip)">
+		<use xlink:href="#border" stroke="#00688F" stroke-width="6" fill-opacity="0"/>
+		<use xlink:href="#border" stroke="#00AEEF" stroke-width="3" fill-opacity="0"/>
+		<use xlink:href="#border" fill="url(#border-glow-vertical)" fill-opacity="1"/>
+		<use xlink:href="#border" fill="url(#border-glow-horizontal)" fill-opacity="1"/>
+	</g>
+	<g>
+		<use xlink:href="#corners" stroke="#00688F" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="5" fill="url(#corner-fill)"/>
+		<use xlink:href="#corners" stroke="#00AEEF" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="5" fill-opacity="0"/>
+	</g>
+	<view id="top-left" viewBox="0 0 390 390"/>
+	<view id="top-right" viewBox="410 0 390 390"/>
+	<view id="bottom-left" viewBox="0 410 390 390"/>
+	<view id="bottom-right" viewBox="410 410 390 390"/>
+	<view id="top" viewBox="394 0 12 400" preserveAspectRatio="none"/>
+	<view id="right" viewBox="400 394 400 12" preserveAspectRatio="none"/>
+	<view id="bottom" viewBox="394 400 12 400" preserveAspectRatio="none"/>
+	<view id="left" viewBox="0 394 400 12" preserveAspectRatio="none"/>
+</svg>
+<!-- top corner 400x283, bottom corner 400x229 -->
+
+

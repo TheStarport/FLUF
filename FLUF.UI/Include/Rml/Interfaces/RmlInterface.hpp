@@ -16,16 +16,15 @@ class RmlInterface
 {
         friend FlufUi;
 
-        using OnUiRender = bool (*)();
+        bool WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
+        static bool WinKey(uint msg, WPARAM wParam, LPARAM lParam);
+        void Render();
 
         void PollMouse();
         void PollKeyboard();
         void PollInput();
 
         void LoadFonts();
-        static LRESULT __stdcall WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
-        static bool WinKeyDetour(const uint msg, const WPARAM wParam, const LPARAM lParam);
-        static bool UiRenderDetour();
 
         bool shutDown = false;
         std::unordered_set<std::string> fonts;
@@ -36,7 +35,6 @@ class RmlInterface
         std::unique_ptr<SystemInterface> systemInterface;
         std::unique_ptr<FileInterface> fileInterface;
         inline static Rml::Context* rmlContext;
-        inline static FunctionDetour<OnUiRender> uiRenderDetour{ reinterpret_cast<OnUiRender>(0x41F150) };
 
     public:
         explicit RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* device);

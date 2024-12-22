@@ -52,9 +52,16 @@ def post_build(release: bool, dest: str):
     shutil.copytree('./vendor/RmlUi/Include/RmlUi', 'dist/RmlUi')
     shutil.copytree('./FLUF.UI/Include', 'dist/FLUF.UI')
     shutil.copytree('./FLUF/Include', 'dist/FLUF', ignore=ignore_patterns('Internal'))
+    shutil.copy2('./vendor/imgui-markdown/imgui_markdown.h', 'dist/imgui_markdown.h')
 
     shutil.copy2('./vendor/curl-ca-bundle.crt', './dist/')
     log(f'copied ./vendor/curl-ca-bundle.crt')
+
+    # Fonts
+    result = [y for x in os.walk('./fonts') for y in glob(os.path.join(x[0], '*.ttf'))]
+    for font in result:
+        shutil.copy2(font, './dist/DATA/FONTS')
+        log(f'copied {font}')
 
     # RML/RCSS/Lua files, only run if examples are compiled
     if os.path.exists('./dist/group_info.dll'):

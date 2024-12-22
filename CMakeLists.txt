@@ -6,7 +6,6 @@ if (CCACHE_FOUND)
     message(STATUS "Found CCache, applying rules")
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
 endif ()
 
@@ -60,6 +59,7 @@ find_package(Python 3.11 REQUIRED)
 # Libs
 set(RML_PATH "${VENDOR_PATH}/RmlUi")
 set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
+set(IMGUI_PATH "${VENDOR_PATH}/imgui")
 
 # Set Freetype requirements for RML
 set(FREETYPE_LIBRARY "${VENDOR_PATH}/freetype.lib")
@@ -70,6 +70,7 @@ find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(lua REQUIRED)
 find_package(xbyak REQUIRED)
+find_package(stb REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(lunasvg REQUIRED)
 
@@ -87,6 +88,9 @@ else ()
     set(LUA_LIBRARIES "${lua_LIB_DIRS_RELEASE}/lua.lib")
 endif ()
 
+set(REFLECTCPP_YAML ON)
+set(REFLECTCPP_BUILD_SHARED OFF)
+add_subdirectory(${REFLECT_PATH})
 add_subdirectory(${RML_PATH})
 target_include_directories(rmlui_core PUBLIC ${lunasvg_INCLUDE_DIRS}/lunasvg)
 
@@ -124,6 +128,12 @@ function(set_general_targets)
     target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${REFLECT_PATH}/include)
     target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${REFLECT_PATH}/include/rfl/thirdparty)
 
+    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE
+            ${IMGUI_PATH}
+            ${IMGUI_PATH}/misc/cpp
+            ${IMGUI_PATH}/freetype
+    )
+
     target_compile_definitions(${PARSED_ARGS_PROJECT_NAME} PRIVATE
             "_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;"
             "_CRT_SECURE_NO_WARNINGS;"
@@ -132,11 +142,23 @@ function(set_general_targets)
             "UNICODE;_UNICODE;"
             "USE_GLM;"
             "NOMINMAX;"
+            "IMGUI_DEFINE_MATH_OPERATORS;"
+            "IMGUI_ENABLE_FREETYPE;"
+            "IMGUI_USE_STB_SPRINTF;"
+            "IMGUI_USE_WCHAR32;"
     )
 
+    if (NOT DEFINED IMGUI_IMPL)
+        target_compile_definitions(${PARSED_ARGS_PROJECT_NAME} PRIVATE "IMGUI_API=__declspec(dllimport)")
+    endif ()
+
+    add_dependencies(${PARSED_ARGS_PROJECT_NAME} reflectcpp)
+
     target_link_libraries(${PARSED_ARGS_PROJECT_NAME} PRIVATE
+            reflectcpp
             glm::glm
             magic_enum::magic_enum
+            stb::stb
             xbyak::xbyak
             yaml-cpp::yaml-cpp
     )
@@ -161,7 +183,6 @@ function(begin_glob)
             "${INCLUDE_PATH}/*.c*"
             "${INCLUDE_PATH}/*.h*"
             "${SDK_PATH}/*.h*"
-            "${REFLECT_PATH}/src/*.c*"
     )
     set(SOURCE_PATH ${SOURCE_PATH} PARENT_SCOPE)
     set(INCLUDE_PATH ${INCLUDE_PATH} PARENT_SCOPE)

@@ -278,18 +278,18 @@ namespace RmlWin32
                 const float newDpi = Rml::Math::Max(context->GetDensityIndependentPixelRatio() / 1.1f, 0.5f);
                 context->SetDensityIndependentPixelRatio(newDpi);
 
-                auto config = fluf->GetConfig();
+                const auto config = fluf->GetConfig(true);
                 config->dpi = newDpi;
-                config->Save();
+                ConfigHelper<FlufUiConfig, FlufUiConfig::configPathOverrides>::Save(*config);
             }
             else if ((key == Rml::Input::KI_OEM_PLUS || key == Rml::Input::KI_ADD) && key_modifier & Rml::Input::KM_CTRL)
             {
                 const float newDpi = Rml::Math::Min(context->GetDensityIndependentPixelRatio() * 1.1f, 2.5f);
                 context->SetDensityIndependentPixelRatio(newDpi);
 
-                auto config = fluf->GetConfig();
+                const auto config = fluf->GetConfig(true);
                 config->dpi = newDpi;
-                config->Save();
+                ConfigHelper<FlufUiConfig, FlufUiConfig::configPathOverrides>::Save(*config);
             }
             else
             {

@@ -2,20 +2,36 @@
 
 #include "ImportFlufUi.hpp"
 
+struct ImFont;
 enum class UiMode
 {
     None,
     Rml,
+    ImGui
 };
 
-class FLUF_UI_API FlufUiConfig
+enum class RenderingBackend
 {
-        std::string_view GetSaveLocation();
+    Dx8,
+    Dx9,
+};
 
-    public:
+struct LoadedFont
+{
+        std::string fontName;
+        std::string fontPath;
+        bool isDefault = false;
+        rfl::Skip<std::unordered_map<int, ImFont*>> fontSizes;
+};
+
+struct FlufUiConfig
+{
+        static constexpr char configPath[] = "FLUF.UI.yml";
+        static constexpr char configPathOverrides[] = "FLUF.UI-overrides.yml";
+
         UiMode uiMode = UiMode::None;
         float dpi = 1.0f;
-
-        bool Save();
-        void Load();
+        std::vector<LoadedFont> loadedFonts{
+            { "Saira", "SairaCondensed-Light.ttf", true }
+        };
 };

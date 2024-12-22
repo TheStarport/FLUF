@@ -163,7 +163,6 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
     {
         for (const auto& module : instance->loadedModules)
         {
-            Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
             module->OnDllLoaded(dllName, res);
         }
     }
@@ -193,7 +192,6 @@ BOOL __stdcall Fluf::FreeLibraryDetour(HMODULE unloadedDll)
 
     for (const auto& module : instance->loadedModules)
     {
-        Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
         module->OnDllUnloaded(dllName, unloadedDll);
     }
 
@@ -239,9 +237,9 @@ void Fluf::OnUpdateHook(const double delta)
     // ReSharper disable once CppDFALoopConditionNotUpdated
     while (timeCounter > SixtyFramesPerSecond)
     {
-        for (auto& module : fluf->loadedModules)
+        for (auto& mod : fluf->loadedModules)
         {
-            module->OnFixedUpdate(SixtyFramesPerSecond);
+            mod->OnFixedUpdate(SixtyFramesPerSecond);
         }
 
         timeCounter -= SixtyFramesPerSecond;
@@ -276,7 +274,7 @@ std::string SetLogMetadata(void* address, LogLevel level)
 {
     if (HMODULE dll; RtlPcToFileHeader(address, reinterpret_cast<void**>(&dll)))
     {
-        std::array<char, MAX_PATH> path;
+        std::array<char, MAX_PATH> path{};
         if (GetModuleFileNameA(dll, path.data(), path.size()))
         {
             const std::string fullPath = path.data();
