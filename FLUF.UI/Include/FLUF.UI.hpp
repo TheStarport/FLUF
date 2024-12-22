@@ -49,8 +49,6 @@ class FlufUi final : public FlufModule
         std::shared_ptr<ImGuiInterface> imguiInterface;
         std::unordered_set<ImGuiModule*> imguiModules;
 
-        std::unordered_map<std::string, LoadedFont> loadedImGuiFonts;
-
         /**
          * @brief Hook on OnGameLoad (main menu loaded). Initialises RML with Directx9 if the mode is enabled and DX9 is found.
          */
@@ -95,7 +93,7 @@ class FlufUi final : public FlufModule
          * @brief Gets a loaded font with the provided name and size. If the font has been loaded,
          * but this font size has not been used previously, it will reload the font in the desired size.
          */
-        FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, int fontSize);
+        static FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, int fontSize, bool isRender = true);
 
         FlufUi();
         ~FlufUi() override;

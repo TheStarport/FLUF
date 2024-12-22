@@ -161,14 +161,15 @@ bool FlufUi::UnregisterImGuiModule(ImGuiModule* mod)
     return imguiModules.erase(mod) == 1;
 }
 
-ImFont* FlufUi::GetImGuiFont(const std::string& fontName, const int fontSize)
+ImFont* FlufUi::GetImGuiFont(const std::string& fontName, const int fontSize, bool isRender)
 {
+    auto& loadedImGuiFonts = module->config->loadedFonts;
     if (loadedImGuiFonts.empty())
     {
         throw std::runtime_error("FlufUi::GetImGuiFont: No fonts loaded");
     }
 
-    const auto loadedFont = loadedImGuiFonts.find(fontName);
+    const auto loadedFont = std::ranges::find_if(loadedImGuiFonts, [fontName](const LoadedFont& font) { return font.fontName == fontName; });
     if (loadedFont == loadedImGuiFonts.end())
     {
         return nullptr;
@@ -176,22 +177,28 @@ ImFont* FlufUi::GetImGuiFont(const std::string& fontName, const int fontSize)
 
     auto& io = ImGui::GetIO();
 
-    auto& fontSizes = loadedFont->second.fontSizes.value();
+    auto& fontSizes = loadedFont->fontSizes.value();
     const auto size = fontSizes.find(fontSize);
     if (size == fontSizes.end())
     {
-        auto* font = io.Fonts->AddFontFromFileTTF(std::format(R"(..\DATA\FONTS\{})", loadedFont->second.fontPath).c_str(), static_cast<float>(fontSize));
+        if (isRender)
+        {
+            loadedFont->sizeQueue.value().push(fontSize);
+            return fontSizes.begin()->second;
+        }
+        auto* font = io.Fonts->AddFontFromFileTTF(std::format(R"(..\DATA\FONTS\{})", loadedFont->fontPath).c_str(), static_cast<float>(fontSize));
         if (!font)
         {
             return nullptr;
         }
 
-        if (loadedFont->second.isDefault && fontSize == 14)
+        if (loadedFont->isDefault && fontSize == 14)
         {
             io.FontDefault = font;
         }
 
         fontSizes[fontSize] = font;
+        io.Fonts->Build();
         return font;
     }
 

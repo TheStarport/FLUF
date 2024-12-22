@@ -22,6 +22,17 @@ void ImGuiInterface::Render(const std::unordered_set<ImGuiModule*>& imguiModules
         default: throw std::runtime_error("Unknown backend");
     }
 
+    for (auto& loadedFont : config->loadedFonts)
+    {
+        auto& queue = loadedFont.sizeQueue.value();
+        while (!queue.empty())
+        {
+            const int fontSizeToLoad = queue.front();
+            FlufUi::GetImGuiFont(loadedFont.fontName, fontSizeToLoad, false);
+            queue.pop();
+        }
+    }
+
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
@@ -156,9 +167,8 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     }
 
     // Load fonts with a default size of 14
-    for (auto& loadedFont : config->loadedFonts)
+    for (const auto& loadedFont : config->loadedFonts)
     {
-        auto& [fontName, fontPath, isDefault, fontSizes] = flufUi->loadedImGuiFonts[loadedFont.fontName] = loadedFont;
-        flufUi->GetImGuiFont(fontName, 14); // Call get on size 14 to setup any needed defaults
+        FlufUi::GetImGuiFont(loadedFont.fontName, 14, false); // Call get on size 14 to setup any needed defaults
     }
 }
