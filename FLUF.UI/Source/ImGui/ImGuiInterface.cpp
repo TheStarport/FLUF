@@ -22,17 +22,6 @@ void ImGuiInterface::Render(const std::unordered_set<ImGuiModule*>& imguiModules
         default: throw std::runtime_error("Unknown backend");
     }
 
-    for (auto& loadedFont : config->loadedFonts)
-    {
-        auto& queue = loadedFont.sizeQueue.value();
-        while (!queue.empty())
-        {
-            const int fontSizeToLoad = queue.front();
-            FlufUi::GetImGuiFont(loadedFont.fontName, fontSizeToLoad, false);
-            queue.pop();
-        }
-    }
-
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
@@ -123,7 +112,11 @@ ImGuiInterface::~ImGuiInterface()
 {
     switch (backend)
     {
-        case RenderingBackend::Dx9: ImGui_ImplDX9_Shutdown(); break;
+        case RenderingBackend::Dx9:
+            // By the time this is unloaded, device is lost. Clear the flag to prevent an attempt from releasing a nonexistant resource.
+            *static_cast<LPDIRECT3DDEVICE9*>(ImGui::GetIO().BackendRendererUserData) = nullptr;
+            ImGui_ImplDX9_Shutdown();
+            break;
         default: break;
     }
 
@@ -147,6 +140,22 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NoMouseCursorChange;
 
+    for (auto& loadedFont : config->loadedFonts)
+    {
+        for (auto fontSize : loadedFont.fontSizes)
+        {
+            auto* font = io.Fonts->AddFontFromFileTTF(std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath).c_str(), static_cast<float>(fontSize));
+            assert(font);
+
+            if (loadedFont.isDefault && fontSize == 14)
+            {
+                io.FontDefault = font;
+            }
+
+            loadedFont.fontSizesInternal.value()[fontSize] = font;
+        }
+    }
+
     Fluf::Log(LogLevel::Debug, std::format("Creating ImGui interface with backend: {}", rfl::enum_to_string(backend)));
     ImGui_ImplWin32_Init(*mainFreelancerWindow);
     switch (backend)
@@ -169,6 +178,6 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     // Load fonts with a default size of 14
     for (const auto& loadedFont : config->loadedFonts)
     {
-        FlufUi::GetImGuiFont(loadedFont.fontName, 14, false); // Call get on size 14 to setup any needed defaults
+        FlufUi::GetImGuiFont(loadedFont.fontName, 14); // Call get on size 14 to setup any needed defaults
     }
 }

@@ -93,7 +93,7 @@ class FlufUi final : public FlufModule
          * @brief Gets a loaded font with the provided name and size. If the font has been loaded,
          * but this font size has not been used previously, it will reload the font in the desired size.
          */
-        static FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, int fontSize, bool isRender = true);
+        static FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, const int fontSize);
 
         FlufUi();
         ~FlufUi() override;

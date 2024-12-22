@@ -161,7 +161,7 @@ bool FlufUi::UnregisterImGuiModule(ImGuiModule* mod)
     return imguiModules.erase(mod) == 1;
 }
 
-ImFont* FlufUi::GetImGuiFont(const std::string& fontName, const int fontSize, bool isRender)
+ImFont* FlufUi::GetImGuiFont(const std::string& fontName, const int fontSize)
 {
     auto& loadedImGuiFonts = module->config->loadedFonts;
     if (loadedImGuiFonts.empty())
@@ -175,31 +175,11 @@ ImFont* FlufUi::GetImGuiFont(const std::string& fontName, const int fontSize, bo
         return nullptr;
     }
 
-    auto& io = ImGui::GetIO();
-
-    auto& fontSizes = loadedFont->fontSizes.value();
+    auto& fontSizes = loadedFont->fontSizesInternal.value();
     const auto size = fontSizes.find(fontSize);
     if (size == fontSizes.end())
     {
-        if (isRender)
-        {
-            loadedFont->sizeQueue.value().push(fontSize);
-            return fontSizes.begin()->second;
-        }
-        auto* font = io.Fonts->AddFontFromFileTTF(std::format(R"(..\DATA\FONTS\{})", loadedFont->fontPath).c_str(), static_cast<float>(fontSize));
-        if (!font)
-        {
-            return nullptr;
-        }
-
-        if (loadedFont->isDefault && fontSize == 14)
-        {
-            io.FontDefault = font;
-        }
-
-        fontSizes[fontSize] = font;
-        io.Fonts->Build();
-        return font;
+        MessageBoxA(nullptr, std::format("Font {} of size {} not found or failed to load.", fontName, fontSize).c_str(), "Font Error", MB_OK);
     }
 
     return size->second;

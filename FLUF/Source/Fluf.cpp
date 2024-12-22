@@ -479,6 +479,10 @@ Fluf::Fluf()
 
 Fluf::~Fluf()
 {
+    while (!loadedModules.empty())
+    {
+        loadedModules.pop_back();
+    }
     loadLibraryDetour.UnDetour();
     freeLibraryDetour.UnDetour();
 }

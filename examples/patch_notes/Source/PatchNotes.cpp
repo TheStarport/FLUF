@@ -54,6 +54,14 @@ size_t DownloadCallback(const void* ptr, const size_t size, const size_t nmemb, 
     return totalSize;
 }
 
+static void MarkdownFormatCallback(const ImGui::MarkdownFormatInfo& markdownFormatInfo, bool start)
+{
+    // Call the default first so any settings can be overwritten by our implementation.
+    // Alternatively could be called or not called in a switch statement on a case by case basis.
+    // See defaultMarkdownFormatCallback definition for furhter examples of how to use it.
+    ImGui::defaultMarkdownFormatCallback(markdownFormatInfo, start);
+}
+
 // ReSharper disable once CppPassValueParameterByConstReference
 static void LinkCallback(ImGui::MarkdownLinkCallbackData data)
 {
@@ -103,7 +111,7 @@ void PatchNotes::RenderFullNotes()
     ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     ImGui::Begin("Patch Windows", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-    for (const auto font = flufUi->GetImGuiFont("Saria", 32); auto& [date, content, preamble, version] : patches)
+    for (const auto font = flufUi->GetImGuiFont("Saira", 32); auto& [date, content, preamble, version] : patches)
     {
         assert(font);
 
@@ -119,7 +127,7 @@ void PatchNotes::RenderFullNotes()
             .imageCallback = nullptr,
             .linkIcon = nullptr,
             .userData = nullptr,
-            .formatCallback = nullptr
+            .formatCallback = MarkdownFormatCallback
         };
         // clang-format on
 

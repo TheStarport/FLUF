@@ -21,8 +21,8 @@ struct LoadedFont
         std::string fontName;
         std::string fontPath;
         bool isDefault = false;
-        rfl::Skip<std::unordered_map<int, ImFont*>> fontSizes;
-        rfl::Skip<std::queue<int>> sizeQueue;
+        std::set<int> fontSizes;
+        rfl::Skip<std::unordered_map<int, ImFont*>> fontSizesInternal;
 };
 
 struct FlufUiConfig
