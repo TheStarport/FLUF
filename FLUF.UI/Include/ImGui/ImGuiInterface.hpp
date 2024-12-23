@@ -9,6 +9,7 @@ class FlufUi;
 class ImGuiInterface
 {
         static constexpr int DefaultFontSize = 36;
+        inline static bool showStyleWindow = false;
 
         struct MouseState
         {
@@ -23,8 +24,9 @@ class ImGuiInterface
 
         std::shared_ptr<FlufUiConfig> config;
         RenderingBackend backend;
+        static ImGuiStyle& GenerateDefaultStyle();
 
-        void Render(const std::unordered_set<ImGuiModule*>& imguiModules) const;
+        void Render(const std::unordered_set<ImGuiModule*>& imguiModules);
         static void PollInput();
         static MouseState ConvertState(DWORD state);
         static bool WndProc(FlufUiConfig* config, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

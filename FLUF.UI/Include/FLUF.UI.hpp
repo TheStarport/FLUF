@@ -76,7 +76,7 @@ class FlufUi final : public FlufModule
         /**
          * @brief Gets the config settings for FLUF UI
          */
-        FLUF_UI_API std::shared_ptr<FlufUiConfig> GetConfig(bool overrides = false);
+        FLUF_UI_API std::shared_ptr<FlufUiConfig> GetConfig();
 
         /**
          * @brief Register a plugin to receive the render event from ImGui.

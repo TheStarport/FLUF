@@ -147,7 +147,7 @@ std::optional<RmlContext> FlufUi::GetRmlContext()
     return std::nullopt;
 }
 
-std::shared_ptr<FlufUiConfig> FlufUi::GetConfig(bool override) { return config; }
+std::shared_ptr<FlufUiConfig> FlufUi::GetConfig() { return config; }
 
 bool FlufUi::RegisterImGuiModule(ImGuiModule* mod)
 {

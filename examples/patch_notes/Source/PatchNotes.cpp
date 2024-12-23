@@ -112,7 +112,7 @@ void PatchNotes::RenderFullNotes()
     ImGui::Begin(
         "Patch Windows", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove);
 
-    for (const auto font = flufUi->GetImGuiFont("Saira", 46); auto& [date, content, preamble, version] : patches)
+    for (const auto font = FlufUi::GetImGuiFont("Saira", 46); auto& [date, content, preamble, version] : patches)
     {
         assert(font);
 
@@ -217,7 +217,7 @@ void PatchNotes::Render()
         return;
     }
 
-    auto& firstPatch = patches.front();
+    auto& [date, content, preamble, version] = patches.front();
 
     constexpr float padding = 10.0f;
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -228,18 +228,20 @@ void PatchNotes::Render()
     ImGui::SetNextWindowSize({ 400.f, 300.f }, ImGuiCond_Always);
     ImGui::Begin("Patch Notes", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    auto* font = flufUi->GetImGuiFont("Saira", 46);
+    auto itemSpacing = ImGui::GetStyle().ItemSpacing;
+    auto* font = FlufUi::GetImGuiFont("Saira", 46);
     ImGui::PushFont(font);
-    ImGui::Text(firstPatch.version.c_str());
+    ImGui::Text(version.c_str());
     ImGui::SameLine();
-    ImGui::Text(firstPatch.date.str().c_str());
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - (ImGui::CalcTextSize(date.str().c_str()).x + itemSpacing.x * 2.0f));
+    ImGui::Text(date.str().c_str());
     ImGui::Separator();
     ImGui::PopFont();
 
-    if (const auto buttonHeight = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
+    if (const auto buttonHeight = itemSpacing.y + ImGui::GetFrameHeightWithSpacing();
         ImGui::BeginChild("PreambleScrollingRegion", ImVec2(0.0f, -buttonHeight), ImGuiChildFlags_NavFlattened))
     {
-        ImGui::TextWrapped(firstPatch.preamble.c_str());
+        ImGui::TextWrapped(preamble.c_str());
     }
 
     ImGui::EndChild();

@@ -301,7 +301,7 @@ RmlInterface::RmlInterface(FlufUi* fluf, IDirect3D9* d3d9, IDirect3DDevice9* dev
     Rml::Debugger::SetVisible(true);
 #endif
 
-    rmlContext->SetDensityIndependentPixelRatio(ui->GetConfig(true)->dpi);
+    rmlContext->SetDensityIndependentPixelRatio(ui->GetConfig()->dpi);
 }
 
 RmlContext RmlInterface::GetRmlContext() { return { rmlContext }; }
