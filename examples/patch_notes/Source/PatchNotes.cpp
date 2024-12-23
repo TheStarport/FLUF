@@ -263,7 +263,7 @@ PatchNotes::PatchNotes()
         return;
     }
 
-    config = std::make_shared<PatchNoteConfig>(ConfigHelper<PatchNoteConfig, PatchNoteConfig::path>::Load());
+    config = std::make_shared<PatchNoteConfig>(*ConfigHelper<PatchNoteConfig, PatchNoteConfig::path>::Load());
 
     if (config->url.empty() || (!config->url.starts_with("https://") && !config->url.starts_with("http://")))
     {

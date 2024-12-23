@@ -45,7 +45,6 @@ class FlufUi final : public FlufModule
         std::shared_ptr<HudManager> hudManager;
         std::shared_ptr<RmlInterface> rmlInterface;
         std::shared_ptr<FlufUiConfig> config;
-        std::shared_ptr<FlufUiConfig> configOverride;
         std::shared_ptr<ImGuiInterface> imguiInterface;
         std::unordered_set<ImGuiModule*> imguiModules;
 

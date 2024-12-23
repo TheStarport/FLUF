@@ -191,18 +191,14 @@ FlufUi::FlufUi()
 
     hudManager = std::make_shared<HudManager>();
 
-    config = std::make_shared<FlufUiConfig>(ConfigHelper<FlufUiConfig, FlufUiConfig::configPath>::Load());
-    configOverride = std::make_shared<FlufUiConfig>(ConfigHelper<FlufUiConfig, FlufUiConfig::configPathOverrides>::Load());
+    auto conf = ConfigHelper<FlufUiConfig, FlufUiConfig::configPath>::Load();
+    assert(conf.has_value());
+    config = std::make_shared<FlufUiConfig>(*conf);
 
-    config->uiMode = configOverride->uiMode;
-    config->dpi = configOverride->dpi;
-    for (auto& font : configOverride->loadedFonts)
+    conf = ConfigHelper<FlufUiConfig, FlufUiConfig::configPathOverrides>::Load(true, false);
+    if (conf.has_value())
     {
-        if (std::ranges::find_if(config->loadedFonts, [font](const LoadedFont& existingFont) { return existingFont.fontPath == font.fontPath; }) ==
-            config->loadedFonts.end())
-        {
-            config->loadedFonts.emplace_back(font);
-        }
+        config = std::make_shared<FlufUiConfig>(*conf);
     }
 
     if (const HMODULE d3d9Handle = GetModuleHandleA("d3d9.dll"))

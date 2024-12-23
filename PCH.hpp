@@ -36,26 +36,37 @@ using u64 = unsigned long long;
 #include <rfl.hpp>
 #include <rfl/yaml.hpp>
 
-template<typename T, const char* path>
+template <typename T, const char* path>
     requires std::is_default_constructible_v<T>
 struct ConfigHelper
 {
         ConfigHelper() = delete;
-        static T Load(const bool fromUserData = false)
+        static std::optional<T> Load(const bool fromUserData = false, const bool saveIfNotFound = true)
         {
             std::ifstream inFile(GetSaveLocation(fromUserData).data());
             if (!inFile.is_open())
             {
-                Save(T(), fromUserData);
-                return T();
+                if (saveIfNotFound)
+                {
+                    Save(T(), fromUserData);
+                    return { T() };
+                }
+
+                return std::nullopt;
             }
 
             auto newConfig = rfl::yaml::read<T>(inFile);
             if (newConfig.error().has_value())
             {
-                inFile.close();
+                const std::string err =
+                    std::format("Failed to load config file '{}'.\n\n{}\n\nClick 'OK' to reset the config.", path, newConfig.error()->what());
+                if (MessageBoxA(nullptr, err.c_str(), "Config Load Error", MB_OKCANCEL | MB_ICONWARNING) != IDOK)
+                {
+                    std::exit(1);
+                }
+
                 Save(T(), fromUserData);
-                return T();
+                return { T() };
             }
 
             return newConfig.value();
