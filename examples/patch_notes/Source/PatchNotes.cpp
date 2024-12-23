@@ -109,9 +109,10 @@ void PatchNotes::RenderFullNotes()
     ImGui::SetNextWindowSize({ 1280.f, 1024.f }, ImGuiCond_Always);
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::Begin("Patch Windows", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
+    ImGui::Begin(
+        "Patch Windows", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove);
 
-    for (const auto font = flufUi->GetImGuiFont("Saira", 32); auto& [date, content, preamble, version] : patches)
+    for (const auto font = flufUi->GetImGuiFont("Saira", 46); auto& [date, content, preamble, version] : patches)
     {
         assert(font);
 
@@ -212,6 +213,7 @@ void PatchNotes::Render()
     static auto mainMenuControl = reinterpret_cast<PDWORD>(0x67BCC8);
     if (!*mainMenuControl || patches.empty())
     {
+        showFullNotes = false;
         return;
     }
 
@@ -226,7 +228,7 @@ void PatchNotes::Render()
     ImGui::SetNextWindowSize({ 400.f, 300.f }, ImGuiCond_Always);
     ImGui::Begin("Patch Notes", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    auto* font = flufUi->GetImGuiFont("Saira", 32);
+    auto* font = flufUi->GetImGuiFont("Saira", 46);
     ImGui::PushFont(font);
     ImGui::Text(firstPatch.version.c_str());
     ImGui::SameLine();
@@ -234,10 +236,15 @@ void PatchNotes::Render()
     ImGui::Separator();
     ImGui::PopFont();
 
-    ImGui::Text(firstPatch.preamble.c_str());
+    if (const auto buttonHeight = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
+        ImGui::BeginChild("PreambleScrollingRegion", ImVec2(0.0f, -buttonHeight), ImGuiChildFlags_NavFlattened))
+    {
+        ImGui::TextWrapped(firstPatch.preamble.c_str());
+    }
 
-    const auto remainingSpace = ImGui::GetContentRegionAvail();
-    ImGui::SetCursorPosY(remainingSpace.y - 50);
+    ImGui::EndChild();
+    ImGui::Separator();
+
     if (ImGui::Button("Read More"))
     {
         showFullNotes = true;

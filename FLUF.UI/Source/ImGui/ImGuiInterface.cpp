@@ -142,12 +142,17 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     for (auto& loadedFont : config->loadedFonts)
     {
+        if (loadedFont.isDefault)
+        {
+            loadedFont.fontSizes.insert(DefaultFontSize);
+        }
+
         for (auto fontSize : loadedFont.fontSizes)
         {
             auto* font = io.Fonts->AddFontFromFileTTF(std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath).c_str(), static_cast<float>(fontSize));
             assert(font);
 
-            if (loadedFont.isDefault && fontSize == 14)
+            if (loadedFont.isDefault && fontSize == DefaultFontSize)
             {
                 io.FontDefault = font;
             }
@@ -173,11 +178,5 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     if (config->loadedFonts.empty())
     {
         MessageBoxA(nullptr, "No fonts have been loaded into FLUF UI. Modules using ImGui may cause crashes.", "No Fonts Loaded", MB_OK);
-    }
-
-    // Load fonts with a default size of 14
-    for (const auto& loadedFont : config->loadedFonts)
-    {
-        FlufUi::GetImGuiFont(loadedFont.fontName, 14); // Call get on size 14 to setup any needed defaults
     }
 }

@@ -8,6 +8,8 @@
 class FlufUi;
 class ImGuiInterface
 {
+        static constexpr int DefaultFontSize = 36;
+
         struct MouseState
         {
                 bool leftDown;
