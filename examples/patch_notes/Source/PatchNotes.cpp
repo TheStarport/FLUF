@@ -6,6 +6,8 @@
 #include "PatchNote.hpp"
 #include "PatchNoteConfig.hpp"
 #include "PatchNotes.hpp"
+
+#include "MemoryHelper.hpp"
 #include "imgui_markdown.h"
 
 #include "FLCore/Common/CommonMethods.hpp"
@@ -207,11 +209,21 @@ void PatchNotes::Render()
 {
     if (showFullNotes)
     {
+        if (!gamePaused)
+        {
+            MemoryHelper::PauseGame();
+            gamePaused = true;
+        }
+
         RenderFullNotes();
     }
+    else if (gamePaused)
+    {
+        MemoryHelper::UnPauseGame();
+        gamePaused = false;
+    }
 
-    static auto mainMenuControl = reinterpret_cast<PDWORD>(0x67BCC8);
-    if (!*mainMenuControl || patches.empty())
+    if (!MemoryHelper::IsInMainMenu() || patches.empty())
     {
         showFullNotes = false;
         return;

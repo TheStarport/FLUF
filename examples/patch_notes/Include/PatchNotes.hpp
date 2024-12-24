@@ -14,6 +14,7 @@ class PatchNotes final : public FlufModule, public ImGuiModule
         std::shared_ptr<PatchNoteConfig> config;
 
         bool showFullNotes = false;
+        bool gamePaused = false;
 
         void LoadPatchNotesFromCache(std::string_view path);
         void RenderFullNotes();
