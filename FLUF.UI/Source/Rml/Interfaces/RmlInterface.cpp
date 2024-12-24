@@ -7,7 +7,7 @@
 #include "Rml/Interfaces/RenderInterfaceDirectX9.hpp"
 #include "Rml/Interfaces/RmlInterface.hpp"
 
-#include "FLUF/Include/Fluf.hpp"
+#include "Fluf.hpp"
 #include "Rml/Interfaces/SystemInterface.hpp"
 #include <FLCore/Common/INI_Reader.hpp>
 #include <Utils/Detour.hpp>

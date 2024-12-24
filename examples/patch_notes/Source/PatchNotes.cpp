@@ -1,8 +1,8 @@
 #include "PCH.hpp"
 
-#include "FLUF.UI/Include/FLUF.UI.hpp"
-#include "FLUF/Include/Fluf.hpp"
-#include "FLUF/Include/FlufModule.hpp"
+#include "FLUF.UI.hpp"
+#include "Fluf.hpp"
+#include "FlufModule.hpp"
 #include "PatchNote.hpp"
 #include "PatchNoteConfig.hpp"
 #include "PatchNotes.hpp"

@@ -2,7 +2,7 @@
 
 #include "Config.hpp"
 #include "CrashCatcher.hpp"
-#include "FLUF/Include/FlufModule.hpp"
+#include "FlufModule.hpp"
 
 #include <rfl/Hex.hpp>
 

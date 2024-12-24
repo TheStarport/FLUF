@@ -121,7 +121,7 @@ function(set_general_targets)
         message(FATAL_ERROR "set_general_targets called without specifying a project name")
     endif ()
 
-    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${ROOT_DIR})
+    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${ROOT_DIR} ${ROOT_DIR}/FLUF/Include)
     target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${INCLUDE_PATH})
     target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${SDK_PATH}/include)
     target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${SDK_PATH}/vendor)

@@ -3,7 +3,7 @@
 #include "ImGui/ImGuiInterface.hpp"
 
 #include "FLUF.UI.hpp"
-#include "FLUF/Include/Fluf.hpp"
+#include "Fluf.hpp"
 #include "ImGui/ImGuiModule.hpp"
 
 #include <d3dx9.h>

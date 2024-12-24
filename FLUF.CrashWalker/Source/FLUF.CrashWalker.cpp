@@ -3,7 +3,7 @@
 #include "PCH.hpp"
 
 #include "FLCore/Common/CommonMethods.hpp"
-#include "FLUF/Include/Fluf.hpp"
+#include "Fluf.hpp"
 #include "Utils/MemUtils.hpp"
 
 #include <curl/curl.h>

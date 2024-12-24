@@ -2,7 +2,7 @@
 
 #include "FLUF.UI.hpp"
 
-#include "FLUF/Include/Fluf.hpp"
+#include "Fluf.hpp"
 #include "ImGui/ImGuiInterface.hpp"
 #include "Rml/Interfaces/RenderInterfaceDirectX9.hpp"
 #include "Rml/Interfaces/RmlInterface.hpp"

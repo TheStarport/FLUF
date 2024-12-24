@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FLUF/Include/FlufModule.hpp"
+#include "FlufModule.hpp"
 #include "RmlUi/Core/DataModelHandle.h"
 #include "RmlUi/Core/ElementDocument.h"
 #include "vendor/RmlUi/Source/Core/Memory.h"

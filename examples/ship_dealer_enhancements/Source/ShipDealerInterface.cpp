@@ -2,9 +2,9 @@
 
 #include "ShipDealerInterface.hpp"
 
-#include "FLUF.UI/Include/Vanilla/Components/FlButtonControl.hpp"
-#include "FLUF.UI/Include/Vanilla/Components/FlTextControl.hpp"
-#include "FLUF/Include/Fluf.hpp"
+#include "Vanilla/Components/FlButtonControl.hpp"
+#include "Vanilla/Components/FlTextControl.hpp"
+#include "Fluf.hpp"
 
 ShipDealerInterface::ShipDealerInterface() : textControl(nullptr), shipDealerNextControl(nullptr), shipDealerPrevControl(nullptr), navBarControl(nullptr)
 {

@@ -1,5 +1,5 @@
 #pragma once
-#include "FLUF.UI/Include/Vanilla/AbstractVanillaInterface.hpp"
+#include "Vanilla/AbstractVanillaInterface.hpp"
 
 bool HasMoreThanThreeShips(uint& pageCount);
 void SetNextShips();

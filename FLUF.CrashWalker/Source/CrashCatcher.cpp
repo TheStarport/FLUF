@@ -5,7 +5,7 @@
 #include "FLCore/Common/Archetype/Root.hpp"
 #include "FLCore/Common/CObjects/CObject.hpp"
 #include "FLCore/Common/CommonMethods.hpp"
-#include "FLUF/Include/Fluf.hpp"
+#include "Fluf.hpp"
 #include "Typedefs.hpp"
 #include "Utils/Detour.hpp"
 #include "Utils/MemUtils.hpp"

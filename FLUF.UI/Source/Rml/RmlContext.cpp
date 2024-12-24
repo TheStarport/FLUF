@@ -2,7 +2,7 @@
 
 #include "Rml/RmlContext.hpp"
 
-#include "FLUF/Include/Fluf.hpp"
+#include "Fluf.hpp"
 
 Rml::ElementDocument* RmlContext::LoadDocument(const Rml::String& filePath) const
 {

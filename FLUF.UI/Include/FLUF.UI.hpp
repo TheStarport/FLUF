@@ -2,7 +2,7 @@
 
 #include "ImportFlufUi.hpp"
 
-#include "FLUF/Include/FlufModule.hpp"
+#include "FlufModule.hpp"
 #include "FlufUiConfig.hpp"
 #include "ImGui/ImGuiModule.hpp"
 

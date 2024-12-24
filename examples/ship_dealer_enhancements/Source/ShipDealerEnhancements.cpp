@@ -7,11 +7,11 @@
 #include "FLCore/Common/CObjects/CSimple/CEqObj/CShip.hpp"
 #include "FLCore/Common/CommonMethods.hpp"
 
-#include "FLUF/Include/Fluf.hpp"
-#include "FLUF/Include/FlufModule.hpp"
+#include "Fluf.hpp"
+#include "FlufModule.hpp"
 
-#include "FLUF.UI/Include/FLUF.UI.hpp"
-#include "FLUF.UI/Include/Rml/RmlContext.hpp"
+#include "FLUF.UI.hpp"
+#include "Rml/RmlContext.hpp"
 #include "Utils/StringUtils.hpp"
 #include "Vanilla/HudManager.hpp"
 

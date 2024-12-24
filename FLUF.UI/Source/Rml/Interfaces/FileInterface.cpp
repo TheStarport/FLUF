@@ -4,7 +4,7 @@
 
 #include "Rml/Interfaces/FileInterface.hpp"
 
-#include "FLUF/Include/Fluf.hpp"
+#include "Fluf.hpp"
 
 FileInterface::VirtualFileHandle::VirtualFileHandle(FILE* file)
 {

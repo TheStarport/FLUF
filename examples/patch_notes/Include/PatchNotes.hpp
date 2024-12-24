@@ -1,6 +1,6 @@
 #pragma once
 
-#include "FLUF/Include/FlufModule.hpp"
+#include "FlufModule.hpp"
 #include "ImGui/ImGuiModule.hpp"
 
 #include <memory>
