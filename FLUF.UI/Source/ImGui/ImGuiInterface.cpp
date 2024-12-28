@@ -135,20 +135,26 @@ void ImGuiInterface::Render()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::ShowDemoWindow(&showDemoWindow);
-
-    if (ImGui::Begin("Style Editor", &showStyleWindow))
+    if (showDemoWindow)
     {
-        if (ImGui::Button("Reset to default"))
-        {
-            // TODO: A THING
-        }
-
-        ImGui::Separator();
-        ImGui::ShowStyleEditor();
+        ImGui::ShowDemoWindow(&showDemoWindow);
     }
 
-    ImGui::End();
+    if (showStyleWindow)
+    {
+        if (ImGui::Begin("Style Editor", &showStyleWindow))
+        {
+            if (ImGui::Button("Reset to default"))
+            {
+                // TODO: A THING
+            }
+
+            ImGui::Separator();
+            ImGui::ShowStyleEditor();
+        }
+
+        ImGui::End();
+    }
 
     for (auto* module : imguiModules)
     {
@@ -225,14 +231,12 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
         }
         else if (hasCtl && key == VK_F8)
         {
-            Fluf::Log(LogLevel::Info, "F8 CLICKED");
             showStyleWindow = true;
             return false;
         }
         else if (hasCtl && key == VK_F12)
         {
             showDemoWindow = true;
-            Fluf::Log(LogLevel::Info, "F12 CLICKED");
             return false;
         }
     }
