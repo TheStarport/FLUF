@@ -144,6 +144,12 @@ void PatchNotes::RenderFullNotes()
 
 void PatchNotes::OnGameLoad()
 {
+    if (!flufUi->GetImGuiInterface())
+    {
+        Fluf::Log(LogLevel::Error, "PatchNotes cannot load, not in ImGui mode!");
+        return;
+    }
+
     std::array<char, MAX_PATH> totalPath{};
     GetUserDataPath(totalPath.data());
 
@@ -296,7 +302,6 @@ PatchNotes::PatchNotes()
     }
 
     flufUi = module;
-    flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
 }
 
 PatchNotes::~PatchNotes() { flufUi->GetImGuiInterface()->UnregisterImGuiModule(this); }
