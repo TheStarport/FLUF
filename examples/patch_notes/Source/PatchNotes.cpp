@@ -150,6 +150,8 @@ void PatchNotes::OnGameLoad()
         return;
     }
 
+    flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
+
     std::array<char, MAX_PATH> totalPath{};
     GetUserDataPath(totalPath.data());
 
