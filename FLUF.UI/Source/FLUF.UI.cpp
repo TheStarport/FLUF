@@ -36,8 +36,10 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void FlufUi::OnGameLoad()
 {
+    RenderingBackend backend = RenderingBackend::Dx8;
     if (d3d9)
     {
+        backend = RenderingBackend::Dx9;
         if (config->uiMode == UiMode::Rml)
         {
             Fluf::Log(LogLevel::Info, "Create RmlInterface");
@@ -49,6 +51,9 @@ void FlufUi::OnGameLoad()
             imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx9, d3d9device);
         }
     }
+
+    Fluf::Log(LogLevel::Info, std::format("UI Mode: {}", rfl::enum_to_string(config->uiMode)));
+    Fluf::Log(LogLevel::Info, std::format("Rendering Backend: {}", rfl::enum_to_string(backend)));
 }
 
 LRESULT __stdcall FlufUi::WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
@@ -100,7 +105,7 @@ bool FlufUi::UiRenderDetour()
     }
     else if (module->imguiInterface)
     {
-        module->imguiInterface->Render(module->imguiModules);
+        module->imguiInterface->Render();
     }
 
     module->uiRenderDetour.UnDetour();
@@ -149,41 +154,7 @@ std::optional<RmlContext> FlufUi::GetRmlContext()
 
 std::shared_ptr<FlufUiConfig> FlufUi::GetConfig() { return config; }
 
-bool FlufUi::RegisterImGuiModule(ImGuiModule* mod)
-{
-    Fluf::Log(LogLevel::Info, "Registering ImGui module");
-    return imguiModules.insert(mod).second;
-}
-
-bool FlufUi::UnregisterImGuiModule(ImGuiModule* mod)
-{
-    Fluf::Log(LogLevel::Info, "Unregistering ImGui module");
-    return imguiModules.erase(mod) == 1;
-}
-
-ImFont* FlufUi::GetImGuiFont(const std::string& fontName, const int fontSize)
-{
-    auto& loadedImGuiFonts = module->config->loadedFonts;
-    if (loadedImGuiFonts.empty())
-    {
-        throw std::runtime_error("FlufUi::GetImGuiFont: No fonts loaded");
-    }
-
-    const auto loadedFont = std::ranges::find_if(loadedImGuiFonts, [fontName](const LoadedFont& font) { return font.fontName == fontName; });
-    if (loadedFont == loadedImGuiFonts.end())
-    {
-        return nullptr;
-    }
-
-    auto& fontSizes = loadedFont->fontSizesInternal.value();
-    const auto size = fontSizes.find(fontSize);
-    if (size == fontSizes.end())
-    {
-        MessageBoxA(nullptr, std::format("Font {} of size {} not found or failed to load.", fontName, fontSize).c_str(), "Font Error", MB_OK);
-    }
-
-    return size->second;
-}
+ImGuiInterface* FlufUi::GetImGuiInterface() const { return imguiInterface.get(); }
 
 FlufUi::FlufUi()
 {

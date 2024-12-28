@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FlufModule.hpp"
+#include "ImGui/ImGuiModule.hpp"
 #include "RmlUi/Core/DataModelHandle.h"
 #include "RmlUi/Core/ElementDocument.h"
 #include "vendor/RmlUi/Source/Core/Memory.h"
@@ -19,7 +20,7 @@ struct GroupMember
         double deathTimer = 0.f;
 };
 
-class GroupInfo final : public FlufModule
+class GroupInfo final : public FlufModule, public ImGuiModule
 {
         std::shared_ptr<FlufUi> flufUi;
 
@@ -30,10 +31,12 @@ class GroupInfo final : public FlufModule
 
         void OnFixedUpdate(const double delta) override;
         void OnGameLoad() override;
+        void Render() override;
 
     public:
         static constexpr std::string_view moduleName = "group_info";
 
         GroupInfo();
+        ~GroupInfo() override;
         std::string_view GetModuleName() override;
 };

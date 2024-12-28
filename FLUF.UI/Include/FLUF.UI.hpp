@@ -30,7 +30,6 @@ class RmlInterface;
  */
 class FlufUi final : public FlufModule
 {
-        friend ImGuiInterface;
         inline static IDirect3D9* d3d9;
         inline static IDirect3DDevice9* d3d9device;
         using OnUiRender = bool (*)();
@@ -46,7 +45,6 @@ class FlufUi final : public FlufModule
         std::shared_ptr<RmlInterface> rmlInterface;
         std::shared_ptr<FlufUiConfig> config;
         std::shared_ptr<ImGuiInterface> imguiInterface;
-        std::unordered_set<ImGuiModule*> imguiModules;
 
         /**
          * @brief Hook on OnGameLoad (main menu loaded). Initialises RML with Directx9 if the mode is enabled and DX9 is found.
@@ -79,20 +77,10 @@ class FlufUi final : public FlufModule
         FLUF_UI_API std::shared_ptr<FlufUiConfig> GetConfig();
 
         /**
-         * @brief Register a plugin to receive the render event from ImGui.
+         * @brief Gets the ImGui interface for loading textures or registering modules. Will be a nullptr if the current ui mode is not set to imgui.
          */
-        FLUF_UI_API bool RegisterImGuiModule(ImGuiModule*);
-
-        /**
-         * @brief Remove a previously registered plugin.
-         */
-        FLUF_UI_API bool UnregisterImGuiModule(ImGuiModule*);
-
-        /**
-         * @brief Gets a loaded font with the provided name and size. If the font has been loaded,
-         * but this font size has not been used previously, it will reload the font in the desired size.
-         */
-        static FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, const int fontSize);
+        [[nodiscard]]
+        FLUF_UI_API ImGuiInterface* GetImGuiInterface() const;
 
         FlufUi();
         ~FlufUi() override;

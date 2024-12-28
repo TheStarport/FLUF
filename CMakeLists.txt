@@ -149,7 +149,10 @@ function(set_general_targets)
     )
 
     if (NOT DEFINED IMGUI_IMPL)
-        target_compile_definitions(${PARSED_ARGS_PROJECT_NAME} PRIVATE "IMGUI_API=__declspec(dllimport)")
+        target_compile_definitions(${PARSED_ARGS_PROJECT_NAME} PRIVATE
+                "IMGUI_API=__declspec(dllimport);"
+                "STBIDEF=__declspec(dllimport)"
+        )
     endif ()
 
     add_dependencies(${PARSED_ARGS_PROJECT_NAME} reflectcpp)

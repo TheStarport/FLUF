@@ -9,6 +9,7 @@
 #include "FlufModule.hpp"
 
 #include "FLUF.UI.hpp"
+#include "ImGui/ImGuiInterface.hpp"
 #include "Rml/RmlContext.hpp"
 #include "Utils/StringUtils.hpp"
 
@@ -38,7 +39,10 @@ void GroupInfo::OnFixedUpdate(const double delta)
         if (!members.empty())
         {
             members.clear();
-            memberDataModel.DirtyVariable("members");
+            if (flufUi->GetConfig()->uiMode == UiMode::Rml)
+            {
+                memberDataModel.DirtyVariable("members");
+            }
         }
 
         return;
@@ -63,14 +67,15 @@ void GroupInfo::OnFixedUpdate(const double delta)
 
         // We have found another ship that shares our group
 
-        std::string name = StringUtils::wstos(std::wstring_view(reinterpret_cast<const wchar_t*>(ship->get_pilot_name())));
+        const std::string name = StringUtils::wstos(std::wstring_view(reinterpret_cast<const wchar_t*>(ship->get_pilot_name())));
         const float distance = std::abs(glm::distance<3, float, glm::packed_highp>(ship->position, playerShip->position));
         const auto health = ship->hitPoints / ship->get_max_hit_pts();
         const auto shield = reinterpret_cast<CEShield*>(ship->equipManager.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
         float shieldHealth = 0.f;
         if (shield && shield->maxShieldHitPoints > 0.f && shield->IsFunctioning())
         {
-            shieldHealth = (shield->currentShieldHitPoints - (shield->maxShieldHitPoints * shield->offlineThreshold)) /
+            // ReSharper disable once CppDFAUnusedValue
+            shieldHealth = (shield->currentShieldHitPoints - shield->maxShieldHitPoints * shield->offlineThreshold) /
                            (shield->maxShieldHitPoints * (1.f - shield->offlineThreshold));
         }
 
@@ -95,11 +100,20 @@ void GroupInfo::OnFixedUpdate(const double delta)
         }
     }
 
-    memberDataModel.DirtyVariable("members");
+    if (flufUi->GetConfig()->uiMode == UiMode::Rml)
+    {
+        memberDataModel.DirtyVariable("members");
+    }
 }
 
 void GroupInfo::OnGameLoad()
 {
+    if (flufUi->GetConfig()->uiMode == UiMode::ImGui)
+    {
+        flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
+        return;
+    }
+
     const auto context = flufUi->GetRmlContext();
 
     if (!context.has_value())
@@ -136,6 +150,20 @@ void GroupInfo::OnGameLoad()
     document->Show();
 }
 
+void GroupInfo::Render()
+{
+    if (members.empty())
+    {
+        return;
+    }
+
+    ImGui::Begin("GroupInfo", nullptr, defaultHeadlessWindowsFlags);
+
+    ImGui::Text("Name 123");
+
+    ImGui::End();
+}
+
 GroupInfo::GroupInfo()
 {
     const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
@@ -146,14 +174,21 @@ GroupInfo::GroupInfo()
     }
 
     const auto module = std::static_pointer_cast<FlufUi>(weakPtr.lock());
-    Fluf::Log(LogLevel::Trace, std::format("{}", DWORD(module.get())));
-    if (module->GetConfig()->uiMode != UiMode::Rml)
+    flufUi = module;
+
+    if (module->GetConfig()->uiMode == UiMode::None)
     {
-        Fluf::Log(LogLevel::Error, "Group info was loaded, but FLUF UI's ui mode was not set to RML");
+        Fluf::Log(LogLevel::Error, "Group info was loaded, but FLUF UI's ui mode was set to 'None'");
         return;
     }
+}
 
-    flufUi = module;
+GroupInfo::~GroupInfo()
+{
+    if (flufUi->GetConfig()->uiMode == UiMode::ImGui)
+    {
+        flufUi->GetImGuiInterface()->UnregisterImGuiModule(this);
+    }
 }
 
 std::string_view GroupInfo::GetModuleName() { return moduleName; }

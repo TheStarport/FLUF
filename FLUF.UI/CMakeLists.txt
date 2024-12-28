@@ -38,6 +38,7 @@ target_link_libraries(FLUF.UI PRIVATE FLUF RmlUi::Core RmlUi::Debugger RmlUi::Lu
 # ImGui
 target_compile_definitions(FLUF.UI PRIVATE
         "IMGUI_API=__declspec(dllexport);"
+        "STBIDEF=__declspec(dllexport);"
         "FT_FREETYPE_H=<freetype/freetype.h>;"
         "FT_GLYPH_H=<freetype/ftglyph.h>;"
         "FT_MODULE_H=<freetype/ftmodapi.h>;"
@@ -52,3 +53,4 @@ set_linux_msvc_includes(PROJECT_NAME FLUF.UI)
 create_post_build(TARGET_NAME FLUF.UI)
 
 reset_glob()
+unset(IMGUI_IMPL)

@@ -1,3 +1,4 @@
+// ReSharper disable CppRedundantElseKeyword
 #include "PCH.hpp"
 
 #include "ImGui/ImGuiInterface.hpp"
@@ -11,6 +12,10 @@
 #include <imgui_impl_dx9.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#undef STB_IMAGE_IMPLEMENTATION
 
 ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
 {
@@ -117,7 +122,7 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
     return style;
 }
 
-void ImGuiInterface::Render(const std::unordered_set<ImGuiModule*>& imguiModules)
+void ImGuiInterface::Render()
 {
     PollInput();
 
@@ -129,6 +134,8 @@ void ImGuiInterface::Render(const std::unordered_set<ImGuiModule*>& imguiModules
 
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
+
+    ImGui::ShowDemoWindow(&showDemoWindow);
 
     if (ImGui::Begin("Style Editor", &showStyleWindow))
     {
@@ -218,7 +225,14 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
         }
         else if (hasCtl && key == VK_F8)
         {
+            Fluf::Log(LogLevel::Info, "F8 CLICKED");
             showStyleWindow = true;
+            return false;
+        }
+        else if (hasCtl && key == VK_F12)
+        {
+            showDemoWindow = true;
+            Fluf::Log(LogLevel::Info, "F12 CLICKED");
             return false;
         }
     }
@@ -247,7 +261,7 @@ ImGuiInterface::~ImGuiInterface()
     ImGui::DestroyContext();
 }
 
-ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device) : config(flufUi->GetConfig()), backend(backend)
+ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device) : dxDevice(device), config(flufUi->GetConfig()), backend(backend)
 {
     static const auto* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);
     const auto ctx = ImGui::CreateContext();
@@ -302,4 +316,74 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     {
         MessageBoxA(nullptr, "No fonts have been loaded into FLUF UI. Modules using ImGui may cause crashes.", "No Fonts Loaded", MB_OK);
     }
+}
+
+void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)
+{
+    if (const auto texture = loadedTextures.find(path); texture != loadedTextures.end())
+    {
+        return texture->second;
+    }
+
+    if (backend == RenderingBackend::Dx9)
+    {
+        PDIRECT3DTEXTURE9 d3dTexture = nullptr;
+        if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(dxDevice), path.c_str(), &d3dTexture); hr != D3D_OK)
+        {
+            return nullptr;
+        }
+
+        D3DSURFACE_DESC surfaceDesc = {};
+        if (const auto hr = d3dTexture->GetLevelDesc(0, &surfaceDesc); hr != D3D_OK)
+        {
+            d3dTexture->Release();
+            return nullptr;
+        }
+
+        loadedTextures[path] = d3dTexture;
+
+        width = surfaceDesc.Width;
+        height = surfaceDesc.Height;
+        return d3dTexture;
+    }
+
+    return nullptr;
+}
+
+bool ImGuiInterface::RegisterImGuiModule(ImGuiModule* mod)
+{
+    Fluf::Log(LogLevel::Info, "Registering ImGui module");
+    return imguiModules.insert(mod).second;
+}
+
+bool ImGuiInterface::UnregisterImGuiModule(ImGuiModule* mod)
+{
+    Fluf::Log(LogLevel::Info, "Unregistering ImGui module");
+    return imguiModules.erase(mod) == 1;
+}
+
+ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int fontSize) const
+{
+    auto& loadedImGuiFonts = config->loadedFonts;
+    if (loadedImGuiFonts.empty())
+    {
+        throw std::runtime_error("FlufUi::GetImGuiFont: No fonts loaded");
+    }
+
+    const auto loadedFont = std::ranges::find_if(loadedImGuiFonts, [fontName](const LoadedFont& font) { return font.fontName == fontName; });
+    if (loadedFont == loadedImGuiFonts.end())
+    {
+        MessageBoxA(nullptr, std::format("Font {} not found or failed to load.", fontName).c_str(), "Font Error", MB_OK);
+        return nullptr;
+    }
+
+    auto& fontSizes = loadedFont->fontSizesInternal.value();
+    const auto size = fontSizes.find(fontSize);
+    if (size == fontSizes.end())
+    {
+        MessageBoxA(nullptr, std::format("Font {} of size {} not found or failed to load.", fontName, fontSize).c_str(), "Font Error", MB_OK);
+        return nullptr;
+    }
+
+    return size->second;
 }

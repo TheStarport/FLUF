@@ -11,6 +11,7 @@
 #include "imgui_markdown.h"
 
 #include "FLCore/Common/CommonMethods.hpp"
+#include "ImGui/ImGuiInterface.hpp"
 #include "Utils/StringUtils.hpp"
 
 #include <curl/curl.h>
@@ -108,13 +109,14 @@ void PatchNotes::LoadPatchNotesFromCache(const std::string_view path)
 
 void PatchNotes::RenderFullNotes()
 {
+    const auto interface = flufUi->GetImGuiInterface();
     ImGui::SetNextWindowSize({ 1280.f, 1024.f }, ImGuiCond_Always);
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     ImGui::Begin(
         "Patch Windows", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove);
 
-    for (const auto font = FlufUi::GetImGuiFont("Saira", 46); auto& [date, content, preamble, version] : patches)
+    for (const auto font = interface->GetImGuiFont("Saira", 46); auto& [date, content, preamble, version] : patches)
     {
         assert(font);
 
@@ -229,6 +231,8 @@ void PatchNotes::Render()
         return;
     }
 
+    const auto interface = flufUi->GetImGuiInterface();
+
     auto& [date, content, preamble, version] = patches.front();
 
     constexpr float padding = 10.0f;
@@ -240,8 +244,8 @@ void PatchNotes::Render()
     ImGui::SetNextWindowSize({ 400.f, 300.f }, ImGuiCond_Always);
     ImGui::Begin("Patch Notes", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
-    auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-    auto* font = FlufUi::GetImGuiFont("Saira", 46);
+    const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
+    auto* font = interface->GetImGuiFont("Saira", 46);
     ImGui::PushFont(font);
     ImGui::Text(version.c_str());
     ImGui::SameLine();
@@ -292,10 +296,10 @@ PatchNotes::PatchNotes()
     }
 
     flufUi = module;
-    flufUi->RegisterImGuiModule(this);
+    flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
 }
 
-PatchNotes::~PatchNotes() { flufUi->UnregisterImGuiModule(this); }
+PatchNotes::~PatchNotes() { flufUi->GetImGuiInterface()->UnregisterImGuiModule(this); }
 
 std::string_view PatchNotes::GetModuleName() { return moduleName; }
 
