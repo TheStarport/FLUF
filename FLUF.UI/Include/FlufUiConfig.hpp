@@ -33,6 +33,7 @@ struct FlufUiConfig
         UiMode uiMode = UiMode::None;
         float dpi = 1.0f;
         std::vector<LoadedFont> loadedFonts{
-            { "Saira", "SairaCondensed-Light.ttf", true }
+            { "Saira", "SairaCondensed-Light.ttf",  true, { 24, 36, 48 } },
+            {    "FA",                         "", false, { 24, 36, 48 } },
         };
 };

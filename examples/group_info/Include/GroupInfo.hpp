@@ -12,7 +12,7 @@ class FlufUi;
 
 struct GroupMember
 {
-        Rml::String name;
+        std::string name;
         uint shipArch;
         float distance;
         float health;
@@ -27,7 +27,12 @@ class GroupInfo final : public FlufModule, public ImGuiModule
         Rml::ElementDocument* document = nullptr;
         Rml::DataModelHandle memberDataModel;
         Rml::UnorderedMap<uint, GroupMember> members;
+        Rml::UnorderedMap<uint, std::string> shipImageMap;
         double timer = 5.0;
+        bool imguiPanelLocked = true;
+
+        static void RadialProgressBar(const std::string& label, float progress, const ImVec2& size, const ImVec4& color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+                                      ImVec2 center = ImVec2(0, 0));
 
         void OnFixedUpdate(const double delta) override;
         void OnGameLoad() override;

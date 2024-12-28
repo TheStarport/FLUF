@@ -7,6 +7,7 @@
 #include "Fluf.hpp"
 #include "ImGui/ImGuiModule.hpp"
 
+#include "ImGui/FontAwesomeSolid.hpp"
 #include <d3dx9.h>
 #include <imgui.h>
 #include <imgui_impl_dx9.h>
@@ -14,6 +15,7 @@
 #include <imgui_internal.h>
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <ImGui/IconFontAwesome6.hpp>
 #include <stb_image.h>
 #undef STB_IMAGE_IMPLEMENTATION
 
@@ -146,7 +148,7 @@ void ImGuiInterface::Render()
         {
             if (ImGui::Button("Reset to default"))
             {
-                // TODO: A THING
+                GenerateDefaultStyle();
             }
 
             ImGui::Separator();
@@ -267,6 +269,11 @@ ImGuiInterface::~ImGuiInterface()
 
 ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device) : dxDevice(device), config(flufUi->GetConfig()), backend(backend)
 {
+    std::array<char, MAX_PATH> path;
+    GetUserDataPath(path.data());
+
+    static std::string iniPath = std::format("{}\\imgui.ini", path.data());
+
     static const auto* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);
     const auto ctx = ImGui::CreateContext();
 
@@ -280,9 +287,26 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NoMouseCursorChange;
+    io.IniFilename = iniPath.c_str();
 
     for (auto& loadedFont : config->loadedFonts)
     {
+        if (loadedFont.fontName == "FA")
+        {
+            static constexpr ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+            ImFontConfig fontConfig;
+
+            for (auto fontSize : loadedFont.fontSizes)
+            {
+                auto* font = io.Fonts->AddFontFromMemoryCompressedTTF(
+                    FontAwesomeCompressedData, FontAwesomeCompressedSize, static_cast<float>(fontSize), &fontConfig, iconRanges);
+                assert(font);
+                loadedFont.fontSizesInternal.value()[fontSize] = font;
+            }
+
+            continue;
+        }
+
         if (loadedFont.isDefault)
         {
             loadedFont.fontSizes.insert(DefaultFontSize);
@@ -334,14 +358,15 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
         PDIRECT3DTEXTURE9 d3dTexture = nullptr;
         if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(dxDevice), path.c_str(), &d3dTexture); hr != D3D_OK)
         {
-            return nullptr;
+
+            goto failed;
         }
 
         D3DSURFACE_DESC surfaceDesc = {};
         if (const auto hr = d3dTexture->GetLevelDesc(0, &surfaceDesc); hr != D3D_OK)
         {
             d3dTexture->Release();
-            return nullptr;
+            goto failed;
         }
 
         loadedTextures[path] = d3dTexture;
@@ -350,6 +375,12 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
         height = surfaceDesc.Height;
         return d3dTexture;
     }
+
+failed:
+    // Cache the fact we did not find it to prevent duplicate logs
+    loadedTextures[path] = nullptr;
+
+    Fluf::Log(LogLevel::Error, std::format("Failed to load texture: {}", path));
 
     return nullptr;
 }

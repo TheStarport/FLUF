@@ -40,7 +40,8 @@ class ImGuiInterface
         explicit ImGuiInterface(FlufUi* flufUi, RenderingBackend backend, void* device);
 
         /**
-         * @brief Loads an image from the specified path using the currently running render backend.
+         * @brief Loads an image from the specified path using the currently running render backend.\n
+         * Textures are automatically cached until restart.
          * @param path The path of the image file. Can be relative to the EXE folder or absolute.
          * Supported formats are: .bmp, .dds, .dib, .hdr, .jpg, .pfm, .png, .ppm, and .tga.
          * @param width If image loading is successful, width will be populated with the horizontal size of the image.
