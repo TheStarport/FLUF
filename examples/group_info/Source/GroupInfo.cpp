@@ -12,7 +12,6 @@
 #include "FLUF.UI.hpp"
 #include "ImGui/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiInterface.hpp"
-#include "Rml/RmlContext.hpp"
 #include "Utils/StringUtils.hpp"
 
 #include <imgui_internal.h>
@@ -43,10 +42,6 @@ void GroupInfo::OnFixedUpdate(const double delta)
         if (!members.empty())
         {
             members.clear();
-            if (flufUi->GetConfig()->uiMode == UiMode::Rml)
-            {
-                memberDataModel.DirtyVariable("members");
-            }
         }
 
         return;
@@ -75,15 +70,29 @@ void GroupInfo::OnFixedUpdate(const double delta)
         const float distance = std::abs(glm::distance<3, float, glm::packed_highp>(ship->position, playerShip->position));
         const auto health = ship->hitPoints / ship->get_max_hit_pts();
         const auto shield = reinterpret_cast<CEShield*>(ship->equipManager.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
-        float shieldHealth = 0.f;
-        if (shield && shield->maxShieldHitPoints > 0.f && shield->IsFunctioning())
+        float shieldHealth = 0.f, shieldCurrent = 0.f, shieldMax = 0.f;
+        if (shield && shield->maxShieldHitPoints > 0.f)
         {
-            // ReSharper disable once CppDFAUnusedValue
+            // ReSharper disable thrice CppDFAUnusedValue
             shieldHealth = (shield->currentShieldHitPoints - shield->maxShieldHitPoints * shield->offlineThreshold) /
                            (shield->maxShieldHitPoints * (1.f - shield->offlineThreshold));
+            shieldCurrent = shield->currentShieldHitPoints;
+            shieldMax = shield->maxShieldHitPoints;
         }
 
-        members[ship->id] = { name, ship->archetype->archId, distance, health, shieldHealth };
+        // clang-format off
+        members[ship->id] = {
+            .name = name,
+            .shipArch = ship->archetype->archId,
+            .distance = distance,
+            .healthPercent = health,
+            .healthCurrent = ship->hitPoints,
+            .healthMax = ship->get_max_hit_pts(),
+            .shieldPercent = shieldHealth,
+            .shieldCurrent = shieldCurrent,
+            .shieldMax = shieldMax
+        };
+        // clang-format on
     }
     while (next);
 
@@ -103,82 +112,42 @@ void GroupInfo::OnFixedUpdate(const double delta)
             ++iter;
         }
     }
-
-    if (flufUi->GetConfig()->uiMode == UiMode::Rml)
-    {
-        memberDataModel.DirtyVariable("members");
-    }
 }
 
 void GroupInfo::OnGameLoad()
 {
-    if (flufUi->GetConfig()->uiMode == UiMode::ImGui)
+    if (flufUi->GetConfig()->uiMode != UiMode::ImGui)
     {
-        flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
+        return;
+    }
 
-        INI_Reader ini;
-        ini.open("../DATA/SHIPS/shiparch.ini", false);
-        while (ini.read_header())
+    flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
+
+    INI_Reader ini;
+    ini.open("../DATA/SHIPS/shiparch.ini", false);
+    while (ini.read_header())
+    {
+        if (!ini.is_header("ship"))
         {
-            if (!ini.is_header("ship"))
-            {
-                continue;
-            }
-
-            while (ini.read_value())
-            {
-                if (ini.is_value("nickname"))
-                {
-                    std::string nick = ini.get_value_string();
-                    const auto path = std::format("../DATA/INTERFACE/IMAGES/SHIPS/{}.png", nick);
-                    if (!std::filesystem::exists(path))
-                    {
-                        Fluf::Log(LogLevel::Warn, std::format("Ship image doesn't exist \"{}\"", nick));
-                        continue;
-                    }
-
-                    shipImageMap[CreateID(nick.c_str())] = path;
-                }
-            }
+            continue;
         }
 
-        return;
+        while (ini.read_value())
+        {
+            if (ini.is_value("nickname"))
+            {
+                std::string nick = ini.get_value_string();
+                const auto path = std::format("../DATA/INTERFACE/IMAGES/SHIPS/{}.png", nick);
+                if (!std::filesystem::exists(path))
+                {
+                    Fluf::Log(LogLevel::Warn, std::format("Ship image doesn't exist \"{}\"", nick));
+                    continue;
+                }
+
+                shipImageMap[CreateID(nick.c_str())] = path;
+            }
+        }
     }
-
-    const auto context = flufUi->GetRmlContext();
-
-    if (!context.has_value())
-    {
-        Fluf::Log(LogLevel::Error,
-                  "Rml context was not found. Ensure that FLUF.UI is loaded, "
-                  "has a higher priority than group_info, and is set to RML mode.");
-        return;
-    }
-
-    auto ctor = context->CreateDataModel("members");
-
-    if (auto memberHandle = ctor.RegisterStruct<GroupMember>())
-    {
-        memberHandle.RegisterMember("name", &GroupMember::name);
-        memberHandle.RegisterMember("distance", &GroupMember::distance);
-        memberHandle.RegisterMember("health", &GroupMember::health);
-        memberHandle.RegisterMember("shield", &GroupMember::shield);
-        memberHandle.RegisterMember("shipArch", &GroupMember::shipArch);
-    }
-
-    ctor.RegisterArray<decltype(members)>();
-    ctor.Bind("members", &members);
-
-    memberDataModel = ctor.GetModelHandle();
-
-    document = context->LoadDocument("local://INTERFACE/RML/group_info.rml");
-    if (!document)
-    {
-        Fluf::Log(LogLevel::Error, "INTERFACE/Rml/group_info.rml was not found. Crashes are likely.");
-        return;
-    }
-
-    document->Show();
 }
 
 void GroupInfo::RadialProgressBar(const std::string& label, const float progress, const ImVec2& size, const ImVec4& color, ImVec2 center)
@@ -220,13 +189,21 @@ void GroupInfo::Render()
 
     auto interface = flufUi->GetImGuiInterface();
 
-    auto windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar;
+    auto windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar;
     if (imguiPanelLocked)
     {
         windowFlags |= ImGuiWindowFlags_NoMove;
     }
 
-    ImGui::SetNextWindowSize(ImVec2(500.f, 800.f), ImGuiCond_Always);
+    ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4());
+    ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImVec4());
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4());
+
+    ImGui::PushStyleVar(ImGuiStyleVar_SeparatorTextPadding, ImVec2(1.0f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20.f, 2.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.f);
+
+    ImGui::SetNextWindowSize(ImVec2(200.f, 600.f), ImGuiCond_Always);
     ImGui::Begin("GroupInfo", nullptr, windowFlags);
 
     const auto font = interface->GetImGuiFont("Saira", 24);
@@ -234,11 +211,7 @@ void GroupInfo::Render()
 
     ImGui::PushFont(font);
 
-    ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4());
-    ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImVec4());
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4());
-
-    bool isWindowHovered = ImGui::IsWindowHovered();
+    const bool isWindowHovered = ImGui::IsWindowHovered();
     if (!isWindowHovered)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4());
@@ -265,70 +238,79 @@ void GroupInfo::Render()
         ImGui::PopStyleColor(6);
     }
 
-    if (ImGui::BeginTable("GroupInfoTable", 4, ImGuiTableFlags_SizingStretchProp))
+    ImGui::BeginTable("GroupInfoTable", 4, ImGuiTableFlags_SizingFixedFit);
+
+    constexpr ImVec2 imageSize = { 40.f, 40.f };
+
+    for (auto& member : members)
     {
-        constexpr auto tableFlags = ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHeaderLabel;
-        ImGui::TableSetupColumn("ship1", tableFlags, 105.0f);
-        ImGui::TableSetupColumn("ship2", tableFlags, 105.0f);
-        ImGui::TableSetupColumn("ship3", tableFlags, 105.0f);
-        ImGui::TableSetupColumn("ship4", tableFlags, 105.0f);
-        ImGui::TableHeadersRow();
+        ImGui::BeginGroup();
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
 
-        auto member = members.begin();
-        for (int row = 0; row < 2; row++)
+        ImGui::Dummy({ 0.f, 20.f });
+
+        uint width, height;
+        auto texture1 = interface->LoadTexture("../DATA/INTERFACE/IMAGES/SYMBOLS/Circle.png", width, height);
+        assert(texture1);
+        ImGui::Image(reinterpret_cast<ImTextureID>(texture1), imageSize);
+
+        constexpr auto writeDistance = [imageSize](const char* text)
         {
-            ImGui::TableNextRow();
-            for (int column = 0; column < 4 && member != members.end(); column++)
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (imageSize.x - ImGui::CalcTextSize(text).x) * .5f);
+            ImGui::Text(text);
+        };
+
+        if (member.second.deathTimer > 0.0)
+        {
+            const char* text = "DEAD";
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.0f, 0.0f, 1.0f));
+            writeDistance(text);
+            ImGui::PopStyleColor();
+        }
+        else if (member.second.distance >= 100'000.f)
+        {
+            const char* text = "FAR";
+            writeDistance(text);
+        }
+        else if (member.second.distance >= 1'000.f)
+        {
+            std::string distance = std::format("{:.2f}K", member.second.distance / 1'000.f);
+            writeDistance(distance.c_str());
+        }
+        else
+        {
+            std::string distance = std::format("{:.0f}m", member.second.distance);
+            writeDistance(distance.c_str());
+        }
+
+        ImGui::TableNextColumn();
+
+        int popCount = 1;
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.35f, 1.f, 1.f));
+        ImGui::Text(member.second.name.c_str());
+
+        if (member.second.healthCurrent > 0.f)
+        {
+            popCount += 2;
+            std::string healthFormat = std::format("{:.0f} / {:.0f}", member.second.healthCurrent, member.second.healthMax);
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.47f, 0.16f, 0.2f, 1.f));
+            ImGui::ProgressBar(member.second.healthPercent, ImVec2(100.f, 0.f), healthFormat.c_str());
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.243f, 0.24f, 0.7f, 1.f));
+            if (member.second.shieldMax != 0)
             {
-                ImGui::TableSetColumnIndex(column);
-                ImGui::Dummy({ 5.f, 1.0f });
-
-                constexpr ImVec2 imageSize = { 100.f, 100.f };
-
-                const auto imageCenter = ImGui::GetCursorScreenPos() + imageSize / 2;
-                uint width = 0, height = 0;
-                if (auto shipImage = shipImageMap.find(member->second.shipArch); shipImage == shipImageMap.end())
-                {
-                    ImGui::Text("Image not found");
-                }
-                else if (const auto texture = interface->LoadTexture(shipImage->second, width, height); texture)
-                {
-                    ImGui::Image(reinterpret_cast<ImTextureID>(texture), imageSize);
-                }
-                else
-                {
-                    ImGui::Text("Failed to load texture");
-                }
-
-                RadialProgressBar("ShieldRadial#", member->second.shield, imageSize, ImVec4(.0f, .23f, 1.0f, 1.0f), imageCenter);
-                RadialProgressBar("HealthRadial#", member->second.health, imageSize - ImVec2{ 7.f, 7.f }, ImVec4(0.7f, .0f, .0f, 1.0f), imageCenter);
-                ImGui::TextWrapped(member->second.name.c_str());
-                if (member->second.deathTimer > 0.0)
-                {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.0f, 0.0f, 1.0f));
-                    ImGui::Text("DEAD");
-                    ImGui::PopStyleColor();
-                }
-                else if (member->second.distance >= 100'000.f)
-                {
-                    ImGui::Text("FAR");
-                }
-                else if (member->second.distance >= 1'000.f)
-                {
-                    ImGui::Text("%.2fK", member->second.distance / 1'000.f);
-                }
-                else
-                {
-                    ImGui::Text("%.0fm", member->second.distance);
-                }
-
-                ++member;
+                std::string shieldFormat = std::format("{:.0f} / {:.0f}", member.second.shieldCurrent, member.second.shieldMax);
+                ImGui::ProgressBar(member.second.shieldPercent, ImVec2(100.f, 0.f), shieldFormat.c_str());
             }
         }
 
-        ImGui::EndTable();
+        ImGui::PopStyleColor(popCount);
+        ImGui::EndGroup();
     }
 
+    ImGui::EndTable();
+
+    ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(3);
     ImGui::PopFont();
     ImGui::End();

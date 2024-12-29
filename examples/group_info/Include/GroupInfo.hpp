@@ -15,8 +15,12 @@ struct GroupMember
         std::string name;
         uint shipArch;
         float distance;
-        float health;
-        float shield;
+        float healthPercent;
+        float healthCurrent;
+        float healthMax;
+        float shieldPercent;
+        float shieldCurrent;
+        float shieldMax;
         double deathTimer = 0.f;
 };
 
@@ -25,7 +29,6 @@ class GroupInfo final : public FlufModule, public ImGuiModule
         std::shared_ptr<FlufUi> flufUi;
 
         Rml::ElementDocument* document = nullptr;
-        Rml::DataModelHandle memberDataModel;
         Rml::UnorderedMap<uint, GroupMember> members;
         Rml::UnorderedMap<uint, std::string> shipImageMap;
         double timer = 5.0;
@@ -34,7 +37,7 @@ class GroupInfo final : public FlufModule, public ImGuiModule
         static void RadialProgressBar(const std::string& label, float progress, const ImVec2& size, const ImVec4& color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
                                       ImVec2 center = ImVec2(0, 0));
 
-        void OnFixedUpdate(const double delta) override;
+        void OnFixedUpdate(double delta) override;
         void OnGameLoad() override;
         void Render() override;
 

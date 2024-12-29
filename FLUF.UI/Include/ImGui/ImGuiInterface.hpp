@@ -9,7 +9,6 @@ class FlufUi;
 class ImGuiInterface
 {
         static constexpr int DefaultFontSize = 36;
-        inline static bool showStyleWindow = false;
         inline static bool showDemoWindow = false;
         std::unordered_map<std::string, void*> loadedTextures;
         void* dxDevice;

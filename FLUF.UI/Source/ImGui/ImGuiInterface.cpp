@@ -142,22 +142,6 @@ void ImGuiInterface::Render()
         ImGui::ShowDemoWindow(&showDemoWindow);
     }
 
-    if (showStyleWindow)
-    {
-        if (ImGui::Begin("Style Editor", &showStyleWindow))
-        {
-            if (ImGui::Button("Reset to default"))
-            {
-                GenerateDefaultStyle();
-            }
-
-            ImGui::Separator();
-            ImGui::ShowStyleEditor();
-        }
-
-        ImGui::End();
-    }
-
     for (auto* module : imguiModules)
     {
         module->Render();
@@ -231,12 +215,7 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
             ConfigHelper<FlufUiConfig, FlufUiConfig::configPathOverrides>::Save(*config);
             return false;
         }
-        else if (hasCtl && key == VK_F8)
-        {
-            showStyleWindow = true;
-            return false;
-        }
-        else if (hasCtl && key == VK_F12)
+        else if (hasCtl && key == VK_F5)
         {
             showDemoWindow = true;
             return false;
