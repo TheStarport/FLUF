@@ -13,6 +13,7 @@ from .utils import cli, log
 @click.option("--dest", type=str, help="Copy to another destination when done")
 @click.option("--release", is_flag=True, help="Include/Exclude files depending on release mode", default=False)
 def post_build(release: bool, dest: str):
+    # noinspection PyBroadException
     try:
         if not os.path.isdir('./build'):
             log('Build directory not present. Run the build first.')
@@ -21,17 +22,21 @@ def post_build(release: bool, dest: str):
         if os.path.isdir('./dist'):
             shutil.rmtree('./dist')
 
-        log('Copying post build files to dist')
-        Path('./dist/DATA/INTERFACE/RML').mkdir(parents=True)
-        shutil.copy2('./vendor/freetype.dll', 'dist/')
+        os.makedirs('./dist/DATA/INTERFACE/RML', exist_ok=True)
+        os.makedirs('./dist/DATA/INTERFACE/IMAGES/SYMBOLS', exist_ok=True)
+        os.makedirs('./dist/modules', exist_ok=True)
+
+        shutil.copy2('./vendor/freetype.dll', 'dist/modules/')
 
         # Dll Files
         result = [y for x in os.walk('./build') for y in glob(os.path.join(x[0], '*.dll'))]
         for dll in result:
             if (release and 'Debug' in dll) or (not release and 'Release' in dll):
                 continue
-            shutil.copy2(dll, './dist/')
-            log(f'copied {dll}')
+
+            dist = './dist/' if dll.endswith('FLUF.dll') else './dist/modules/'
+            shutil.copy2(dll, dist)
+            log(f'copied {dll} to {dist}')
 
         # Lib Files
         result = [y for x in os.walk('./build') for y in glob(os.path.join(x[0], '*.lib'))]
@@ -46,7 +51,8 @@ def post_build(release: bool, dest: str):
         for dll in result:
             if (release and 'Debug' in dll) or (not release and 'Release' in dll):
                 continue
-            shutil.copy2(dll, './dist/')
+
+            shutil.copy2(dll, './dist/modules/')
             log(f'copied {dll}')
 
         # Include Files
@@ -66,8 +72,7 @@ def post_build(release: bool, dest: str):
             log(f'copied {font}')
 
         # RML/RCSS/Lua files, only run if examples are compiled
-        if os.path.exists('./dist/group_info.dll'):
-            shutil.copytree('./examples/group_info/Rml', 'dist/DATA/INTERFACE/RML', dirs_exist_ok=True)
+        if os.path.exists('./dist/modules/raid_ui.dll'):
             shutil.copytree('./examples/shared_assets', 'dist/DATA/INTERFACE/RML', dirs_exist_ok=True)
 
         log('Zipping up dist folder to build.zip')
@@ -81,5 +86,5 @@ def post_build(release: bool, dest: str):
             shutil.copytree('./dist', dest, dirs_exist_ok=True)
             shutil.copytree(dest + 'DATA', f'{dest}..{os.path.sep}DATA{os.path.sep}', dirs_exist_ok=True)
             shutil.rmtree(dest + 'DATA', ignore_errors=True)
-    except:
-        pass
+    except Exception as e:
+        print(e)

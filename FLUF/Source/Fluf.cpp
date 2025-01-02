@@ -207,6 +207,12 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     DisableThreadLibraryCalls(mod);
     if (reason == DLL_PROCESS_ATTACH)
     {
+        if (constexpr const char* path = "modules/config"; !std::filesystem::exists(path) && !std::filesystem::create_directories(path))
+        {
+            MessageBoxA(nullptr, "Unable to create directories 'modules/config' in working directory.", "Permissions Error?", MB_OK);
+            return false;
+        }
+
         thisDll = mod;
         fluf = std::make_shared<Fluf>();
     }
@@ -436,7 +442,8 @@ Fluf::Fluf()
             continue;
         }
 
-        lib = LoadLibraryA(modulePath.c_str());
+        std::string modulePathWithDir = std::format("modules/{}", modulePath);
+        lib = LoadLibraryA(modulePathWithDir.c_str());
         if (!lib)
         {
             Log(LogLevel::Error, std::format("Failed to load module: {}\nReason: {}", modulePath, GetLastErrorAsString()));

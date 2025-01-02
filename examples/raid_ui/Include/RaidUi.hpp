@@ -13,6 +13,7 @@ class FlufUi;
 struct GroupMember
 {
         std::string name;
+        uint shipClass;
         uint shipArch;
         float distance;
         float healthPercent;
@@ -21,16 +22,31 @@ struct GroupMember
         float shieldPercent;
         float shieldCurrent;
         float shieldMax;
+        bool shieldRecharging;
+        float shieldRechargeStart;
+        float shieldRechargeEnd;
         double deathTimer = 0.f;
 };
 
-class GroupInfo final : public FlufModule, public ImGuiModule
+struct ShipClassImageMap
+{
+        std::string folderName = R"(..\DATA\INTERFACE\IMAGES\SYMBOLS)";
+        std::unordered_map<uint, std::string> shipClassImageMap{
+            { 0,        "lf.png" },
+            { 1,        "hf.png" },
+            { 2, "freighter.png" },
+            { 3,       "vhf.png" },
+        };
+};
+
+class RaidUi final : public FlufModule, public ImGuiModule
 {
         std::shared_ptr<FlufUi> flufUi;
 
         Rml::ElementDocument* document = nullptr;
         Rml::UnorderedMap<uint, GroupMember> members;
         Rml::UnorderedMap<uint, std::string> shipImageMap;
+        ShipClassImageMap shipClassImageMap;
         double timer = 5.0;
         bool imguiPanelLocked = true;
 
@@ -42,9 +58,9 @@ class GroupInfo final : public FlufModule, public ImGuiModule
         void Render() override;
 
     public:
-        static constexpr std::string_view moduleName = "group_info";
+        static constexpr std::string_view moduleName = "Raid UI";
 
-        GroupInfo();
-        ~GroupInfo() override;
+        RaidUi();
+        ~RaidUi() override;
         std::string_view GetModuleName() override;
 };

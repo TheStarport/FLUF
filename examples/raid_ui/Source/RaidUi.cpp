@@ -1,6 +1,6 @@
 #include "PCH.hpp"
 
-#include "GroupInfo.hpp"
+#include "RaidUi.hpp"
 
 #include "FLCore/Common/CEquip/CAttachedEquip/CEShield.hpp"
 #include "FLCore/Common/CObjects/CSimple/CEqObj/CShip.hpp"
@@ -8,7 +8,9 @@
 #include "Fluf.hpp"
 #include "FlufModule.hpp"
 
+#include "FLCore/Common/Archetype/Root/EqObj/Ship.hpp"
 #include "FLCore/Common/Globals.hpp"
+#include "FLCore/FLCoreServer.h"
 #include "FLUF.UI.hpp"
 #include "ImGui/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiInterface.hpp"
@@ -26,7 +28,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-void GroupInfo::OnFixedUpdate(const double delta)
+void RaidUi::OnFixedUpdate(const double delta)
 {
     timer -= delta;
     if (timer > 0)
@@ -66,23 +68,40 @@ void GroupInfo::OnFixedUpdate(const double delta)
 
         // We have found another ship that shares our group
 
+        auto existingMember = members.find(ship->id);
+
         const std::string name = StringUtils::wstos(std::wstring_view(reinterpret_cast<const wchar_t*>(ship->get_pilot_name())));
         const float distance = std::abs(glm::distance<3, float, glm::packed_highp>(ship->position, playerShip->position));
         const auto health = ship->hitPoints / ship->get_max_hit_pts();
         const auto shield = reinterpret_cast<CEShield*>(ship->equipManager.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
+        // ReSharper disable CppDFAUnreadVariable
         float shieldHealth = 0.f, shieldCurrent = 0.f, shieldMax = 0.f;
+        bool shieldRecharging = false;
+        float timeUntilRecharge = 0.0f, existingShieldRechargeStart = existingMember == members.end() ? 0.f : existingMember->second.shieldRechargeStart;
         if (shield && shield->maxShieldHitPoints > 0.f)
         {
             // ReSharper disable thrice CppDFAUnusedValue
-            shieldHealth = (shield->currentShieldHitPoints - shield->maxShieldHitPoints * shield->offlineThreshold) /
+            shieldHealth = (shield->currShieldHitPoints - shield->maxShieldHitPoints * shield->offlineThreshold) /
                            (shield->maxShieldHitPoints * (1.f - shield->offlineThreshold));
-            shieldCurrent = shield->currentShieldHitPoints;
+            shieldCurrent = shield->currShieldHitPoints;
             shieldMax = shield->maxShieldHitPoints;
+
+            if (!shield->IsFunctioning())
+            {
+                shieldRecharging = true;
+                timeUntilRecharge = static_cast<float>(shield->rebuildTimestamp);
+            }
+            else
+            {
+                existingShieldRechargeStart = static_cast<float>(Timing::GetGlobalTime());
+            }
         }
+        // ReSharper restore CppDFAUnreadVariable
 
         // clang-format off
         members[ship->id] = {
             .name = name,
+            .shipClass = ship->shiparch()->shipClass,
             .shipArch = ship->archetype->archId,
             .distance = distance,
             .healthPercent = health,
@@ -90,7 +109,10 @@ void GroupInfo::OnFixedUpdate(const double delta)
             .healthMax = ship->get_max_hit_pts(),
             .shieldPercent = shieldHealth,
             .shieldCurrent = shieldCurrent,
-            .shieldMax = shieldMax
+            .shieldMax = shieldMax,
+            .shieldRecharging = shieldRecharging,
+            .shieldRechargeStart = existingShieldRechargeStart,
+            .shieldRechargeEnd = timeUntilRecharge,
         };
         // clang-format on
     }
@@ -114,7 +136,7 @@ void GroupInfo::OnFixedUpdate(const double delta)
     }
 }
 
-void GroupInfo::OnGameLoad()
+void RaidUi::OnGameLoad()
 {
     if (flufUi->GetConfig()->uiMode != UiMode::ImGui)
     {
@@ -150,7 +172,7 @@ void GroupInfo::OnGameLoad()
     }
 }
 
-void GroupInfo::RadialProgressBar(const std::string& label, const float progress, const ImVec2& size, const ImVec4& color, ImVec2 center)
+void RaidUi::RadialProgressBar(const std::string& label, const float progress, const ImVec2& size, const ImVec4& color, ImVec2 center)
 {
     const ImGuiWindow* window = ImGui::GetCurrentWindow();
     if (window->SkipItems)
@@ -180,14 +202,14 @@ void GroupInfo::RadialProgressBar(const std::string& label, const float progress
     ImGui::EndGroup();
 }
 
-void GroupInfo::Render()
+void RaidUi::Render()
 {
     if (members.empty())
     {
         return;
     }
 
-    auto interface = flufUi->GetImGuiInterface();
+    const auto interface = flufUi->GetImGuiInterface();
 
     auto windowFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar;
     if (imguiPanelLocked)
@@ -244,16 +266,30 @@ void GroupInfo::Render()
 
     for (auto& member : members)
     {
+        void* texture = nullptr;
+        if (auto cls = shipClassImageMap.shipClassImageMap.find(member.second.shipClass); cls != shipClassImageMap.shipClassImageMap.end())
+        {
+            uint height;
+            uint width;
+            texture = interface->LoadTexture(std::format("{}/{}", shipClassImageMap.folderName, cls->second), width, height);
+            assert(texture);
+            if (!texture)
+            {
+                MessageBoxA(nullptr, std::format("Unable to load texture: {}/{}", shipClassImageMap.folderName, cls->second).c_str(), "Texture Missing", MB_OK);
+                std::exit(1);
+            }
+        }
+        else
+        {
+            continue;
+        }
+
         ImGui::BeginGroup();
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
 
         ImGui::Dummy({ 0.f, 20.f });
-
-        uint width, height;
-        auto texture1 = interface->LoadTexture("../DATA/INTERFACE/IMAGES/SYMBOLS/Circle.png", width, height);
-        assert(texture1);
-        ImGui::Image(reinterpret_cast<ImTextureID>(texture1), imageSize);
+        ImGui::Image(reinterpret_cast<ImTextureID>(texture), imageSize);
 
         constexpr auto writeDistance = [imageSize](const char* text)
         {
@@ -292,19 +328,69 @@ void GroupInfo::Render()
 
         if (member.second.healthCurrent > 0.f)
         {
-            popCount += 2;
+            popCount++;
             std::string healthFormat = std::format("{:.0f} / {:.0f}", member.second.healthCurrent, member.second.healthMax);
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.47f, 0.16f, 0.2f, 1.f));
             ImGui::ProgressBar(member.second.healthPercent, ImVec2(100.f, 0.f), healthFormat.c_str());
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.243f, 0.24f, 0.7f, 1.f));
             if (member.second.shieldMax != 0)
             {
-                std::string shieldFormat = std::format("{:.0f} / {:.0f}", member.second.shieldCurrent, member.second.shieldMax);
-                ImGui::ProgressBar(member.second.shieldPercent, ImVec2(100.f, 0.f), shieldFormat.c_str());
+                popCount++;
+                if (member.second.shieldRecharging)
+                {
+                    const auto timing = static_cast<float>(Timing::GetGlobalTime());
+                    const auto timeUntilRebuild = member.second.shieldRechargeEnd - member.second.shieldRechargeStart;
+                    const auto rebuildPercentage = (member.second.shieldRechargeEnd - timing) / timeUntilRebuild;
+
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.f, 0.47f, 0.05f, 1.f));
+                    std::string shieldFormat = std::format("{:.0f}s", std::ceilf(member.second.shieldRechargeEnd - timing));
+                    ImGui::ProgressBar(1 - rebuildPercentage, ImVec2(100.f, 0.f), shieldFormat.c_str());
+                }
+                else
+                {
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.243f, 0.24f, 0.7f, 1.f));
+                    std::string shieldFormat = std::format("{:.0f} / {:.0f}", member.second.shieldCurrent, member.second.shieldMax);
+                    ImGui::ProgressBar(member.second.shieldPercent, ImVec2(100.f, 0.f), shieldFormat.c_str());
+                }
             }
         }
 
         ImGui::PopStyleColor(popCount);
+
+        if (ImGui::IsItemClicked())
+        {
+            Fluf::Log(LogLevel::Info, "RaidUi clicked");
+            const auto foundObject = dynamic_cast<CShip*>(CObject::Find(member.first, CObject::CSHIP_OBJECT));
+            if (foundObject)
+            {
+                foundObject->Release();
+            }
+
+            if (auto* ship = Fluf::GetCShip(); ship && foundObject)
+            {
+                // Has Shift
+                if (GetKeyState(VK_SHIFT) & 1)
+                {
+                    if (const auto target = foundObject->get_target())
+                    {
+                        ship->set_target(target);
+                    }
+                }
+                else if (const auto scanner = dynamic_cast<CEScanner*>(ship->equipManager.FindFirst(static_cast<uint>(EquipmentClass::Scanner))))
+                {
+                    for (int i = 0; i < scanner->scanList.currSize; i++)
+                    {
+                        auto& obj = scanner->scanList.objectArray[i];
+
+                        if (BaseWatcherToCObject(&obj) == foundObject)
+                        {
+                            ship->set_target(BaseWatcherToIObjRW(&obj));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         ImGui::EndGroup();
     }
 
@@ -316,7 +402,7 @@ void GroupInfo::Render()
     ImGui::End();
 }
 
-GroupInfo::GroupInfo()
+RaidUi::RaidUi()
 {
     const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
     if (weakPtr.expired())
@@ -328,14 +414,35 @@ GroupInfo::GroupInfo()
     const auto module = std::static_pointer_cast<FlufUi>(weakPtr.lock());
     flufUi = module;
 
-    if (module->GetConfig()->uiMode == UiMode::None)
+    if (module->GetConfig()->uiMode != UiMode::ImGui)
     {
-        Fluf::Log(LogLevel::Error, "Group info was loaded, but FLUF UI's ui mode was set to 'None'");
+        Fluf::Log(LogLevel::Error, "Group info was loaded, but FLUF UI's ui mode was not set to 'ImGui'");
         return;
+    }
+
+    static constexpr char configFile[] = "modules/config/raid_ui.yml";
+    if (auto classMap = ConfigHelper<ShipClassImageMap, configFile>::Load(); !classMap.has_value())
+    {
+        if (MessageBoxA(nullptr,
+                        std::format("There were issues processing the config file at {}.\n\nPress 'OK' to generate a new config or cancel to "
+                                    "terminate the application.",
+                                    configFile)
+                            .c_str(),
+                        "Config not found",
+                        MB_OKCANCEL) == IDCANCEL)
+        {
+            std::exit(1);
+        }
+
+        ConfigHelper<ShipClassImageMap, configFile>::Save(shipClassImageMap);
+    }
+    else
+    {
+        shipClassImageMap = classMap.value();
     }
 }
 
-GroupInfo::~GroupInfo()
+RaidUi::~RaidUi()
 {
     if (flufUi->GetConfig()->uiMode == UiMode::ImGui)
     {
@@ -343,6 +450,6 @@ GroupInfo::~GroupInfo()
     }
 }
 
-std::string_view GroupInfo::GetModuleName() { return moduleName; }
+std::string_view RaidUi::GetModuleName() { return moduleName; }
 
-SETUP_MODULE(GroupInfo);
+SETUP_MODULE(RaidUi);
