@@ -20,6 +20,8 @@ std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
 std::shared_ptr<Fluf> fluf;
 HMODULE thisDll;
 
+void EXPORT DummyFunction() {}
+
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
 const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "free"));
