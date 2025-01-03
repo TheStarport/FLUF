@@ -31,6 +31,7 @@ class ClientSend;
 class ClientReceive;
 class FlufConfiguration;
 struct CShip;
+struct SStartupInfo;
 class Fluf
 {
         friend ClientSend;
@@ -40,6 +41,10 @@ class Fluf
 
         std::vector<std::shared_ptr<FlufModule>> loadedModules{};
         std::shared_ptr<FlufConfiguration> config;
+
+        // FLUF can run on the client or server. This becomes true when the process is 'freelancer.exe'
+        bool runningOnClient = false;
+        inline static FARPROC oldServerStartupFunc;
 
         // The serverClient receives data from the server
         IClientImpl* serverClient = nullptr;
@@ -58,6 +63,7 @@ class Fluf
         static BOOL __stdcall FreeLibraryDetour(HMODULE module);
 
         void OnGameLoad() const;
+        static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
 
         template <typename R, typename... Args>
         struct ReturnType;
@@ -106,4 +112,5 @@ class Fluf
         FLUF_API static void Log(LogLevel level, std::string_view message);
         FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string_view identifier);
         FLUF_API static CShip* GetCShip();
+        FLUF_API static bool IsRunningOnClient();
 };

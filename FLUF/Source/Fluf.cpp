@@ -8,6 +8,7 @@
 #include "Internal/FlufConfiguration.hpp"
 #include "Internal/Hooks/ClientReceive.hpp"
 #include "Internal/Hooks/ClientSend.hpp"
+#include "Utils/MemUtils.hpp"
 
 #include <iostream>
 
@@ -141,32 +142,36 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
     const auto res = LoadLibraryA(dllName);
     loadLibraryDetour.Detour(LoadLibraryDetour);
 
-#ifndef FLUF_DISABLE_HOOKS
-    if (_stricmp(dllName, "rpclocal.dll") == 0)
+    if (!res)
     {
-        fluf->localClientVTable =
-            std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>>(dllName);
-        fluf->localServerVTable =
-            std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>>(dllName);
-        VTableHack::HookClientServer(fluf->localClientVTable.get(), fluf->localServerVTable.get());
+        return res;
     }
-    else if (_stricmp(dllName, "remoteserver.dll") == 0)
-    {
-        fluf->remoteClientVTable =
-            std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>>(dllName);
-        fluf->remoteServerVTable =
-            std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>>(dllName);
-        VTableHack::HookClientServer(fluf->remoteClientVTable.get(), fluf->remoteServerVTable.get());
-    }
-#endif
 
-    // Successfully loaded, lets check what the str was
-    if (res && instance)
+    if (fluf->runningOnClient)
     {
-        for (const auto& module : instance->loadedModules)
+#ifndef FLUF_DISABLE_HOOKS
+        if (_stricmp(dllName, "rpclocal.dll") == 0)
         {
-            module->OnDllLoaded(dllName, res);
+            fluf->localClientVTable =
+                std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>>(dllName);
+            fluf->localServerVTable =
+                std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>>(dllName);
+            VTableHack::HookClientServer(fluf->localClientVTable.get(), fluf->localServerVTable.get());
         }
+        else if (_stricmp(dllName, "remoteserver.dll") == 0)
+        {
+            fluf->remoteClientVTable =
+                std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>>(dllName);
+            fluf->remoteServerVTable =
+                std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>>(dllName);
+            VTableHack::HookClientServer(fluf->remoteClientVTable.get(), fluf->remoteServerVTable.get());
+        }
+#endif
+    }
+
+    for (const auto& module : fluf->loadedModules)
+    {
+        module->OnDllLoaded(dllName, res);
     }
 
     return res;
@@ -181,15 +186,18 @@ BOOL __stdcall Fluf::FreeLibraryDetour(HMODULE unloadedDll)
     std::string_view dllName{ dllNameBuf.data(), len };
     dllName = dllName.substr(dllName.find_last_of('\\') + 1);
 
-    if (dllName == "rpclocal.dll")
+    if (fluf->runningOnClient)
     {
-        fluf->localClientVTable.reset();
-        fluf->localServerVTable.reset();
-    }
-    else if (dllName == "remoteserver.dll")
-    {
-        fluf->remoteClientVTable.reset();
-        fluf->remoteServerVTable.reset();
+        if (dllName == "rpclocal.dll")
+        {
+            fluf->localClientVTable.reset();
+            fluf->localServerVTable.reset();
+        }
+        else if (dllName == "remoteserver.dll")
+        {
+            fluf->remoteClientVTable.reset();
+            fluf->remoteServerVTable.reset();
+        }
     }
 
     for (const auto& module : instance->loadedModules)
@@ -234,6 +242,18 @@ void Fluf::OnGameLoad() const
         Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
         module->OnGameLoad();
     }
+}
+
+bool __thiscall Fluf::OnServerStart(IServerImpl* server, SStartupInfo& info)
+{
+    for (const auto& module : fluf->loadedModules)
+    {
+        module->OnServerStart();
+    }
+
+    using StartType = bool(__thiscall*)(IServerImpl * server, SStartupInfo & info);
+    const auto startup = reinterpret_cast<StartType>(oldServerStartupFunc);
+    return startup(server, info);
 }
 
 void Fluf::OnUpdateHook(const double delta)
@@ -373,6 +393,8 @@ __declspec(naked) CShip* Fluf::GetCShip()
     }
 }
 
+bool Fluf::IsRunningOnClient() { return fluf->runningOnClient; }
+
 // Returns the last Win32 error, in string format. Returns an empty string if there is no error.
 std::string GetLastErrorAsString()
 {
@@ -380,7 +402,7 @@ std::string GetLastErrorAsString()
     DWORD errorMessageID = ::GetLastError();
     if (errorMessageID == 0)
     {
-        return std::string(); // No error message has been recorded
+        return {}; // No error message has been recorded
     }
 
     LPSTR messageBuffer = nullptr;
@@ -413,8 +435,14 @@ Fluf::Fluf()
     loadLibraryDetour.Detour(LoadLibraryDetour);
     freeLibraryDetour.Detour(FreeLibraryDetour);
 
+    std::array<char, MAX_PATH> fileNameBuffer{};
+    GetModuleFileNameA(nullptr, fileNameBuffer.data(), MAX_PATH);
+    std::string_view fileName = fileNameBuffer.data();
+    fileName = fileName.substr(fileName.find_last_of('\\') + 1);
+    runningOnClient = _strcmpi(fileName.data(), "freelancer.exe") == 0;
+
     // Console sink enabled, allocate console and allow us to use std::cout
-    if (config->logSinks.contains(LogSink::Console))
+    if (runningOnClient && config->logSinks.contains(LogSink::Console))
     {
         AllocConsole();
         SetConsoleTitleA("FLUF - Freelancer Unified Framework");
@@ -475,11 +503,21 @@ Fluf::Fluf()
         Log(LogLevel::Info, std::format("Loaded Module: {}", module->GetModuleName()));
     }
 
-    const HMODULE common = GetModuleHandleA("common");
-    thornLoadDetour = std::make_unique<FunctionDetour<ScriptLoadPtr>>(
-        reinterpret_cast<ScriptLoadPtr>(GetProcAddress(common, "?ThornScriptLoad@@YAPAUIScriptEngine@@PBD@Z"))); // NOLINT
+    if (runningOnClient)
+    {
+        const HMODULE common = GetModuleHandleA("common");
+        thornLoadDetour = std::make_unique<FunctionDetour<ScriptLoadPtr>>(
+            reinterpret_cast<ScriptLoadPtr>(GetProcAddress(common, "?ThornScriptLoad@@YAPAUIScriptEngine@@PBD@Z"))); // NOLINT
 
-    thornLoadDetour->Detour(OnScriptLoadHook);
+        thornLoadDetour->Detour(OnScriptLoadHook);
+    }
+    else
+    {
+        const auto newServerStartup = reinterpret_cast<FARPROC>(OnServerStart);
+        const auto serverStartupAddr = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr)) + 0x1BABC;
+        MemUtils::ReadProcMem(serverStartupAddr, &oldServerStartupFunc, 4);
+        MemUtils::WriteProcMem(serverStartupAddr, &newServerStartup, 4);
+    }
 
     const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
     frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));

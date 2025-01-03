@@ -38,8 +38,9 @@ class FLUF_API FlufModule
         virtual void OnLog(enum class LogLevel level, std::string_view message) {}
 
         virtual void OnUpdate(const double delta) {}
-        virtual void OnFixedUpdate(const double delta){};
+        virtual void OnFixedUpdate(const double delta) {};
         virtual void OnGameLoad() {}
+        virtual void OnServerStart() {}
         virtual void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) {}
         virtual void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) {}
 
