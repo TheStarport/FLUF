@@ -432,9 +432,6 @@ Fluf::Fluf()
     config = std::make_shared<FlufConfiguration>();
     config->Load();
 
-    loadLibraryDetour.Detour(LoadLibraryDetour);
-    freeLibraryDetour.Detour(FreeLibraryDetour);
-
     std::array<char, MAX_PATH> fileNameBuffer{};
     GetModuleFileNameA(nullptr, fileNameBuffer.data(), MAX_PATH);
     std::string_view fileName = fileNameBuffer.data();
@@ -522,6 +519,8 @@ Fluf::Fluf()
     const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
     frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));
     frameUpdateDetour->Detour(OnUpdateHook);
+    loadLibraryDetour.Detour(LoadLibraryDetour);
+    freeLibraryDetour.Detour(FreeLibraryDetour);
 }
 
 Fluf::~Fluf()
