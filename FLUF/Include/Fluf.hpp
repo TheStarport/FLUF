@@ -34,6 +34,8 @@ struct CShip;
 struct SStartupInfo;
 class Fluf
 {
+        using GetUserDataPathSig = bool (*)(char*);
+
         friend ClientSend;
         friend ClientReceive;
         friend FlufModule;
@@ -45,6 +47,8 @@ class Fluf
         // FLUF can run on the client or server. This becomes true when the process is 'freelancer.exe'
         bool runningOnClient = false;
         inline static FARPROC oldServerStartupFunc;
+        inline static auto getUserDataPathDetour =
+            FunctionDetour(reinterpret_cast<GetUserDataPathSig>(GetProcAddress(GetModuleHandleA("common.dll"), "?GetUserDataPath@@YA_NQAD@Z")));
 
         // The serverClient receives data from the server
         IClientImpl* serverClient = nullptr;
@@ -58,12 +62,12 @@ class Fluf
 
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
+        void OnGameLoad() const;
+        static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
 
         static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
         static BOOL __stdcall FreeLibraryDetour(HMODULE module);
-
-        void OnGameLoad() const;
-        static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
+        static bool GetUserDataPathDetour(char* path);
 
         template <typename R, typename... Args>
         struct ReturnType;

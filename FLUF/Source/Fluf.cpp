@@ -410,12 +410,12 @@ std::string GetLastErrorAsString()
     // Ask Win32 to give us the string version of that message ID.
     // The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
     size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                                 NULL,
+                                 nullptr,
                                  errorMessageID,
                                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                                 (LPSTR)&messageBuffer,
+                                 reinterpret_cast<LPSTR>(&messageBuffer),
                                  0,
-                                 NULL);
+                                 nullptr);
 
     // Copy the error message into a std::string.
     std::string message(messageBuffer, size);
@@ -431,6 +431,11 @@ Fluf::Fluf()
     instance = this;
     config = std::make_shared<FlufConfiguration>();
     config->Load();
+
+    if (config->setSaveDirectoryRelativeToExecutable)
+    {
+        getUserDataPathDetour.Detour(GetUserDataPathDetour);
+    }
 
     std::array<char, MAX_PATH> fileNameBuffer{};
     GetModuleFileNameA(nullptr, fileNameBuffer.data(), MAX_PATH);
@@ -529,6 +534,19 @@ Fluf::~Fluf()
     {
         loadedModules.pop_back();
     }
+
+    if (config->setSaveDirectoryRelativeToExecutable)
+    {
+        getUserDataPathDetour.UnDetour();
+    }
+
     loadLibraryDetour.UnDetour();
     freeLibraryDetour.UnDetour();
+}
+
+bool Fluf::GetUserDataPathDetour(char* path)
+{
+    constexpr std::string_view newSavePath = R"(..\SAVES)";
+    strcpy_s(path, newSavePath.size(), newSavePath.data());
+    return true;
 }

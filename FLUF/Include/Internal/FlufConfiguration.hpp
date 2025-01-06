@@ -17,4 +17,5 @@ class FlufConfiguration
         LogLevel logLevel = LogLevel::Info;
         std::unordered_set<LogSink> logSinks;
         std::unordered_set<std::string> modules;
+        bool setSaveDirectoryRelativeToExecutable = false;
 };

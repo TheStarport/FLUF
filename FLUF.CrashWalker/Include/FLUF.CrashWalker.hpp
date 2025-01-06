@@ -18,11 +18,13 @@ struct ErrorPayload
 class CrashCatcher;
 class FlufCrashWalker final : public FlufModule
 {
-        void LoadErrorPayloadFromCache(std::string_view path);
         void OnGameLoad() override;
         void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
+
+        void LoadErrorPayloadFromCache(std::string_view path);
         static int __stdcall GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointers);
+
         inline static std::unique_ptr<CrashCatcher> crashCatcher;
         inline static std::unique_ptr<Config> config;
         std::vector<ErrorPayload> possibleErrors;
