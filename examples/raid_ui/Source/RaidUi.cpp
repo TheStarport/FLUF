@@ -14,6 +14,7 @@
 #include "FLUF.UI.hpp"
 #include "ImGui/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiInterface.hpp"
+#include "KeyManager.hpp"
 #include "Utils/StringUtils.hpp"
 
 #include <imgui_internal.h>
@@ -70,7 +71,13 @@ void RaidUi::OnFixedUpdate(const double delta)
 
         auto existingMember = members.find(ship->id);
 
-        const std::string name = StringUtils::wstos(std::wstring_view(reinterpret_cast<const wchar_t*>(ship->get_pilot_name())));
+        const auto pilotName = ship->get_pilot_name();
+        if (!pilotName)
+        {
+            continue;
+        }
+
+        const std::string name = StringUtils::wstos(std::wstring_view(reinterpret_cast<const wchar_t*>(pilotName)));
         const float distance = std::abs(glm::distance<3, float, glm::packed_highp>(ship->position, playerShip->position));
         const auto health = ship->hitPoints / ship->get_max_hit_pts();
         const auto shield = reinterpret_cast<CEShield*>(ship->equipManager.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
@@ -144,32 +151,6 @@ void RaidUi::OnGameLoad()
     }
 
     flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
-
-    INI_Reader ini;
-    ini.open("../DATA/SHIPS/shiparch.ini", false);
-    while (ini.read_header())
-    {
-        if (!ini.is_header("ship"))
-        {
-            continue;
-        }
-
-        while (ini.read_value())
-        {
-            if (ini.is_value("nickname"))
-            {
-                std::string nick = ini.get_value_string();
-                const auto path = std::format("../DATA/INTERFACE/IMAGES/SHIPS/{}.png", nick);
-                if (!std::filesystem::exists(path))
-                {
-                    Fluf::Log(LogLevel::Warn, std::format("Ship image doesn't exist \"{}\"", nick));
-                    continue;
-                }
-
-                shipImageMap[CreateID(nick.c_str())] = path;
-            }
-        }
-    }
 }
 
 void RaidUi::RadialProgressBar(const std::string& label, const float progress, const ImVec2& size, const ImVec4& color, ImVec2 center)
@@ -204,7 +185,7 @@ void RaidUi::RadialProgressBar(const std::string& label, const float progress, c
 
 void RaidUi::Render()
 {
-    if (members.empty())
+    if (hidePanel || members.empty())
     {
         return;
     }
@@ -322,9 +303,10 @@ void RaidUi::Render()
 
         ImGui::TableNextColumn();
 
-        int popCount = 1;
+        int popCount = 2;
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.35f, 1.f, 1.f));
         ImGui::Text(member.second.name.c_str());
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.654f, 0.653f, 0.356f, 1.f));
 
         if (member.second.healthCurrent > 0.f)
         {
@@ -358,7 +340,6 @@ void RaidUi::Render()
 
         if (ImGui::IsItemClicked())
         {
-            Fluf::Log(LogLevel::Info, "RaidUi clicked");
             const auto foundObject = dynamic_cast<CShip*>(CObject::Find(member.first, CObject::CSHIP_OBJECT));
             if (foundObject)
             {
@@ -367,26 +348,33 @@ void RaidUi::Render()
 
             if (auto* ship = Fluf::GetCShip(); ship && foundObject)
             {
+                struct SetTargetData
+                {
+                        uint unk = 0x1C;
+                        uint null1 = 0;
+                        uint null2 = 0;
+                        uint null3 = 0;
+                        uint targetId = 0;
+                        uint subId = 0;
+                };
+                using SetPlayerTarget = bool(__thiscall*)(IObjRW * player, SetTargetData * data);
+                static auto setPlayerTarget = reinterpret_cast<SetPlayerTarget>(0x544D70);
+
                 // Has Shift
                 if (GetKeyState(VK_SHIFT) & 1)
                 {
                     if (const auto target = foundObject->get_target())
                     {
-                        ship->set_target(target);
+                        SetTargetData data;
+                        data.targetId = target->get_id();
+                        // setPlayerTarget(ship, &data);
                     }
                 }
-                else if (const auto scanner = dynamic_cast<CEScanner*>(ship->equipManager.FindFirst(static_cast<uint>(EquipmentClass::Scanner))))
+                else
                 {
-                    for (int i = 0; i < scanner->scanList.currSize; i++)
-                    {
-                        auto& obj = scanner->scanList.objectArray[i];
-
-                        if (BaseWatcherToCObject(&obj) == foundObject)
-                        {
-                            ship->set_target(BaseWatcherToIObjRW(&obj));
-                            break;
-                        }
-                    }
+                    SetTargetData data;
+                    data.targetId = foundObject->get_id();
+                    // setPlayerTarget(ship, &data);
                 }
             }
         }
@@ -402,8 +390,16 @@ void RaidUi::Render()
     ImGui::End();
 }
 
+bool RaidUi::OnTogglePanelKeyCommand()
+{
+    hidePanel = !hidePanel;
+    return true;
+}
+
 RaidUi::RaidUi()
 {
+    AssertRunningOnClient;
+
     const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
     if (weakPtr.expired())
     {
@@ -440,6 +436,9 @@ RaidUi::RaidUi()
     {
         shipClassImageMap = classMap.value();
     }
+
+    Fluf::GetKeyManager()->RegisterKey(
+        this, "FLUF_TOGGLE_RAID_UI", Key::NN_TOGGLE_OPEN_OVERRIDE, static_cast<KeyFunc>(&RaidUi::OnTogglePanelKeyCommand), false);
 }
 
 RaidUi::~RaidUi()

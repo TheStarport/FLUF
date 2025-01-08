@@ -45,10 +45,10 @@ class RaidUi final : public FlufModule, public ImGuiModule
 
         Rml::ElementDocument* document = nullptr;
         Rml::UnorderedMap<uint, GroupMember> members;
-        Rml::UnorderedMap<uint, std::string> shipImageMap;
         ShipClassImageMap shipClassImageMap;
         double timer = 5.0;
         bool imguiPanelLocked = true;
+        bool hidePanel = false;
 
         static void RadialProgressBar(const std::string& label, float progress, const ImVec2& size, const ImVec4& color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
                                       ImVec2 center = ImVec2(0, 0));
@@ -56,6 +56,8 @@ class RaidUi final : public FlufModule, public ImGuiModule
         void OnFixedUpdate(double delta) override;
         void OnGameLoad() override;
         void Render() override;
+
+        bool OnTogglePanelKeyCommand();
 
     public:
         static constexpr std::string_view moduleName = "Raid UI";
