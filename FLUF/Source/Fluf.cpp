@@ -8,6 +8,7 @@
 #include "Internal/FlufConfiguration.hpp"
 #include "Internal/Hooks/ClientReceive.hpp"
 #include "Internal/Hooks/ClientSend.hpp"
+#include "KeyManager.hpp"
 #include "Utils/MemUtils.hpp"
 
 #include <iostream>
@@ -147,29 +148,29 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
         return res;
     }
 
-    if (fluf->runningOnClient)
+    if (instance->runningOnClient)
     {
 #ifndef FLUF_DISABLE_HOOKS
         if (_stricmp(dllName, "rpclocal.dll") == 0)
         {
-            fluf->localClientVTable =
+            instance->localClientVTable =
                 std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>>(dllName);
-            fluf->localServerVTable =
+            instance->localServerVTable =
                 std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>>(dllName);
-            VTableHack::HookClientServer(fluf->localClientVTable.get(), fluf->localServerVTable.get());
+            VTableHack::HookClientServer(instance->localClientVTable.get(), instance->localServerVTable.get());
         }
         else if (_stricmp(dllName, "remoteserver.dll") == 0)
         {
-            fluf->remoteClientVTable =
+            instance->remoteClientVTable =
                 std::make_unique<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>>(dllName);
-            fluf->remoteServerVTable =
+            instance->remoteServerVTable =
                 std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>>(dllName);
-            VTableHack::HookClientServer(fluf->remoteClientVTable.get(), fluf->remoteServerVTable.get());
+            VTableHack::HookClientServer(instance->remoteClientVTable.get(), instance->remoteServerVTable.get());
         }
 #endif
     }
 
-    for (const auto& module : fluf->loadedModules)
+    for (const auto& module : instance->loadedModules)
     {
         module->OnDllLoaded(dllName, res);
     }
@@ -186,17 +187,17 @@ BOOL __stdcall Fluf::FreeLibraryDetour(HMODULE unloadedDll)
     std::string_view dllName{ dllNameBuf.data(), len };
     dllName = dllName.substr(dllName.find_last_of('\\') + 1);
 
-    if (fluf->runningOnClient)
+    if (instance->runningOnClient)
     {
         if (dllName == "rpclocal.dll")
         {
-            fluf->localClientVTable.reset();
-            fluf->localServerVTable.reset();
+            instance->localClientVTable.reset();
+            instance->localServerVTable.reset();
         }
         else if (dllName == "remoteserver.dll")
         {
-            fluf->remoteClientVTable.reset();
-            fluf->remoteServerVTable.reset();
+            instance->remoteClientVTable.reset();
+            instance->remoteServerVTable.reset();
         }
     }
 
@@ -393,7 +394,9 @@ __declspec(naked) CShip* Fluf::GetCShip()
     }
 }
 
-bool Fluf::IsRunningOnClient() { return fluf->runningOnClient; }
+bool Fluf::IsRunningOnClient() { return instance->runningOnClient; }
+
+KeyManager* Fluf::GetKeyManager() { return instance->keyManager.get(); }
 
 // Returns the last Win32 error, in string format. Returns an empty string if there is no error.
 std::string GetLastErrorAsString()
@@ -443,21 +446,26 @@ Fluf::Fluf()
     fileName = fileName.substr(fileName.find_last_of('\\') + 1);
     runningOnClient = _strcmpi(fileName.data(), "freelancer.exe") == 0;
 
-    // Console sink enabled, allocate console and allow us to use std::cout
-    if (runningOnClient && config->logSinks.contains(LogSink::Console))
+    if (runningOnClient)
     {
-        AllocConsole();
-        SetConsoleTitleA("FLUF - Freelancer Unified Framework");
+        // Console sink enabled, allocate console and allow us to use std::cout
+        if (config->logSinks.contains(LogSink::Console))
+        {
+            AllocConsole();
+            SetConsoleTitleA("FLUF - Freelancer Unified Framework");
 
-        const auto console = GetConsoleWindow();
-        RECT r;
-        GetWindowRect(console, &r);
+            const auto console = GetConsoleWindow();
+            RECT r;
+            GetWindowRect(console, &r);
 
-        MoveWindow(console, r.left, r.top, 1366, 768, TRUE);
+            MoveWindow(console, r.left, r.top, 1366, 768, TRUE);
 
-        FILE* dummy;
-        freopen_s(&dummy, "CONOUT$", "w", stdout);
-        SetStdHandle(STD_OUTPUT_HANDLE, stdout);
+            FILE* dummy;
+            freopen_s(&dummy, "CONOUT$", "w", stdout);
+            SetStdHandle(STD_OUTPUT_HANDLE, stdout);
+        }
+
+        keyManager = std::make_unique<KeyManager>();
     }
 
     // Load all dlls as needed

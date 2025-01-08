@@ -154,3 +154,17 @@ class FLUF_API FlufModule
         __pragma(comment(linker, "/EXPORT:" __FUNCTION__ "=" __FUNCDNAME__)) {} \
         return std::move(std::make_shared<type>());                             \
     }
+
+#define AssertRunningOnClient                                                                                                                     \
+    if (!Fluf::IsRunningOnClient())                                                                                                               \
+    {                                                                                                                                             \
+        MessageBoxA(nullptr, std::format("{} should only be running on the client!", GetModuleName()).c_str(), "Wrong Execution Context", MB_OK); \
+        std::exit(1);                                                                                                                             \
+    }
+
+#define AssertRunningOnServer                                                                                                                     \
+    if (Fluf::IsRunningOnClient())                                                                                                                \
+    {                                                                                                                                             \
+        MessageBoxA(nullptr, std::format("{} should only be running on the server!", GetModuleName()).c_str(), "Wrong Execution Context", MB_OK); \
+        std::exit(1);                                                                                                                             \
+    }

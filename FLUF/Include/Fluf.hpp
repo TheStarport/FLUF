@@ -32,8 +32,10 @@ class ClientReceive;
 class FlufConfiguration;
 struct CShip;
 struct SStartupInfo;
+class KeyManager;
 class Fluf
 {
+        friend KeyManager;
         using GetUserDataPathSig = bool (*)(char*);
 
         friend ClientSend;
@@ -59,6 +61,8 @@ class Fluf
         std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>> localServerVTable;
         std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>> remoteClientVTable;
         std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>> remoteServerVTable;
+
+        std::unique_ptr<KeyManager> keyManager;
 
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
@@ -117,4 +121,10 @@ class Fluf
         FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string_view identifier);
         FLUF_API static CShip* GetCShip();
         FLUF_API static bool IsRunningOnClient();
+
+        /**
+         * @brief Gets the KeyManager for setting up custom key callbacks
+         * @return A ptr to the KeyManager, but only if IsRunningOnClient() return true, else a nullptr
+         */
+        FLUF_API static KeyManager* GetKeyManager();
 };
