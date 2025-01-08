@@ -57,7 +57,7 @@ void RaidUi::OnFixedUpdate(const double delta)
         const auto ship = dynamic_cast<CShip*>(next);
         next = CObject::FindNext();
 
-        if (!ship || ship == playerShip || playerShip->playerGroup != ship->playerGroup)
+        if (!ship || ship == playerShip || !playerShip->ownerPlayer || playerShip->playerGroup != ship->playerGroup)
         {
             continue;
         }
