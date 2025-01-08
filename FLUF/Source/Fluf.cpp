@@ -471,6 +471,8 @@ Fluf::Fluf()
         keyManager = std::make_unique<KeyManager>();
     }
 
+    SetDllDirectoryA("modules/");
+
     // Load all dlls as needed
     std::vector<std::string> preloadModules;
     std::copy(config->modules.begin(), config->modules.end(), std::back_inserter(preloadModules));
@@ -489,7 +491,7 @@ Fluf::Fluf()
         lib = LoadLibraryA(modulePathWithDir.c_str());
         if (!lib)
         {
-            Log(LogLevel::Error, std::format("Failed to load module: {}\nReason: {}", modulePath, GetLastErrorAsString()));
+            Log(LogLevel::Error, std::format("Failed to load module: {}\nReason: {}", modulePathWithDir, GetLastErrorAsString()));
             continue;
         }
 
