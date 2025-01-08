@@ -39,8 +39,8 @@ void RaidUi::OnFixedUpdate(const double delta)
 
     timer = 1.;
 
-    const auto playerShip = Fluf::GetCShip();
-    if (!playerShip) // || !playerShip->playerGroup)
+    const auto playerShip = Fluf::GetPlayerCShip();
+    if (!playerShip || !playerShip->playerGroup)
     {
         if (!members.empty())
         {
@@ -50,17 +50,14 @@ void RaidUi::OnFixedUpdate(const double delta)
         return;
     }
 
-    const auto groupId = playerShip->groupId;
-
     std::set<uint> ids;
-
     auto next = CObject::FindFirst(CObject::CSHIP_OBJECT);
     do
     {
         const auto ship = dynamic_cast<CShip*>(next);
         next = CObject::FindNext();
 
-        if (!ship || ship == playerShip) // || ship->groupId != groupId)
+        if (!ship || ship == playerShip || playerShip->playerGroup != ship->playerGroup)
         {
             continue;
         }
@@ -71,13 +68,17 @@ void RaidUi::OnFixedUpdate(const double delta)
 
         auto existingMember = members.find(ship->id);
 
-        const auto pilotName = ship->get_pilot_name();
-        if (!pilotName)
+        FmtStr name1, name2;
+        std::array<wchar_t, 24> characterName{};
+        auto namePtr = reinterpret_cast<const unsigned short*>(characterName.data());
+        Reputation::Vibe::GetName(ship->repVibe, name1, name2, namePtr);
+
+        if (!*namePtr)
         {
             continue;
         }
 
-        const std::string name = StringUtils::wstos(std::wstring_view(reinterpret_cast<const wchar_t*>(pilotName)));
+        const std::string name = StringUtils::wstos(std::wstring_view(reinterpret_cast<const wchar_t*>(namePtr)));
         const float distance = std::abs(glm::distance<3, float, glm::packed_highp>(ship->position, playerShip->position));
         const auto health = ship->hitPoints / ship->get_max_hit_pts();
         const auto shield = reinterpret_cast<CEShield*>(ship->equipManager.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
@@ -198,6 +199,8 @@ void RaidUi::Render()
         windowFlags |= ImGuiWindowFlags_NoMove;
     }
 
+    Fluf::GetPlayerIObjRW();
+
     ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4());
     ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImVec4());
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4());
@@ -206,7 +209,7 @@ void RaidUi::Render()
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20.f, 2.f));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.f);
 
-    ImGui::SetNextWindowSize(ImVec2(200.f, 600.f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(400.f, 600.f), ImGuiCond_Always);
     ImGui::Begin("GroupInfo", nullptr, windowFlags);
 
     const auto font = interface->GetImGuiFont("Saira", 24);
@@ -214,7 +217,7 @@ void RaidUi::Render()
 
     ImGui::PushFont(font);
 
-    const bool isWindowHovered = ImGui::IsWindowHovered();
+    const bool isWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_Stationary);
     if (!isWindowHovered)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4());
@@ -241,12 +244,27 @@ void RaidUi::Render()
         ImGui::PopStyleColor(6);
     }
 
-    ImGui::BeginTable("GroupInfoTable", 4, ImGuiTableFlags_SizingFixedFit);
+    ImGui::BeginTable("GroupInfoTableContainer", 2);
+    ImGui::TableSetupColumn("GroupInfoTable1", ImGuiTableColumnFlags_WidthFixed, 200.f);
+    ImGui::TableSetupColumn("GroupInfoTable2", ImGuiTableColumnFlags_WidthFixed, 200.f);
+    ImGui::TableNextColumn();
 
-    constexpr ImVec2 imageSize = { 40.f, 40.f };
-
+    int column = 0;
+    int row = 0;
+    int totalMemberProcessed = 0;
+    bool skip = false;
     for (auto& member : members)
     {
+        ++totalMemberProcessed;
+        if (!skip && (row == 0 || row == 6))
+        {
+            row = 0;
+            ImGui::PushID(column++);
+            ImGui::BeginTable("GroupInfoTable##", 2, ImGuiTableFlags_SizingFixedFit);
+        }
+
+        skip = false;
+
         void* texture = nullptr;
         if (auto cls = shipClassImageMap.shipClassImageMap.find(member.second.shipClass); cls != shipClassImageMap.shipClassImageMap.end())
         {
@@ -262,6 +280,7 @@ void RaidUi::Render()
         }
         else
         {
+            skip = true;
             continue;
         }
 
@@ -269,6 +288,7 @@ void RaidUi::Render()
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
 
+        constexpr ImVec2 imageSize = { 40.f, 40.f };
         ImGui::Dummy({ 0.f, 20.f });
         ImGui::Image(reinterpret_cast<ImTextureID>(texture), imageSize);
 
@@ -337,6 +357,7 @@ void RaidUi::Render()
         }
 
         ImGui::PopStyleColor(popCount);
+        ImGui::EndGroup();
 
         if (ImGui::IsItemClicked())
         {
@@ -346,7 +367,7 @@ void RaidUi::Render()
                 foundObject->Release();
             }
 
-            if (auto* ship = Fluf::GetCShip(); ship && foundObject)
+            if (auto* playerShip = Fluf::GetPlayerIObjRW(); playerShip && foundObject)
             {
                 struct SetTargetData
                 {
@@ -361,29 +382,41 @@ void RaidUi::Render()
                 static auto setPlayerTarget = reinterpret_cast<SetPlayerTarget>(0x544D70);
 
                 // Has Shift
-                if (GetKeyState(VK_SHIFT) & 1)
+                if (ImGui::GetIO().KeyShift)
                 {
                     if (const auto target = foundObject->get_target())
                     {
+                        const auto simple = dynamic_cast<CSimple*>(target->cobject());
+
                         SetTargetData data;
                         data.targetId = target->get_id();
-                        // setPlayerTarget(ship, &data);
+                        setPlayerTarget(playerShip, &data);
                     }
                 }
                 else
                 {
                     SetTargetData data;
                     data.targetId = foundObject->get_id();
-                    // setPlayerTarget(ship, &data);
+                    setPlayerTarget(playerShip, &data);
                 }
             }
         }
 
-        ImGui::EndGroup();
+        if (row == 5 || totalMemberProcessed == members.size())
+        {
+            ImGui::EndTable();
+            ImGui::PopID();
+
+            if (row == 5)
+            {
+                ImGui::TableNextColumn();
+            }
+        }
+
+        row++;
     }
 
     ImGui::EndTable();
-
     ImGui::PopStyleVar(3);
     ImGui::PopStyleColor(3);
     ImGui::PopFont();
@@ -417,7 +450,7 @@ RaidUi::RaidUi()
     }
 
     static constexpr char configFile[] = "modules/config/raid_ui.yml";
-    if (auto classMap = ConfigHelper<ShipClassImageMap, configFile>::Load(); !classMap.has_value())
+    if (const auto classMap = ConfigHelper<ShipClassImageMap, configFile>::Load(); !classMap.has_value())
     {
         if (MessageBoxA(nullptr,
                         std::format("There were issues processing the config file at {}.\n\nPress 'OK' to generate a new config or cancel to "

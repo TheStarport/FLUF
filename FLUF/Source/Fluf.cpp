@@ -379,19 +379,22 @@ std::weak_ptr<FlufModule> Fluf::GetModule(const std::string_view identifier)
     return {};
 }
 
-__declspec(naked) CShip* Fluf::GetCShip()
+CShip* Fluf::GetPlayerCShip()
 {
-    __asm
+    const auto* obj = GetPlayerIObjRW();
+    if (!obj)
     {
-       mov	eax, 0x54baf0
-       call	eax
-       test	eax, eax
-       jz	noship
-       add	eax, 12
-       mov	eax, [eax + 4]
-       noship:
-       ret
+        return nullptr;
     }
+
+    return dynamic_cast<CShip*>(obj->cobject());
+}
+
+IObjRW* Fluf::GetPlayerIObjRW()
+{
+    using objFunc = IObjRW* (*)();
+    static auto getIObjRW = reinterpret_cast<objFunc>(0x54BAF0);
+    return getIObjRW();
 }
 
 bool Fluf::IsRunningOnClient() { return instance->runningOnClient; }
@@ -402,7 +405,7 @@ KeyManager* Fluf::GetKeyManager() { return instance->keyManager.get(); }
 std::string GetLastErrorAsString()
 {
     // Get the error message ID, if any.
-    DWORD errorMessageID = ::GetLastError();
+    const DWORD errorMessageID = ::GetLastError();
     if (errorMessageID == 0)
     {
         return {}; // No error message has been recorded
