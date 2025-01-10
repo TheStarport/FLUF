@@ -56,6 +56,7 @@ class FlufUi final : public FlufModule
         static bool WinKeyDetour(uint msg, WPARAM wParam, LPARAM lParam);
         static bool UiRenderDetour();
         static IDirect3D9* __stdcall OnDirect3D8Create(uint sdkVersion);
+        static HRESULT __stdcall OnDirect3D9ResetDevice(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pPresentationParameters);
         static HRESULT __stdcall OnDirect3D9CreateDevice(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                          D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
         bool OpenOptionsMenu() const;

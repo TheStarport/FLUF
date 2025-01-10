@@ -11,16 +11,19 @@
 #include "Vanilla/HudManager.hpp"
 
 #include <d3dx9.h>
+#include <imgui_impl_dx9.h>
 
 using ScriptLoadPtr = void* (*)(const char* fileName);
 using FrameUpdatePtr = void (*)(double delta);
 using Direct3DCreate9Ptr = IDirect3D9*(__stdcall*)(uint sdkVersion);
 using Direct3DCreateDevice9 = HRESULT(__stdcall*)(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                   D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
+using Direct3DDevice9Reset = HRESULT(__stdcall*)(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pPresentationParameters);
 using Direct3DDevice9EndScene = HRESULT(__stdcall*)(IDirect3DDevice9* device);
 
 std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d8CreateDetour;
-std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d8CreateDeviceDetour;
+std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d9CreateDeviceDetour;
+std::unique_ptr<FunctionDetour<Direct3DDevice9Reset>> d3d9DeviceResetDetour;
 
 FlufUi* module;
 
@@ -120,22 +123,38 @@ IDirect3D9* __stdcall FlufUi::OnDirect3D8Create(const uint sdkVersion)
     d3d9 = d3d8CreateDetour->GetOriginalFunc()(sdkVersion);
 
     const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9));
-    d3d8CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice9>>(reinterpret_cast<Direct3DCreateDevice9>(vtable[16]));
-    d3d8CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
+    d3d9CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice9>>(reinterpret_cast<Direct3DCreateDevice9>(vtable[16]));
+    d3d9CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
 
     return d3d9;
+}
+
+HRESULT __stdcall FlufUi::OnDirect3D9ResetDevice(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pPresentationParameters)
+{
+    ImGui_ImplDX9_InvalidateDeviceObjects();
+
+    d3d9DeviceResetDetour->UnDetour();
+    auto res = d3d9DeviceResetDetour->GetOriginalFunc()(device, pPresentationParameters);
+    d3d9DeviceResetDetour->Detour(OnDirect3D9ResetDevice);
+
+    return res;
 }
 
 HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uint adapter, const D3DDEVTYPE deviceType, const HWND focusWindow,
                                                   const DWORD behaviorFlags, D3DPRESENT_PARAMETERS* presentationParameters,
                                                   IDirect3DDevice9** returnedDeviceInterface)
 {
-    d3d8CreateDeviceDetour->UnDetour();
+    d3d9CreateDeviceDetour->UnDetour();
     const auto result =
-        d3d8CreateDeviceDetour->GetOriginalFunc()(context, adapter, deviceType, focusWindow, behaviorFlags, presentationParameters, returnedDeviceInterface);
+        d3d9CreateDeviceDetour->GetOriginalFunc()(context, adapter, deviceType, focusWindow, behaviorFlags, presentationParameters, returnedDeviceInterface);
     d3d9device = *returnedDeviceInterface;
+    assert(d3d9device);
 
-    d3d8CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
+    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9device));
+    d3d9DeviceResetDetour = std::make_unique<FunctionDetour<Direct3DDevice9Reset>>(reinterpret_cast<Direct3DDevice9Reset>(vtable[16]));
+    d3d9DeviceResetDetour->Detour(OnDirect3D9ResetDevice);
+
+    d3d9CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
     return result;
 }
 
