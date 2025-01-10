@@ -479,6 +479,7 @@ Fluf::Fluf()
     std::ranges::sort(preloadModules, [](const std::string& a, const std::string& b) { return a.starts_with("FLUF") && !b.starts_with("FLUF"); });
     for (const auto& modulePath : preloadModules)
     {
+        Log(LogLevel::Info, std::format("Loading Module: {}", modulePath));
         // Ensure it is not already loaded
         auto lib = GetModuleHandleA(modulePath.c_str());
         if (lib)
@@ -502,7 +503,17 @@ Fluf::Fluf()
             continue;
         }
 
-        const auto module = factory();
+        std::shared_ptr<FlufModule> module;
+        try
+        {
+            module = factory();
+        }
+        catch (const std::exception& e)
+        {
+            Log(LogLevel::Error, e.what());
+            continue;
+        }
+
         if (module->majorVersion != majorVersion)
         {
             Log(LogLevel::Error, std::format("Major version did not match for module: {}", modulePath));

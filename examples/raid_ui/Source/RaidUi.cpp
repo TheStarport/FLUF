@@ -37,7 +37,7 @@ void RaidUi::OnFixedUpdate(const double delta)
         return;
     }
 
-    timer = 1.;
+    timer = customisationSettings->refreshRate;
 
     const auto playerShip = Fluf::GetPlayerCShip();
     if (!playerShip || !playerShip->playerGroup)
@@ -152,6 +152,7 @@ void RaidUi::OnGameLoad()
     }
 
     flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
+    flufUi->GetImGuiInterface()->RegisterOptionsMenu(this, static_cast<RegisterMenuFunc>(&RaidUi::RenderRaidUiOptions));
 }
 
 void RaidUi::RadialProgressBar(const std::string& label, const float progress, const ImVec2& size, const ImVec4& color, ImVec2 center)
@@ -186,7 +187,7 @@ void RaidUi::RadialProgressBar(const std::string& label, const float progress, c
 
 void RaidUi::Render()
 {
-    if (hidePanel || members.empty())
+    if (!customisationSettings->enable || members.empty())
     {
         return;
     }
@@ -324,15 +325,15 @@ void RaidUi::Render()
         ImGui::TableNextColumn();
 
         int popCount = 2;
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.35f, 1.f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_Text, reinterpret_cast<ImVec4&>(customisationSettings->nameColor));
         ImGui::Text(member.second.name.c_str());
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.654f, 0.653f, 0.356f, 1.f));
+        ImGui::PushStyleColor(ImGuiCol_Text, reinterpret_cast<ImVec4&>(customisationSettings->progressBarTextColor));
 
         if (member.second.healthCurrent > 0.f)
         {
             popCount++;
             std::string healthFormat = std::format("{:.0f} / {:.0f}", member.second.healthCurrent, member.second.healthMax);
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.47f, 0.16f, 0.2f, 1.f));
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, reinterpret_cast<ImVec4&>(customisationSettings->healthBarColor));
             ImGui::ProgressBar(member.second.healthPercent, ImVec2(100.f, 0.f), healthFormat.c_str());
             if (member.second.shieldMax != 0)
             {
@@ -343,13 +344,13 @@ void RaidUi::Render()
                     const auto timeUntilRebuild = member.second.shieldRechargeEnd - member.second.shieldRechargeStart;
                     const auto rebuildPercentage = (member.second.shieldRechargeEnd - timing) / timeUntilRebuild;
 
-                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(1.f, 0.47f, 0.05f, 1.f));
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, reinterpret_cast<ImVec4&>(customisationSettings->shieldBarColor));
                     std::string shieldFormat = std::format("{:.0f}s", std::ceilf(member.second.shieldRechargeEnd - timing));
                     ImGui::ProgressBar(1 - rebuildPercentage, ImVec2(100.f, 0.f), shieldFormat.c_str());
                 }
                 else
                 {
-                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.243f, 0.24f, 0.7f, 1.f));
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, reinterpret_cast<ImVec4&>(customisationSettings->shieldBarRechargingColor));
                     std::string shieldFormat = std::format("{:.0f} / {:.0f}", member.second.shieldCurrent, member.second.shieldMax);
                     ImGui::ProgressBar(member.second.shieldPercent, ImVec2(100.f, 0.f), shieldFormat.c_str());
                 }
@@ -425,8 +426,43 @@ void RaidUi::Render()
 
 bool RaidUi::OnTogglePanelKeyCommand()
 {
-    hidePanel = !hidePanel;
+    customisationSettings->enable = !customisationSettings->enable;
     return true;
+}
+
+void RaidUi::RenderRaidUiOptions(const bool saveRequested)
+{
+    static auto wipSettings = rfl::Box<CustomisationSettings>::make(*customisationSettings);
+
+    ImGui::Checkbox("Enable", &wipSettings->enable);
+    ImGui::SliderFloat("Refresh Rate", &wipSettings->refreshRate, 0.f, 2.f, "%.2f");
+
+    int counter = 0;
+    const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
+    constexpr auto resetText = "Reset##";
+#define COLOR_PICKER(lbl, ptr)                                                                                                                   \
+    ImGui::ColorEdit4(lbl, wipSettings->ptr.data());                                                                                             \
+    ImGui::SameLine();                                                                                                                           \
+    ImGui::PushID(counter++);                                                                                                                    \
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - (ImGui::CalcTextSize(resetText).x + itemSpacing.x * 2.0f)); \
+    if (ImGui::Button(resetText))                                                                                                                \
+    {                                                                                                                                            \
+        wipSettings->ptr = customisationSettings->ptr;                                                                                           \
+    }                                                                                                                                            \
+    ImGui::PopID();
+
+    COLOR_PICKER("Name Colour", nameColor);
+    COLOR_PICKER("Progress Bar Text Colour", progressBarTextColor);
+    COLOR_PICKER("Health Bar Colour", healthBarColor);
+    COLOR_PICKER("Shield Bar Colour", shieldBarColor);
+    COLOR_PICKER("Shield Bar Recharging Colour", shieldBarRechargingColor);
+#undef COLOR_PICKER
+
+    if (saveRequested)
+    {
+        customisationSettings = rfl::Box<CustomisationSettings>::make(*wipSettings);
+        ConfigHelper<CustomisationSettings, customisationFile>::Save(*customisationSettings);
+    }
 }
 
 RaidUi::RaidUi()
@@ -472,6 +508,9 @@ RaidUi::RaidUi()
 
     Fluf::GetKeyManager()->RegisterKey(
         this, "FLUF_TOGGLE_RAID_UI", Key::NN_TOGGLE_OPEN_OVERRIDE, static_cast<KeyFunc>(&RaidUi::OnTogglePanelKeyCommand), false);
+
+    auto customisations = ConfigHelper<CustomisationSettings, customisationFile>::Load(true, false);
+    customisationSettings = customisations.has_value() ? rfl::Box<CustomisationSettings>::make(*customisations) : rfl::Box<CustomisationSettings>::make();
 }
 
 RaidUi::~RaidUi()

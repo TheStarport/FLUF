@@ -15,6 +15,8 @@
 #include <imgui_internal.h>
 
 #define STB_IMAGE_IMPLEMENTATION
+#include "KeyManager.hpp"
+
 #include <ImGui/IconFontAwesome6.hpp>
 #include <stb_image.h>
 #undef STB_IMAGE_IMPLEMENTATION
@@ -106,7 +108,7 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
     style.Colors[ImGuiCol_ResizeGripActive] = bgColor;
     style.Colors[ImGuiCol_Tab] = titleBgColor;
     style.Colors[ImGuiCol_TabHovered] = buttonHoverColor;
-    style.Colors[ImGuiCol_TabActive] = ImVec4(titleBgColor.x, titleBgColor.y, titleBgColor.z, 1.0f);
+    style.Colors[ImGuiCol_TabActive] = ImVec4(0.f, 0.22f, 0.43f, 1.0f);
     style.Colors[ImGuiCol_TabUnfocused] = titleBgColor;
     style.Colors[ImGuiCol_TabUnfocusedActive] = titleBgColor;
 
@@ -142,6 +144,8 @@ void ImGuiInterface::Render()
         ImGui::ShowDemoWindow(&showDemoWindow);
     }
 
+    RenderOptionsMenu();
+
     for (auto* module : imguiModules)
     {
         module->Render();
@@ -155,6 +159,69 @@ void ImGuiInterface::Render()
         case RenderingBackend::Dx9: ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData()); break;
         default: throw std::runtime_error("Unknown backend");
     }
+}
+
+void ImGuiInterface::RenderOptionsMenu()
+{
+    using namespace std::string_view_literals;
+    if (!showOptionsWindow)
+    {
+        return;
+    }
+
+    static std::string_view lastSavedModule;
+    ImGui::SetNextWindowSize({ 1280.f, 1024.f }, ImGuiCond_Appearing);
+    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 4.f);
+    if (ImGui::Begin("Extended Options Menu", &showOptionsWindow))
+    {
+        if (ImGui::BeginTabBar("##option-tabs"))
+        {
+            const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
+            int counter = 0;
+            for (const auto& menu : registeredOptionMenus)
+            {
+                const auto nameView = menu.first->GetModuleName();
+                auto name = std::string(nameView) + "##";
+                ImGui::PushID(counter++);
+                if (ImGui::BeginTabItem(name.c_str()))
+                {
+                    constexpr auto saveChangesText = "Save Changes"sv;
+                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
+                                         (ImGui::CalcTextSize(saveChangesText.data()).x + itemSpacing.x * 2.0f));
+                    const auto saveRequested = ImGui::Button(saveChangesText.data());
+
+                    (menu.first->*menu.second)(saveRequested);
+
+                    if (saveRequested)
+                    {
+                        Fluf::Log(LogLevel::Info, "Saved changes");
+                        lastSavedModule = nameView;
+                        ImGui::OpenPopup("Changes Saved!");
+                    }
+
+                    if (ImGui::BeginPopupModal("Changes Saved!", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+                    {
+                        std::string text = std::format("Successfully saved settings for {}", lastSavedModule);
+                        ImGui::Text(text.c_str());
+                        if (ImGui::Button("OK"))
+                        {
+                            ImGui::CloseCurrentPopup();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    ImGui::EndTabItem();
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndTabBar();
+        }
+
+        ImGui::End();
+    }
+    ImGui::PopStyleVar();
 }
 
 ImGuiInterface::MouseState ImGuiInterface::ConvertState(const DWORD state)
@@ -248,7 +315,7 @@ ImGuiInterface::~ImGuiInterface()
 
 ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device) : dxDevice(device), config(flufUi->GetConfig()), backend(backend)
 {
-    std::array<char, MAX_PATH> path;
+    std::array<char, MAX_PATH> path{};
     GetUserDataPath(path.data());
 
     static std::string iniPath = std::format("{}\\imgui.ini", path.data());
@@ -323,6 +390,8 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     {
         MessageBoxA(nullptr, "No fonts have been loaded into FLUF UI. Modules using ImGui may cause crashes.", "No Fonts Loaded", MB_OK);
     }
+
+    Fluf::GetKeyManager()->RegisterKey(flufUi, "FLUF_OPEN_EXTENDED_OPTIONS_MENU", Key::USER_NO_OVERRIDE, reinterpret_cast<KeyFunc>(&FlufUi::OpenOptionsMenu));
 }
 
 void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)
@@ -337,7 +406,6 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
         PDIRECT3DTEXTURE9 d3dTexture = nullptr;
         if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(dxDevice), path.c_str(), &d3dTexture); hr != D3D_OK)
         {
-
             goto failed;
         }
 
@@ -400,4 +468,16 @@ ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int font
     }
 
     return size->second;
+}
+
+bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterMenuFunc function)
+{
+    if (registeredOptionMenus.contains(module))
+    {
+        return false;
+    }
+
+    Fluf::Log(LogLevel::Info, std::format("({}) Registering Option Menu", module->GetModuleName()));
+    registeredOptionMenus[module] = function;
+    return true;
 }

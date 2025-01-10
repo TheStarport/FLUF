@@ -103,18 +103,19 @@ void PatchNotes::LoadPatchNotesFromCache(const std::string_view path)
         Fluf::Log(LogLevel::Error, std::format("Error reading payload: {}", result.error().value().what()));
         return;
     }
+
     patches = result.value();
     Fluf::Log(LogLevel::Info, "Loaded patch notes from local cache.");
 }
 
 void PatchNotes::RenderFullNotes()
 {
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0f, 4.0f));
     const auto interface = flufUi->GetImGuiInterface();
     ImGui::SetNextWindowSize({ 1280.f, 1024.f }, ImGuiCond_Always);
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::Begin(
-        "Patch Windows", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove);
+    ImGui::Begin("Patch Notes", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove);
 
     for (const auto font = interface->GetImGuiFont("Saira", 46); auto& [date, content, preamble, version] : patches)
     {
@@ -123,7 +124,6 @@ void PatchNotes::RenderFullNotes()
         ImGui::PushFont(font);
         ImGui::SeparatorText(version.c_str());
         ImGui::Text(date.str().c_str());
-        ImGui::NewLine();
         ImGui::PopFont();
 
         // clang-format off
@@ -140,6 +140,8 @@ void PatchNotes::RenderFullNotes()
     }
 
     ImGui::End();
+
+    ImGui::PopStyleVar();
 }
 
 void PatchNotes::OnGameLoad()
@@ -155,7 +157,7 @@ void PatchNotes::OnGameLoad()
     std::array<char, MAX_PATH> totalPath{};
     GetUserDataPath(totalPath.data());
 
-    const std::string cachePath = std::format("{}/patch_notes.yml", std::string(totalPath.data()));
+    const std::string cachePath = std::format("{}/modules/config/patch_notes.yml", std::string(totalPath.data()));
 
     LoadPatchNotesFromCache(cachePath);
 
@@ -250,7 +252,7 @@ void PatchNotes::Render()
                             ImGuiCond_Always,
                             ImVec2{ 1.0f, 1.0f });
     ImGui::SetNextWindowSize({ 400.f, 300.f }, ImGuiCond_Always);
-    ImGui::Begin("Patch Notes", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Patch Notes##1", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
     auto* font = interface->GetImGuiFont("Saira", 46);

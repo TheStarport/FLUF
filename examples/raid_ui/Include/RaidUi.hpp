@@ -39,6 +39,17 @@ struct ShipClassImageMap
         };
 };
 
+struct CustomisationSettings
+{
+        bool enable = true;
+        float refreshRate = 0.25f;
+        std::array<float, 4> nameColor = { 0.8f, 0.35f, 1.f, 1.f };
+        std::array<float, 4> progressBarTextColor = { 0.654f, 0.653f, 0.356f, 1.f };
+        std::array<float, 4> healthBarColor = { 0.47f, 0.16f, 0.2f, 1.f };
+        std::array<float, 4> shieldBarColor = { 1.f, 0.47f, 0.05f, 1.f };
+        std::array<float, 4> shieldBarRechargingColor = { 0.243f, 0.24f, 0.7f, 1.f };
+};
+
 class RaidUi final : public FlufModule, public ImGuiModule
 {
         std::shared_ptr<FlufUi> flufUi;
@@ -48,7 +59,9 @@ class RaidUi final : public FlufModule, public ImGuiModule
         ShipClassImageMap shipClassImageMap;
         double timer = 5.0;
         bool imguiPanelLocked = true;
-        bool hidePanel = false;
+
+        static constexpr char customisationFile[] = "raid_ui_options.yml";
+        rfl::Box<CustomisationSettings> customisationSettings;
 
         static void RadialProgressBar(const std::string& label, float progress, const ImVec2& size, const ImVec4& color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
                                       ImVec2 center = ImVec2(0, 0));
@@ -58,6 +71,7 @@ class RaidUi final : public FlufModule, public ImGuiModule
         void Render() override;
 
         bool OnTogglePanelKeyCommand();
+        void RenderRaidUiOptions(bool saveRequested);
 
     public:
         static constexpr std::string_view moduleName = "Raid UI";

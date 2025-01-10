@@ -139,6 +139,12 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
     return result;
 }
 
+bool FlufUi::OpenOptionsMenu() const
+{
+    imguiInterface->showOptionsWindow = true;
+    return true;
+}
+
 std::weak_ptr<HudManager> FlufUi::GetHudManager() { return hudManager; }
 
 std::optional<RmlContext> FlufUi::GetRmlContext()

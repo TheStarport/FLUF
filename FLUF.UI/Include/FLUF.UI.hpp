@@ -30,6 +30,7 @@ class RmlInterface;
  */
 class FlufUi final : public FlufModule
 {
+        friend ImGuiInterface;
         inline static IDirect3D9* d3d9;
         inline static IDirect3DDevice9* d3d9device;
         using OnUiRender = bool (*)();
@@ -57,6 +58,7 @@ class FlufUi final : public FlufModule
         static IDirect3D9* __stdcall OnDirect3D8Create(uint sdkVersion);
         static HRESULT __stdcall OnDirect3D9CreateDevice(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                          D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
+        bool OpenOptionsMenu() const;
 
     public:
         static constexpr std::string_view moduleName = "FLUF.UI";

@@ -5,14 +5,19 @@
 
 #include <unordered_set>
 
+class FlufModule;
 class FlufUi;
+using RegisterMenuFunc = void (FlufModule::*)(bool saveRequested);
 class ImGuiInterface
 {
         static constexpr int DefaultFontSize = 36;
         inline static bool showDemoWindow = false;
-        std::unordered_map<std::string, void*> loadedTextures;
         void* dxDevice;
+        std::unordered_map<std::string, void*> loadedTextures;
+
+        bool showOptionsWindow = false;
         std::unordered_set<ImGuiModule*> imguiModules;
+        std::unordered_map<FlufModule*, RegisterMenuFunc> registeredOptionMenus;
 
         struct MouseState
         {
@@ -30,6 +35,7 @@ class ImGuiInterface
         static ImGuiStyle& GenerateDefaultStyle();
 
         void Render();
+        void RenderOptionsMenu();
         static void PollInput();
         static MouseState ConvertState(DWORD state);
         static bool WndProc(FlufUiConfig* config, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -64,4 +70,16 @@ class ImGuiInterface
          * but this font size has not been used previously, it will reload the font in the desired size.
          */
         FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, int fontSize) const;
+
+        /**
+         * @brief Register a callback that will be called when the custom options menu is visible for the module that calls it.
+         * Every registered module gets it's own tab within the options window, and the callback will be called when that tab is selected.
+         * No ImGui state management is required beyond ensuring the ImGui stack is correct when leaving the callback.
+         * @param module The module that called the register function
+         * @param function A pointer to a class member function, static_cast to a RegisterMenuFunc.
+         * The function takes a boolean parameter indicating the 'save changes' button was pressed.
+         * Any adjustments should not be real time and only applied when this is true.
+         * @return A bool indicated successful registration. There is a limit of one menu per module.
+         */
+        FLUF_UI_API bool RegisterOptionsMenu(FlufModule* module, RegisterMenuFunc function);
 };
