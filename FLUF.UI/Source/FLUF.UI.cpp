@@ -134,7 +134,7 @@ HRESULT __stdcall FlufUi::OnDirect3D9ResetDevice(IDirect3DDevice9* device, D3DPR
     ImGui_ImplDX9_InvalidateDeviceObjects();
 
     d3d9DeviceResetDetour->UnDetour();
-    auto res = d3d9DeviceResetDetour->GetOriginalFunc()(device, pPresentationParameters);
+    const auto res = d3d9DeviceResetDetour->GetOriginalFunc()(device, pPresentationParameters);
     d3d9DeviceResetDetour->Detour(OnDirect3D9ResetDevice);
 
     return res;

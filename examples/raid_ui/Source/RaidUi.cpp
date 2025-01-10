@@ -219,7 +219,7 @@ void RaidUi::Render()
 
     ImGui::PushFont(font);
 
-    const bool isWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_Stationary);
+    const bool isWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_Stationary) && !customisationSettings->hideLockSymbol;
     if (!isWindowHovered)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4());
@@ -436,6 +436,10 @@ void RaidUi::RenderRaidUiOptions(const bool saveRequested)
     static auto wipSettings = rfl::Box<CustomisationSettings>::make(*customisationSettings);
 
     ImGui::Checkbox("Enable", &wipSettings->enable);
+    ImGui::Checkbox("Hide Lock Symbol", &wipSettings->hideLockSymbol);
+    ImGui::SameLine();
+    ImGuiHelper::HelpMarker("When the cursor is stationary over the raid ui for 0.25s a lock will appear.\n"
+                            "Ticking this box will prevent it from appearing at all.");
     ImGui::SliderFloat("Refresh Rate", &wipSettings->refreshRate, 0.f, 2.f, "%.2f");
     ImGui::SameLine();
     ImGuiHelper::HelpMarker("The refresh rate determines how long to wait between updating the UI. "

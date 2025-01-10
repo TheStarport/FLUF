@@ -42,6 +42,7 @@ struct ShipClassImageMap
 struct CustomisationSettings
 {
         bool enable = true;
+        bool hideLockSymbol = false;
         float refreshRate = 0.25f;
         std::array<float, 4> nameColor = { 0.8f, 0.35f, 1.f, 1.f };
         std::array<float, 4> progressBarTextColor = { 0.654f, 0.653f, 0.356f, 1.f };
