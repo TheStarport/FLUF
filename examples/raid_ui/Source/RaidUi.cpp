@@ -13,6 +13,7 @@
 #include "FLCore/FLCoreServer.h"
 #include "FLUF.UI.hpp"
 #include "ImGui/IconFontAwesome6.hpp"
+#include "ImGui/ImGuiHelper.hpp"
 #include "ImGui/ImGuiInterface.hpp"
 #include "KeyManager.hpp"
 #include "Utils/StringUtils.hpp"
@@ -436,6 +437,9 @@ void RaidUi::RenderRaidUiOptions(const bool saveRequested)
 
     ImGui::Checkbox("Enable", &wipSettings->enable);
     ImGui::SliderFloat("Refresh Rate", &wipSettings->refreshRate, 0.f, 2.f, "%.2f");
+    ImGui::SameLine();
+    ImGuiHelper::HelpMarker("The refresh rate determines how long to wait between updating the UI. "
+                            "There may performance considerations with setting it to 0 on some machines.");
 
     int counter = 0;
     const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
