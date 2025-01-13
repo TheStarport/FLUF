@@ -59,6 +59,7 @@ def post_build(release: bool, dest: str):
         shutil.copytree('./vendor/RmlUi/Include/RmlUi', 'dist/RmlUi')
         shutil.copytree('./FLUF.UI/Include', 'dist/FLUF.UI')
         shutil.copytree('./FLUF/Include', 'dist/FLUF', ignore=ignore_patterns('Internal'))
+        shutil.copytree('./vendor/imgui', 'dist/imgui')
         shutil.copy2('./vendor/imgui-markdown/imgui_markdown.h', 'dist/imgui_markdown.h')
 
         shutil.copy2('./vendor/curl-ca-bundle.crt', './dist/')
