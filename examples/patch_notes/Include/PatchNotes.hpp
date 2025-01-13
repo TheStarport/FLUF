@@ -23,7 +23,7 @@ class PatchNotes final : public FlufModule, public ImGuiModule
         void Render() override;
 
     public:
-        static constexpr std::string_view moduleName = "patch_notes";
+        static constexpr std::string_view moduleName = "Patch Notes";
 
         PatchNotes();
         ~PatchNotes() override;

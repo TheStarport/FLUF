@@ -27,7 +27,7 @@ struct LoadedFont
 
 struct FlufUiConfig
 {
-        static constexpr char configPath[] = "FLUF.UI.yml";
+        static constexpr char configPath[] = "modules/config/FLUF.UI.yml";
         static constexpr char configPathOverrides[] = "FLUF.UI-overrides.yml";
 
         UiMode uiMode = UiMode::None;

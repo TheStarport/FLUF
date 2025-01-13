@@ -157,7 +157,7 @@ void PatchNotes::OnGameLoad()
     std::array<char, MAX_PATH> totalPath{};
     GetUserDataPath(totalPath.data());
 
-    const std::string cachePath = std::format("{}/modules/config/patch_notes.yml", std::string(totalPath.data()));
+    const std::string cachePath = std::format("{}/patch_notes.yml", std::string(totalPath.data()));
 
     LoadPatchNotesFromCache(cachePath);
 
