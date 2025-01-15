@@ -469,6 +469,7 @@ Fluf::Fluf()
         }
 
         keyManager = std::make_unique<KeyManager>();
+        ClientPatches();
     }
 
     SetDllDirectoryA("modules/");

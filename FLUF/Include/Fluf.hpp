@@ -113,6 +113,9 @@ class Fluf
             return true;
         }
 
+        // Hardcoded patches that we realistically want to always apply
+        static void ClientPatches();
+
     public:
         Fluf();
         ~Fluf();
