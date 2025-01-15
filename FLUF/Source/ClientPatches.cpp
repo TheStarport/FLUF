@@ -41,6 +41,9 @@ void Fluf::ClientPatches()
     oneBytePatch = 0x00;
     MemUtils::WriteProcMem(fl + 0x1E6DCC, &oneBytePatch, 1); // Allow multiple instances of Freelancer to run
 
+    PATCH(fl + 0x08D89B, 0x83, 0xC5, 0x18, 0xEB, 0x50); // Allow the navmap to show all group members
+    MemUtils::WriteProcMem(fl + 0x08D997, &oneBytePatch, 1);
+
     const auto rendComp = reinterpret_cast<DWORD>(GetModuleHandleA("rendcomp.dll"));
     MemUtils::WriteProcMem(rendComp + 0x00C499, &oneBytePatch, 1); // Improve planet textures at range
 
