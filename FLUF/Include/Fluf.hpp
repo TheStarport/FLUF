@@ -121,6 +121,12 @@ class Fluf
         ~Fluf();
 
         FLUF_API static void Log(LogLevel level, std::string_view message);
+        FLUF_API static void Trace(std::string_view message);
+        FLUF_API static void Debug(std::string_view message);
+        FLUF_API static void Info(std::string_view message);
+        FLUF_API static void Warn(std::string_view message);
+        FLUF_API static void Error(std::string_view message);
+
         FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string_view identifier);
         FLUF_API static CShip* GetPlayerCShip();
         FLUF_API static IObjRW* GetPlayerIObjRW();

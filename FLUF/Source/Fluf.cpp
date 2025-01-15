@@ -180,7 +180,7 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
 
 FunctionDetour freeLibraryDetour(FreeLibrary);
 
-BOOL __stdcall Fluf::FreeLibraryDetour(HMODULE unloadedDll)
+BOOL __stdcall Fluf::FreeLibraryDetour(const HMODULE unloadedDll)
 {
     std::array<char, MAX_PATH> dllNameBuf{};
     const uint len = GetModuleFileNameA(unloadedDll, dllNameBuf.data(), MAX_PATH);
@@ -299,7 +299,7 @@ void* Fluf::OnScriptLoadHook(const char* file)
     return ret;
 }
 
-std::string SetLogMetadata(void* address, LogLevel level)
+std::string SetLogMetadata(void* address, const LogLevel level)
 {
     if (HMODULE dll; RtlPcToFileHeader(address, reinterpret_cast<void**>(&dll)))
     {
@@ -324,7 +324,7 @@ std::string SetLogMetadata(void* address, LogLevel level)
     return "";
 }
 
-void Fluf::Log(LogLevel level, std::string_view message)
+void Fluf::Log(const LogLevel level, const std::string_view message)
 {
     if (level < instance->config->logLevel)
     {
@@ -365,6 +365,11 @@ void Fluf::Log(LogLevel level, std::string_view message)
         std::cout << paddedMessage << std::endl;
     }
 }
+void Fluf::Trace(const std::string_view message) { return Log(LogLevel::Trace, message); }
+void Fluf::Debug(const std::string_view message) { return Log(LogLevel::Debug, message); }
+void Fluf::Info(const std::string_view message) { return Log(LogLevel::Info, message); }
+void Fluf::Warn(const std::string_view message) { return Log(LogLevel::Warn, message); }
+void Fluf::Error(const std::string_view message) { return Log(LogLevel::Error, message); }
 
 std::weak_ptr<FlufModule> Fluf::GetModule(const std::string_view identifier)
 {
