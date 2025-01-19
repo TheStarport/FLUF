@@ -1,5 +1,7 @@
 #pragma once
 
+#include "FlufModule.hpp"
+
 #include <Utils/Detour.hpp>
 
 #include "ImportFluf.hpp"
@@ -7,6 +9,7 @@
 #include "VTables.hpp"
 #include <memory>
 
+class ClientServerCommunicator;
 enum class LogLevel
 {
     Trace,
@@ -40,6 +43,7 @@ class Fluf
 
         friend ClientSend;
         friend ClientReceive;
+        friend ClientServerCommunicator;
         friend FlufModule;
         inline static Fluf* instance;
 
@@ -90,6 +94,7 @@ class Fluf
             using NoVoidReturnType = std::conditional_t<returnTypeIsVoid, int, ReturnType>;
 
             NoVoidReturnType ret{};
+            bool handled = false;
             for (const auto& module : loadedModules)
             {
                 auto& moduleRef = *module;
@@ -107,10 +112,23 @@ class Fluf
                             return false;
                         }
                     }
+                    else if constexpr (std::is_enum_v<NoVoidReturnType>)
+                    {
+                        const auto code = static_cast<FlufModule::ModuleProcessCode>(ret);
+                        if (code == FlufModule::ModuleProcessCode::Handled)
+                        {
+                            return true;
+                        }
+
+                        if (code == FlufModule::ModuleProcessCode::Continue)
+                        {
+                            handled = true;
+                        }
+                    }
                 }
             }
 
-            return true;
+            return !handled;
         }
 
         // Hardcoded patches that we realistically want to always apply

@@ -80,5 +80,4 @@ class ClientSend
         static void __fastcall StopTradeRequest(IServerImpl*, void* edx, uint client);
         static void __fastcall RequestDifficultyScale(IServerImpl*, void* edx, float scale, uint unk2);
         static void __fastcall Dock(IServerImpl*, void* edx, uint&, uint&);
-        static void __fastcall SubmitChat(IServerImpl*, void* edx, uint cidFrom, ulong size, void* rdlReader, uint cidTo, int unk2);
 };

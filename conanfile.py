@@ -19,9 +19,10 @@ class CompressorRecipe(ConanFile):
 
     def requirements(self):
         self.requires("glm/cci.20230113")
-        self.requires("magic_enum/0.9.6")
         self.requires("lua/5.4.7")
         self.requires("lunasvg/3.0.1")
+        self.requires("magic_enum/0.9.6")
+        self.requires("msgpack-c/6.1.0")
         self.requires("stb/cci.20240531")
         self.requires("xbyak/7.07")
         self.requires("yaml-cpp/0.8.0")

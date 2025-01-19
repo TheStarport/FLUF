@@ -68,6 +68,7 @@ set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 # Import Conan Packages
 find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
+find_package(msgpack REQUIRED)
 find_package(lua REQUIRED)
 find_package(xbyak REQUIRED)
 find_package(stb REQUIRED)
@@ -164,6 +165,7 @@ function(set_general_targets)
             stb::stb
             xbyak::xbyak
             yaml-cpp::yaml-cpp
+            msgpack-c
     )
 
     # Selectively skip PCH for certain files
