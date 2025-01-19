@@ -22,9 +22,8 @@ class RmlInterface;
  * @brief
  * FLUF UI offers a number of different methods for manipulating / adding to the Freelancer GUI.
  *
- * At the time of writing, there are two methods. 'Vanilla' style, 'ImGui' style, and 'Rml' style (these can be used together).
+ * At the time of writing, there are two methods. 'Vanilla' style and 'ImGui' style (these can be used together).
  * Vanilla style lets you remove, trigger, listen to, or add elements to the original Freelancer interface.
- * Rml uses a HTML/CSS based solution using the [RmlUi](https://github.com/mikke89/RmlUi) library.
  * ImGui is one of the most used UI libraries and is very easy to use, but somewhat difficult to style effectively.
  * It requires DirectX9 in order to run, currently this can be done by using d3d8to9.
  */
