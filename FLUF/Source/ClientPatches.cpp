@@ -57,4 +57,24 @@ void Fluf::ClientPatches()
         const auto rp8 = reinterpret_cast<DWORD>(GetModuleHandleA("rp8.dll"));
         MemUtils::WriteProcMem(rp8 + 0x004467, &oneBytePatch, 1); // Remove erroneous D3DERR_INVALIDCALL message
     }
+
+    // Disable erroneous zone warning
+    oneBytePatch = 0x28;
+    MemUtils::WriteProcMem(common + 0xDC34C, &oneBytePatch, 1);
+
+    // Adjust the fate test to treat below 3 as bad, and below/equal to 5 as good
+    PATCH(common + 0x33487, 0x72, 0x05, 0x83, 0xF8, 0x05, 0x76);
+
+    // Disable ArchDB::Get warnings for random missions
+    MemUtils::NopAddress(common + 0x995B6, 2);
+    MemUtils::NopAddress(common + 0x995B6 + 0x46, 2);
+
+    // Patch warning about cockpit aspect ratio
+    oneBytePatch = 0xEB;
+    MemUtils::WriteProcMem(0x5176cc, &oneBytePatch, 1);
+    MemUtils::WriteProcMem(0x5188e7, &oneBytePatch, 1);
+
+    // Skip hostile pick assistance message
+    PATCH(0x4ede00, 0x26, 0xEB);
+    PATCH(0x452648, 0x6A, 0x0, 0x8B, 0x76, 0x04, 0xFF, 0x76, 0x08, 0x8B, 0xFF)
 }
