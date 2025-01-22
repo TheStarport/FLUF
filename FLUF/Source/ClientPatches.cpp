@@ -3,6 +3,7 @@
 #include "Fluf.hpp"
 #include "Utils/MemUtils.hpp"
 #include <msi.h>
+#include <xbyak/xbyak.h>
 
 #pragma comment(lib, "msi.lib")
 
@@ -77,4 +78,19 @@ void Fluf::ClientPatches()
     // Skip hostile pick assistance message
     PATCH(0x4ede00, 0x26, 0xEB);
     PATCH(0x452648, 0x6A, 0x0, 0x8B, 0x76, 0x04, 0xFF, 0x76, 0x08, 0x8B, 0xFF)
+
+    // Skip warning for invalid waypoint material
+    if (const auto offset = reinterpret_cast<PDWORD>(rendComp + 0x118BE); *offset == 0x8B)
+    {
+        using namespace Xbyak::util;
+        static Xbyak::CodeGenerator code;
+        code.mov(edx, ptr[ebp]);
+        code.lea(eax, ptr[esp + 0x28]);
+        code.cmp(edx, 163618903);
+        code.ret();
+
+        std::array<::byte, 8> patch = { 0xE8, 0x00, 0x00, 0x00, 0x00, 0x74, 0x2D, 0x52 };
+        *reinterpret_cast<PDWORD>(patch.data() + 1) = *reinterpret_cast<const unsigned long*>(code.getCode());
+        MemUtils::WriteProcMem(reinterpret_cast<DWORD>(offset), &patch, patch.size());
+    }
 }
