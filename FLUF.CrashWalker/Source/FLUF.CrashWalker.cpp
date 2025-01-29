@@ -19,6 +19,19 @@ const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModul
 
 FlufCrashWalker* module;
 
+void CopyToClipboard(const std::string_view str)
+{
+    static const auto* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);
+
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, str.size());
+    memcpy(GlobalLock(hMem), str.data(), str.size());
+    GlobalUnlock(hMem);
+    OpenClipboard(*mainFreelancerWindow);
+    EmptyClipboard();
+    SetClipboardData(CF_TEXT, hMem);
+    CloseClipboard();
+}
+
 int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointers)
 {
     if (exceptionPointers->ExceptionRecord->ExceptionCode == EXCEPTION_STACK_OVERFLOW)
@@ -95,37 +108,56 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
     auto error = module->FindError(dllName, relativeAddress);
     if (!error)
     {
+        std::string exceptionInfo = std::format("\tUnhandled Exception!\n\t-- Important Information --\n"
+                                                "\tSource: {}\n"
+                                                "\tRelExpAddr: {:#08x}\n"
+                                                "\tExpCode: {:#08x}\n"
+                                                "\tExpFlags: {}\n"
+                                                "\tExpAddress: {:#08x}\n",
+                                                dllName,
+                                                relativeAddress,
+                                                exceptionPointers->ExceptionRecord->ExceptionCode,
+                                                exceptionPointers->ExceptionRecord->ExceptionFlags,
+                                                exOffset);
 
-        str << "\tUnhandled Exception!\n\t-- Important Information --\n"
-            << std::endl
-            << "\tSource: " << dllName << std::endl
-            << "\tRelExpAddr: 0x" << std::hex << relativeAddress << std::endl
-            << "\tExpCode: 0x" << exceptionPointers->ExceptionRecord->ExceptionCode << std::endl
-            << "\tExpFlags: " << exceptionPointers->ExceptionRecord->ExceptionFlags << std::endl
-            << "\tExpAddress: 0x" << exOffset << std::endl;
+        str << exceptionInfo << "\n";
         if (createdDump)
         {
-            str << std::format("\nA crash dump has been generated here: {}\n", dumpPath) << std::endl;
+            str << std::format("A crash dump has been generated here: {}\n", dumpPath) << std::endl;
         }
         str << "If you discover how to reproduce this issue, report this to Starport and your mod developer (if you're running one)!" << std::endl;
+        str << "Would you like to copy the above information to your clipboard?";
 
-        MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Unknown Error Code", MB_ICONWARNING | MB_OK);
+        if (MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Unknown Error Code", MB_ICONWARNING | MB_YESNO) == IDYES)
+        {
+            CopyToClipboard(exceptionInfo);
+        }
+
         return EXCEPTION_EXECUTE_HANDLER;
     }
 
-    // clang-format off
-    str << "Source: " << dllName <<
-        "\nFaulting Offset: 0x" << std::hex << error->offset.value() <<
-        "\nFound by: " << error->author <<
-        "\nSuspected Reason: " << error->description << std::endl;
-    // clang-format on
+    const auto exceptionInfo = std::format("Source: {}\n"
+                                           "Faulting Offset: {:#08x}\n"
+                                           "Found by: {}\n"
+                                           "Suspected Reason: {}\n",
+                                           dllName,
+                                           error->offset.value(),
+                                           error->author,
+                                           error->description);
 
+    str << exceptionInfo << "\n";
     if (createdDump)
     {
         str << std::format("\nA crash dump has been generated here: {}\n", dumpPath) << std::endl;
     }
 
-    MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Known Error Code", MB_ICONWARNING | MB_OK);
+    str << "Would you like to copy this to your clipboard?";
+
+    if (MessageBoxA(nullptr, str.str().c_str(), "Fatal Crash. Known Error Code", MB_ICONWARNING | MB_YESNO) == IDYES)
+    {
+        CopyToClipboard(exceptionInfo);
+    }
+
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
