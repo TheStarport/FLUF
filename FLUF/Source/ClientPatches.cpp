@@ -48,14 +48,10 @@ void Fluf::ClientPatches()
     const auto rendComp = reinterpret_cast<DWORD>(GetModuleHandleA("rendcomp.dll"));
     MemUtils::WriteProcMem(rendComp + 0x00C499, &oneBytePatch, 1); // Improve planet textures at range
 
-    // Get the hash of rp8.dll. Schmack's renderer replaces this file, and we want to assert that it is a vanilla version before patching
-    MSIFILEHASHINFO info;
-    MsiGetFileHashA("rp8.dll", 0, &info);
-
-    if (info.dwData[0] == 2946203618 && info.dwData[1] == 2924112751 && info.dwData[2] == 2974468154 && info.dwData[3] == 3757039764)
+    // Schmack's renderer replaces this file, and we want to assert that it is a vanilla version before patching
+    if (const auto rp8 = reinterpret_cast<DWORD>(GetModuleHandleA("rp8.dll")); rp8 && *PBYTE(rp8 + 0x004467) == 0x7D)
     {
         oneBytePatch = 0xEB;
-        const auto rp8 = reinterpret_cast<DWORD>(GetModuleHandleA("rp8.dll"));
         MemUtils::WriteProcMem(rp8 + 0x004467, &oneBytePatch, 1); // Remove erroneous D3DERR_INVALIDCALL message
     }
 
