@@ -2,9 +2,6 @@
 
 #include "FlufModule.hpp"
 #include "ImGui/ImGuiModule.hpp"
-#include "RmlUi/Core/DataModelHandle.h"
-#include "RmlUi/Core/ElementDocument.h"
-#include "vendor/RmlUi/Source/Core/Memory.h"
 
 #include <memory>
 
@@ -55,8 +52,7 @@ class RaidUi final : public FlufModule, public ImGuiModule
 {
         std::shared_ptr<FlufUi> flufUi;
 
-        Rml::ElementDocument* document = nullptr;
-        Rml::UnorderedMap<uint, GroupMember> members;
+        std::unordered_map<uint, GroupMember> members;
         ShipClassImageMap shipClassImageMap;
         double timer = 5.0;
         bool imguiPanelLocked = true;

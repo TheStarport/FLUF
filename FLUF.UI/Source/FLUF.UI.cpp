@@ -4,8 +4,6 @@
 
 #include "Fluf.hpp"
 #include "ImGui/ImGuiInterface.hpp"
-#include "Rml/Interfaces/RenderInterfaceDirectX9.hpp"
-#include "Rml/Interfaces/RmlInterface.hpp"
 #include "Typedefs.hpp"
 #include "Utils/Detour.hpp"
 #include "Vanilla/HudManager.hpp"
@@ -43,12 +41,7 @@ void FlufUi::OnGameLoad()
     if (d3d9)
     {
         backend = RenderingBackend::Dx9;
-        if (config->uiMode == UiMode::Rml)
-        {
-            Fluf::Log(LogLevel::Info, "Create RmlInterface");
-            rmlInterface = std::make_shared<RmlInterface>(this, d3d9, d3d9device);
-        }
-        else if (config->uiMode == UiMode::ImGui)
+        if (config->uiMode == UiMode::ImGui)
         {
             Fluf::Log(LogLevel::Info, "Create ImGuiInterface");
             imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx9, d3d9device);
@@ -61,14 +54,7 @@ void FlufUi::OnGameLoad()
 
 LRESULT __stdcall FlufUi::WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
 {
-    if (module->rmlInterface)
-    {
-        if (const auto result = module->rmlInterface->WndProc(hWnd, msg, wParam, lParam); !result)
-        {
-            return 0;
-        }
-    }
-    else if (module->imguiInterface)
+    if (module->imguiInterface)
     {
         if (const auto result = ImGuiInterface::WndProc(module->config.get(), hWnd, msg, wParam, lParam); !result)
         {
@@ -85,14 +71,6 @@ LRESULT __stdcall FlufUi::WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lPa
 
 bool FlufUi::WinKeyDetour(const uint msg, const WPARAM wParam, const LPARAM lParam)
 {
-    if (module->rmlInterface)
-    {
-        if (const auto result = RmlInterface::WinKey(msg, wParam, lParam); !result)
-        {
-            return false;
-        }
-    }
-
     module->winKeyDetour.UnDetour();
     const auto result = module->winKeyDetour.GetOriginalFunc()(msg, wParam, lParam);
     module->winKeyDetour.Detour(WinKeyDetour);
@@ -102,11 +80,7 @@ bool FlufUi::WinKeyDetour(const uint msg, const WPARAM wParam, const LPARAM lPar
 
 bool FlufUi::UiRenderDetour()
 {
-    if (module->rmlInterface)
-    {
-        module->rmlInterface->Render();
-    }
-    else if (module->imguiInterface)
+    if (module->imguiInterface)
     {
         module->imguiInterface->Render();
     }
@@ -165,17 +139,6 @@ bool FlufUi::OpenOptionsMenu() const
 }
 
 std::weak_ptr<HudManager> FlufUi::GetHudManager() { return hudManager; }
-
-std::optional<RmlContext> FlufUi::GetRmlContext()
-{
-    auto context = RmlInterface::GetRmlContext();
-    if (context.context)
-    {
-        return { context };
-    };
-
-    return std::nullopt;
-}
 
 std::shared_ptr<FlufUiConfig> FlufUi::GetConfig() { return config; }
 

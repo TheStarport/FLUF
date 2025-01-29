@@ -8,14 +8,12 @@
 
 #include "Utils/Detour.hpp"
 
-#include <Rml/RmlContext.hpp>
 #include <d3d9types.h>
 
 class ImGuiInterface;
 class HudManager;
 class IDirect3D9;
 class IDirect3DDevice9;
-class RmlInterface;
 
 /**
  * @author Laz
@@ -42,7 +40,6 @@ class FlufUi final : public FlufModule
         FunctionDetour<OnUiRender> uiRenderDetour{ reinterpret_cast<OnUiRender>(0x41F150) };
 
         std::shared_ptr<HudManager> hudManager;
-        std::shared_ptr<RmlInterface> rmlInterface;
         std::shared_ptr<FlufUiConfig> config;
         std::shared_ptr<ImGuiInterface> imguiInterface;
 
@@ -67,11 +64,6 @@ class FlufUi final : public FlufModule
          * @brief Gets the HudManager class which is used to manipulate the vanilla freelancer interface.
          */
         FLUF_UI_API std::weak_ptr<HudManager> GetHudManager();
-
-        /**
-         * @brief Gets the RmlContext for doing basic document and data model management. Gives access to the full context if needed.
-         */
-        FLUF_UI_API std::optional<RmlContext> GetRmlContext();
 
         /**
          * @brief Gets the config settings for FLUF UI

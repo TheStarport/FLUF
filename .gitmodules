@@ -1,9 +1,6 @@
 [submodule "vendor/imgui-filebrowser"]
 	path = vendor/imgui-filebrowser
 	url = https://github.com/AirGuanZ/imgui-filebrowser.git
-[submodule "vendor/RmlUi"]
-	path = vendor/RmlUi
-	url = https://github.com/mikke89/RmlUi.git
 [submodule "vendor/FLHookSDK"]
 	path = vendor/FLHookSDK
 	url = https://github.com/TheStarport/FLHookSDK

@@ -6,7 +6,6 @@ struct ImFont;
 enum class UiMode
 {
     None,
-    Rml,
     ImGui
 };
 

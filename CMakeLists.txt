@@ -57,11 +57,9 @@ set(Python_FIND_VIRTUALENV FIRST)
 find_package(Python 3.11 REQUIRED)
 
 # Libs
-set(RML_PATH "${VENDOR_PATH}/RmlUi")
 set(CURL_PATH "${VENDOR_PATH}/curl-8.10.1")
 set(IMGUI_PATH "${VENDOR_PATH}/imgui")
 
-# Set Freetype requirements for RML
 set(FREETYPE_LIBRARY "${VENDOR_PATH}/freetype.lib")
 set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 
@@ -69,32 +67,14 @@ set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(msgpack REQUIRED)
-find_package(lua REQUIRED)
 find_package(xbyak REQUIRED)
 find_package(stb REQUIRED)
 find_package(yaml-cpp REQUIRED)
-find_package(lunasvg REQUIRED)
-
-# Compile RML w/ Lua and SVG support
-set(RMLUI_LUA_BINDINGS TRUE)
-set(RML_LUA_BINDINGS_LIBRARY lua)
-set(RMLUI_SVG_PLUGIN ON)
-set(LUA_INCLUDE_DIR ${lua_INCLUDE_DIR})
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(lunasvg_ROOT "${lunasvg_LIB_DIRS_DEBUG}")
-    set(LUA_LIBRARIES "${lua_LIB_DIRS_DEBUG}/lua.lib")
-else ()
-    set(lunasvg_ROOT "${lunasvg_LIB_DIRS_RELEASE}")
-    set(LUA_LIBRARIES "${lua_LIB_DIRS_RELEASE}/lua.lib")
-endif ()
 
 set(REFLECTCPP_MSGPACK ON)
 set(REFLECTCPP_YAML ON)
 set(REFLECTCPP_BUILD_SHARED OFF)
 add_subdirectory(${REFLECT_PATH})
-add_subdirectory(${RML_PATH})
-target_include_directories(rmlui_core PUBLIC ${lunasvg_INCLUDE_DIRS}/lunasvg)
 
 function(set_linux_msvc_includes)
     cmake_parse_arguments(

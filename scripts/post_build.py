@@ -56,7 +56,6 @@ def post_build(release: bool, dest: str):
             log(f'copied {dll}')
 
         # Include Files
-        shutil.copytree('./vendor/RmlUi/Include/RmlUi', 'dist/RmlUi')
         shutil.copytree('./FLUF.UI/Include', 'dist/FLUF.UI')
         shutil.copytree('./FLUF/Include', 'dist/FLUF', ignore=ignore_patterns('Internal'))
         shutil.copytree('./vendor/imgui', 'dist/imgui')
@@ -72,7 +71,6 @@ def post_build(release: bool, dest: str):
             shutil.copy2(font, './dist/DATA/FONTS/')
             log(f'copied {font}')
 
-        # RML/RCSS/Lua files, only run if examples are compiled
         if os.path.exists('./dist/modules/raid_ui.dll'):
             shutil.copytree('./examples/shared_assets', 'dist/DATA/INTERFACE/RML', dirs_exist_ok=True)
 
