@@ -577,7 +577,7 @@ Fluf::~Fluf()
 
 bool Fluf::GetUserDataPathDetour(char* path)
 {
-    constexpr std::string_view newSavePath = R"(..\SAVES)";
-    strcpy_s(path, newSavePath.size(), newSavePath.data());
+    constexpr char newSavePath[] = "..\\SAVES";
+    memcpy_s(path, MAX_PATH, newSavePath, sizeof(newSavePath));
     return true;
 }
