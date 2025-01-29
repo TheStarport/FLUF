@@ -11,6 +11,7 @@
 #include "KeyManager.hpp"
 #include "Utils/MemUtils.hpp"
 
+#include <Exceptions.hpp>
 #include <iostream>
 
 using ScriptLoadPtr = void* (*)(const char* fileName);
@@ -514,7 +515,7 @@ Fluf::Fluf()
         {
             module = factory();
         }
-        catch (const std::exception& e)
+        catch (const ModuleLoadException& e)
         {
             Log(LogLevel::Error, e.what());
             continue;

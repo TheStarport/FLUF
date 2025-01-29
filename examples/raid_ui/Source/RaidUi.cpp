@@ -18,6 +18,7 @@
 #include "KeyManager.hpp"
 #include "Utils/StringUtils.hpp"
 
+#include <Exceptions.hpp>
 #include <imgui_internal.h>
 
 // ReSharper disable twice CppUseAuto
@@ -480,8 +481,7 @@ RaidUi::RaidUi()
     const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
     if (weakPtr.expired())
     {
-        Fluf::Log(LogLevel::Error, "Group info was loaded, but FLUF UI was not loaded. Crashes are likely.");
-        return;
+        throw ModuleLoadException("RaidUi was loaded, but FLUF UI was not loaded.");
     }
 
     const auto module = std::static_pointer_cast<FlufUi>(weakPtr.lock());
@@ -489,8 +489,7 @@ RaidUi::RaidUi()
 
     if (module->GetConfig()->uiMode != UiMode::ImGui)
     {
-        Fluf::Log(LogLevel::Error, "Group info was loaded, but FLUF UI's ui mode was not set to 'ImGui'");
-        return;
+        throw ModuleLoadException("RaidUi was loaded, but FLUF UI's ui mode was not set to 'ImGui'");
     }
 
     static constexpr char configFile[] = "modules/config/raid_ui.yml";
