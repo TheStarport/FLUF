@@ -89,6 +89,7 @@ else ()
     set(LUA_LIBRARIES "${lua_LIB_DIRS_RELEASE}/lua.lib")
 endif ()
 
+set(REFLECTCPP_MSGPACK ON)
 set(REFLECTCPP_YAML ON)
 set(REFLECTCPP_BUILD_SHARED OFF)
 add_subdirectory(${REFLECT_PATH})
