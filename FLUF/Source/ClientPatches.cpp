@@ -13,6 +13,25 @@
         MemUtils::WriteProcMem(address, patch, sizeof(patch)); \
     }
 
+void* WaypointCheckDetour(int index)
+{
+    auto module = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
+    const static auto maxWaypoint = reinterpret_cast<int*>(module + 0x273374);
+    const static auto playerSystem = reinterpret_cast<uint*>(module + 0x273354);
+    if (index < 0 || index >= *maxWaypoint)
+    {
+        return nullptr;
+    }
+
+    const auto waypointSystem = reinterpret_cast<uint*>((24 * index) + 0x672984);
+    if (*waypointSystem != *playerSystem)
+    {
+        return nullptr;
+    }
+
+    return (void*)((24 * index) + 0x672978);
+}
+
 void Fluf::ClientPatches()
 {
     Log(LogLevel::Info, "Getting the info");
@@ -89,4 +108,7 @@ void Fluf::ClientPatches()
         *reinterpret_cast<PDWORD>(patch.data() + 1) = *reinterpret_cast<const unsigned long*>(code.getCode());
         MemUtils::WriteProcMem(reinterpret_cast<DWORD>(offset), &patch, patch.size());
     }
+
+    // Ensure that waypoints are checked between systems
+    MemUtils::PatchCallAddr(fl, 0xF4141, WaypointCheckDetour);
 }
