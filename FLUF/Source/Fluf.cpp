@@ -13,15 +13,16 @@
 
 #include <Exceptions.hpp>
 #include <iostream>
+#include <spdlog/common.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 
 using ScriptLoadPtr = void* (*)(const char* fileName);
 using FrameUpdatePtr = void (*)(double delta);
-using ContextSwitchPtr = IClientImpl* (*)(const char* dllName);
 std::unique_ptr<FunctionDetour<ScriptLoadPtr>> thornLoadDetour;
 std::unique_ptr<FunctionDetour<FrameUpdatePtr>> frameUpdateDetour;
 
 std::shared_ptr<Fluf> fluf;
-HMODULE thisDll;
+std::shared_ptr<spdlog::logger> logFile;
 
 extern "C" __declspec(dllexport) void DummyFunction() {}
 
@@ -31,6 +32,49 @@ const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModul
 
 constexpr auto majorVersion = ModuleMajorVersion::One;
 constexpr auto minorVersion = ModuleMinorVersion::Zero;
+
+using FDump = DWORD (*)(DWORD, const char*, ...);
+FDump fdumpOriginal;
+DWORD FDumpDetour(DWORD unk, const char* fmt, ...)
+{
+    char buffer[4096];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, 4096, fmt, args);
+    va_end(args);
+
+    std::string line(buffer);
+    LogLevel level = LogLevel::Info;
+
+    auto contains = [](std::string_view a, std::string_view b)
+    {
+        return std::search(
+                   a.begin(), a.end(), b.begin(), b.end(), [](unsigned char ch1, unsigned char ch2) { return std::toupper(ch1) == std::toupper(ch2); }) !=
+               a.end();
+    };
+
+    if (contains(line, "WARN") || contains(line, "UNKNOWN"))
+    {
+        level = LogLevel::Warn;
+    }
+    else if (contains(line, "ERR"))
+    {
+        level = LogLevel::Error;
+    }
+    else if (contains(line, "DBG") || contains(line, "DEBUG"))
+    {
+        level = LogLevel::Debug;
+    }
+
+    Fluf::Log(level, line);
+    std::time_t rawTime;
+    char timestamp[100];
+    std::time(&rawTime);
+    std::tm* timeInfo = std::localtime(&rawTime);
+    std::strftime(timestamp, 80, "%Y/%m/%d - %H:%M:%S", timeInfo);
+
+    return fdumpOriginal(unk, "[%s] %s", timestamp, line.c_str());
+}
 
 struct VTableHack
 {
@@ -225,7 +269,6 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
             return false;
         }
 
-        thisDll = mod;
         fluf = std::make_shared<Fluf>();
     }
     else if (reason == DLL_PROCESS_DETACH)
@@ -318,21 +361,21 @@ std::string SetLogMetadata(void* address, const LogLevel level)
                 case LogLevel::Error: levelStr = "ERR"; break;
             }
 
-            return std::format("({} {}) {}: ", "TIME", fullPath.substr(fullPath.find_last_of("\\") + 1), levelStr);
+            return std::format("({}) {}: ", fullPath.substr(fullPath.find_last_of("\\") + 1), levelStr);
         }
     }
 
     return "";
 }
 
-void Fluf::Log(const LogLevel level, const std::string_view message)
+void Fluf::Log(const LogLevel logLevel, const std::string_view message)
 {
-    if (level < instance->config->logLevel)
+    if (logLevel < instance->config->logLevel)
     {
         return;
     }
 
-    const std::string paddedMessage = SetLogMetadata(_ReturnAddress(), level) + std::string(message);
+    const std::string paddedMessage = SetLogMetadata(_ReturnAddress(), logLevel) + std::string(message);
 
     if (instance->config->logSinks.contains(LogSink::Console))
     {
@@ -354,7 +397,7 @@ void Fluf::Log(const LogLevel level, const std::string_view message)
         };
 
         const auto outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-        switch (level)
+        switch (logLevel)
         {
             case LogLevel::Trace: SetConsoleTextAttribute(outputHandle, static_cast<WORD>(ConsoleColour::StrongCyan)); break;
             case LogLevel::Debug: SetConsoleTextAttribute(outputHandle, static_cast<WORD>(ConsoleColour::StrongGreen)); break;
@@ -364,6 +407,11 @@ void Fluf::Log(const LogLevel level, const std::string_view message)
         }
 
         std::cout << paddedMessage << std::endl;
+    }
+
+    if (logFile)
+    {
+        logFile->log(static_cast<spdlog::level::level_enum>(logLevel), paddedMessage);
     }
 }
 void Fluf::Trace(const std::string_view message) { return Log(LogLevel::Trace, message); }
@@ -472,6 +520,22 @@ Fluf::Fluf()
             FILE* dummy;
             freopen_s(&dummy, "CONOUT$", "w", stdout);
             SetStdHandle(STD_OUTPUT_HANDLE, stdout);
+        }
+
+        if (config->logSinks.contains(LogSink::File))
+        {
+            std::array<char, MAX_PATH> path;
+            GetUserDataPath(path.data());
+
+            logFile = spdlog::rotating_logger_st("file_logger", std::format("{}\\fluf.log", path.data()), 1048576 * 5, 3);
+            logFile->set_pattern("[%H:%M:%S %z] %v");
+        }
+
+        if (config->writeSpewToLogSinks)
+        {
+            auto fdump = reinterpret_cast<FDump*>(GetProcAddress(GetModuleHandleA("dacom.dll"), "FDUMP"));
+            fdumpOriginal = *fdump;
+            *fdump = reinterpret_cast<FDump>(FDumpDetour);
         }
 
         keyManager = std::make_unique<KeyManager>();

@@ -22,8 +22,6 @@ enum class LogLevel
 enum class LogSink
 {
     Console,
-    Spew,
-    Interface,
     File
 };
 
@@ -56,11 +54,6 @@ class Fluf
         inline static auto getUserDataPathDetour =
             FunctionDetour(reinterpret_cast<GetUserDataPathSig>(GetProcAddress(GetModuleHandleA("common.dll"), "?GetUserDataPath@@YA_NQAD@Z")));
 
-        // The serverClient receives data from the server
-        IClientImpl* serverClient = nullptr;
-        // The clientServer sends data to the server
-        IServerImpl* clientServer = nullptr;
-
         std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>> localClientVTable;
         std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>> localServerVTable;
         std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>> remoteClientVTable;
@@ -78,10 +71,10 @@ class Fluf
         static bool GetUserDataPathDetour(char* path);
 
         template <typename R, typename... Args>
-        struct ReturnType;
+        struct [[maybe_unused]] ReturnType;
 
         template <class Class, typename R, typename... Args>
-        struct ReturnType<R (Class::*)(Args...)>
+        struct [[maybe_unused]] ReturnType<R (Class::*)(Args...)>
         {
                 using Type = R;
         };
@@ -138,7 +131,7 @@ class Fluf
         Fluf();
         ~Fluf();
 
-        FLUF_API static void Log(LogLevel level, std::string_view message);
+        FLUF_API static void Log(LogLevel logLevel, std::string_view message);
         FLUF_API static void Trace(std::string_view message);
         FLUF_API static void Debug(std::string_view message);
         FLUF_API static void Info(std::string_view message);

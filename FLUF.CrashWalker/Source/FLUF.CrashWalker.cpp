@@ -120,6 +120,7 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
                                                 exceptionPointers->ExceptionRecord->ExceptionFlags,
                                                 exOffset);
 
+        Fluf::Log(LogLevel::Error, exceptionInfo);
         str << exceptionInfo << "\n";
         if (createdDump)
         {
@@ -145,6 +146,7 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
                                            error->author,
                                            error->description);
 
+    Fluf::Log(LogLevel::Error, exceptionInfo);
     str << exceptionInfo << "\n";
     if (createdDump)
     {

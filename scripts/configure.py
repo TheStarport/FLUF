@@ -32,5 +32,5 @@ def build(ctx: click.Context, release: bool, no_post_build: bool, no_hooks: bool
     # noinspection PyTypeChecker
     ctx.invoke(configure)
 
-    run(f'cmake --preset="{preset}" {'-DNO_POST_BUILD=TRUE' if no_post_build else ''} {'-DNO_HOOKS=TRUE' if no_hooks else ''}')
+    run(f"cmake --preset='{preset}' {'-DNO_POST_BUILD=TRUE' if no_post_build else ''} {'-DNO_HOOKS=TRUE' if no_hooks else ''}")
     run(f"cmake --build build/{preset.title()}", allow_error=True)

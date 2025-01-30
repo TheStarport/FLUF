@@ -68,6 +68,7 @@ find_package(glm REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(msgpack REQUIRED)
 find_package(xbyak REQUIRED)
+find_package(spdlog)
 find_package(stb REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
@@ -147,6 +148,7 @@ function(set_general_targets)
             xbyak::xbyak
             yaml-cpp::yaml-cpp
             msgpack-c
+            spdlog::spdlog_header_only
     )
 
     # Selectively skip PCH for certain files
