@@ -16,6 +16,20 @@ struct ErrorPayload
 };
 
 class CrashCatcher;
+
+/**
+ * @author Laz
+ * @brief FLU CrashWalker wraps Freelancer within a global try/catch using Windows SEH. This allows us to run code when a crash occurs that would normally
+ * take Freelancer down.
+ * @par Crash Logging
+ * On startup, this module will attempt to pull the latest payload from The Starport's crash offset list and cache it.
+ * When a crash occurs, a lookup will be done against this list and inform the user why the game crashed, if the reason is known.
+ * Additionally on every crash a dump file is generated in the save directory for debugging purposes.
+ *
+ * @par Crash Prevention
+ * Crash Walker also implements a stripped down version of CrashCatcher from FLHook designed for single player. This should prevent some issues that might
+ * have crashed the game previously from doing so.
+ */
 class FlufCrashWalker final : public FlufModule
 {
         void OnGameLoad() override;

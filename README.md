@@ -68,6 +68,7 @@ following commands can be run:
 
 ```
 pip install -r requirements.txt
+python cli.py dependencies
 python cli.py configure
 python cli.py build
 ```
