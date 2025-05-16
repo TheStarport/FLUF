@@ -25,6 +25,7 @@ def post_build(release: bool, dest: str):
         os.makedirs('./dist/DATA/INTERFACE/IMAGES/SYMBOLS', exist_ok=True)
         os.makedirs('./dist/modules', exist_ok=True)
         os.makedirs('./dist/lib', exist_ok=True)
+        os.makedirs('./dist/include', exist_ok=True)
 
         shutil.copy2('./vendor/freetype.dll', 'dist/modules/')
 
@@ -56,10 +57,10 @@ def post_build(release: bool, dest: str):
             log(f'copied {dll}')
 
         # Include Files
-        shutil.copytree('./FLUF.UI/Include', 'dist/FLUF.UI')
-        shutil.copytree('./FLUF/Include', 'dist/FLUF', ignore=ignore_patterns('Internal'))
-        shutil.copytree('./vendor/imgui', 'dist/imgui')
-        shutil.copy2('./vendor/imgui-markdown/imgui_markdown.h', 'dist/imgui_markdown.h')
+        shutil.copytree('./FLUF.UI/Include', 'dist/include/FLUF.UI')
+        shutil.copytree('./FLUF/Include', 'dist/include/FLUF', ignore=ignore_patterns('Internal'))
+        shutil.copytree('./vendor/imgui', 'dist/include/imgui')
+        shutil.copy2('./vendor/imgui-markdown/imgui_markdown.h', 'dist/include/imgui_markdown.h')
 
         shutil.copy2('./vendor/curl-ca-bundle.crt', './dist/')
         log(f'copied ./vendor/curl-ca-bundle.crt')
