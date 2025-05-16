@@ -2,6 +2,7 @@
 
 #include "Internal/Hooks/ClientSend.hpp"
 
+#include "ClientServerCommunicator.hpp"
 #include "Fluf.hpp"
 #include "FlufModule.hpp"
 #include "VTables.hpp"
@@ -129,6 +130,11 @@ void __fastcall ClientSend::Disconnect(IServerImpl* serverImpl, void*, uint clie
 void __fastcall ClientSend::Login(IServerImpl* serverImpl, void*, SLoginInfo& li, uint client)
 {
     Fluf::Log(LogLevel::Trace, __FUNCTION__);
+
+    if (wcscmp(li.account, L"SinglePlayer") != 0)
+    {
+        Fluf::GetClientServerCommunicator()->SendPayloadFromClient({ 'f', 'l', 'u', 'f' }, true);
+    }
 
     using FuncType = void(__thiscall*)(IServerImpl*, SLoginInfo&, uint);
     if (Fluf::instance->CallModuleEvent(&FlufModule::BeforeLogin, li, client))

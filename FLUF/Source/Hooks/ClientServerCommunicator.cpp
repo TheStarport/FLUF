@@ -8,7 +8,7 @@
 
 void ClientServerCommunicator::OnReceiveChatMessageClient(uint sourceClientId, const uint destClientId, const size_t size, char* data)
 {
-    if (size < 8 || *reinterpret_cast<USHORT*>(data) != flufHeader)
+    if (size < 6 || *reinterpret_cast<USHORT*>(data) != flufHeader)
     {
         oldSendChat(sourceClientId, destClientId, size, data);
         return;

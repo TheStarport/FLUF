@@ -29,7 +29,7 @@ class ClientServerCommunicator
         static void __stdcall OnReceiveChatMessageClient(uint sourceClientId, uint destClientId, size_t size, char* data);
         static void __stdcall OnReceiveChatMessageServer(uint sourceClientId, size_t size, char* data, uint destTargetId, int unknown);
         template <typename T>
-        bool SendPayloadFromClient(const uint targetId, const std::array<char, 4>& header, const T& payload)
+        bool SendPayloadFromClient(const std::array<char, 4>& header, const T& payload, const uint targetId = 0x10000)
         {
             if (!clientChatServer)
             {
@@ -37,7 +37,7 @@ class ClientServerCommunicator
             }
 
             auto msgPack = rfl::msgpack::write<T>(payload);
-            const size_t size = msgPack.size() + header.size() + 4;
+            const size_t size = msgPack.size() + header.size() + 2;
             std::vector<char> data(size);
 
             memcpy_s(data.data(), data.size(), &flufHeader, sizeof(flufHeader));
