@@ -61,7 +61,7 @@ ClientServerCommunicator::ClientServerCommunicator()
     {
         MemUtils::ReadProcMem(clientReceivePayloadAddress, &oldSendChat, sizeof oldSendChat);
         const auto proc = reinterpret_cast<FARPROC>(&ClientServerCommunicator::OnReceiveChatMessageClient);
-        MemUtils::WriteProcMem(clientReceivePayloadAddress, proc, sizeof(proc));
+        MemUtils::WriteProcMem(clientReceivePayloadAddress, &proc, sizeof(proc));
     }
     else
     {
