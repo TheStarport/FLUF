@@ -127,6 +127,8 @@ class Fluf
         // Hardcoded patches that we realistically want to always apply
         static void ClientPatches();
 
+        std::unique_ptr<ClientServerCommunicator> clientServerCommunicator;
+
     public:
         Fluf();
         ~Fluf();
@@ -148,4 +150,6 @@ class Fluf
          * @return A ptr to the KeyManager, but only if IsRunningOnClient() return true, else a nullptr
          */
         FLUF_API static KeyManager* GetKeyManager();
+
+        FLUF_API static ClientServerCommunicator* GetClientServerCommunicator();
 };

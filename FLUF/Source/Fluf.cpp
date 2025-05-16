@@ -4,10 +4,13 @@
 #include "Typedefs.hpp"
 
 #include "Fluf.hpp"
+
+#include "ClientServerCommunicator.hpp"
 #include "FlufModule.hpp"
 #include "Internal/FlufConfiguration.hpp"
 #include "Internal/Hooks/ClientReceive.hpp"
 #include "Internal/Hooks/ClientSend.hpp"
+#include "Internal/Hooks/InfocardOverrides.hpp"
 #include "KeyManager.hpp"
 #include "Utils/MemUtils.hpp"
 
@@ -195,6 +198,7 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
 
     if (instance->runningOnClient)
     {
+        using GetChatServer = IChatServer*(__stdcall*)();
 #ifndef FLUF_DISABLE_HOOKS
         if (_stricmp(dllName, "rpclocal.dll") == 0)
         {
@@ -203,6 +207,7 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
             instance->localServerVTable =
                 std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>>(dllName);
             VTableHack::HookClientServer(instance->localClientVTable.get(), instance->localServerVTable.get());
+            instance->clientServerCommunicator->clientChatServer = reinterpret_cast<GetChatServer>(GetProcAddress(res, "GetChatServerInterface"))();
         }
         else if (_stricmp(dllName, "remoteserver.dll") == 0)
         {
@@ -211,6 +216,7 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
             instance->remoteServerVTable =
                 std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>>(dllName);
             VTableHack::HookClientServer(instance->remoteClientVTable.get(), instance->remoteServerVTable.get());
+            instance->clientServerCommunicator->clientChatServer = reinterpret_cast<GetChatServer>(GetProcAddress(res, "GetChatServerInterface"))();
         }
 #endif
     }
@@ -281,6 +287,8 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void Fluf::OnGameLoad() const
 {
+    InfocardOverrides::Initialise();
+
     Log(LogLevel::Info, "Data loaded, Freelancer ready.");
     for (const auto& module : loadedModules)
     {
@@ -454,6 +462,7 @@ IObjRW* Fluf::GetPlayerIObjRW()
 bool Fluf::IsRunningOnClient() { return instance->runningOnClient; }
 
 KeyManager* Fluf::GetKeyManager() { return instance->keyManager.get(); }
+ClientServerCommunicator* Fluf::GetClientServerCommunicator() { return instance->clientServerCommunicator.get(); }
 
 // Returns the last Win32 error, in string format. Returns an empty string if there is no error.
 std::string GetLastErrorAsString()
@@ -541,6 +550,8 @@ Fluf::Fluf()
         keyManager = std::make_unique<KeyManager>();
         ClientPatches();
     }
+
+    clientServerCommunicator = std::make_unique<ClientServerCommunicator>();
 
     SetDllDirectoryA("modules/");
 

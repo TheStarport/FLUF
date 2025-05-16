@@ -152,7 +152,7 @@ class FLUF_API FlufModule
         virtual void OnGroupPositionResponse(uint client, uint, int) {}
         virtual void OnPlayerLeavingServer(uint onlineClient, uint leavingClient) {}
         virtual void OnFormationUpdate(uint client, uint shipId, Vector& formationOffset) {}
-        virtual ModuleProcessCode OnPayloadReceived(uint sourceClientId, std::array<char, 4> header, void* data, size_t size)
+        virtual ModuleProcessCode OnPayloadReceived(uint sourceClientId, std::array<char, 4> header, char* data, size_t size)
         {
             return ModuleProcessCode::ContinueUnhandled;
         }

@@ -4,6 +4,7 @@
 
 #include "Fluf.hpp"
 #include "FlufModule.hpp"
+#include "Internal/Hooks/InfocardOverrides.hpp"
 
 bool __fastcall ClientReceive::FireWeapon(IClientImpl* clientImpl, void*, uint client, XFireWeaponInfo& info)
 {
@@ -102,6 +103,8 @@ bool __fastcall ClientReceive::JettisonCargo(IClientImpl* clientImpl, void*, uin
 bool __fastcall ClientReceive::Login(IClientImpl* clientImpl, void*, uint client, FLPACKET_UNKNOWN* unk)
 {
     Fluf::Log(LogLevel::Trace, __FUNCTION__);
+
+    InfocardOverrides::ClearOverrides();
 
     using FuncType = bool(__thiscall*)(IClientImpl*, uint, FLPACKET_UNKNOWN*);
     const auto result =

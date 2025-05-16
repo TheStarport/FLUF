@@ -11,6 +11,7 @@ struct IChatServer
 };
 
 class Fluf;
+class InfocardOverrides;
 class ClientServerCommunicator
 {
         using ServerSendChat = void(__stdcall*)(uint sourceId, uint targetId, size_t size, const char* data);
@@ -18,16 +19,15 @@ class ClientServerCommunicator
 
         friend Fluf;
         static constexpr DWORD clientReceivePayloadAddress = 0x5E6668;
-        static constexpr DWORD flufHeader = 0xF10F;
+        static constexpr USHORT flufHeader = 0xF10F;
         inline static ClientSendChat oldSubmitChat;
         inline static ServerSendChat oldSendChat;
 
         IChatServer* clientChatServer = nullptr;
 
+    public:
         static void __stdcall OnReceiveChatMessageClient(uint sourceClientId, uint destClientId, size_t size, char* data);
         static void __stdcall OnReceiveChatMessageServer(uint sourceClientId, size_t size, char* data, uint destTargetId, int unknown);
-
-    public:
         template <typename T>
         bool SendPayloadFromClient(const uint targetId, const std::array<char, 4>& header, const T& payload)
         {

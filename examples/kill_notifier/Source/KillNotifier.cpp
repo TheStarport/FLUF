@@ -13,15 +13,15 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-FlufModule::ModuleProcessCode KillNotifier::OnPayloadReceived(uint sourceClientId, std::array<char, 4> header, void* data, size_t size)
+FlufModule::ModuleProcessCode KillNotifier::OnPayloadReceived(uint sourceClientId, const std::array<char, 4> header, char* data, const size_t size)
 {
-    if(!Fluf::IsRunningOnClient() || header != killMessageHeader)
+    if (!Fluf::IsRunningOnClient() || header != killMessageHeader)
     {
         return ModuleProcessCode::ContinueUnhandled;
     }
 
-    auto result = rfl::msgpack::read<KillMessage>((const char*)data, size);
-    if(result.error().has_value())
+    auto result = rfl::msgpack::read<KillMessage>(data, size);
+    if (result.error().has_value())
     {
         Fluf::Error("Invalid kill message payload");
         return ModuleProcessCode::Continue;
@@ -32,9 +32,7 @@ FlufModule::ModuleProcessCode KillNotifier::OnPayloadReceived(uint sourceClientI
     return ModuleProcessCode::Handled;
 }
 
-KillNotifier::KillNotifier()
-{
-}
+KillNotifier::KillNotifier() {}
 
 std::string_view KillNotifier::GetModuleName() { return moduleName; }
 
