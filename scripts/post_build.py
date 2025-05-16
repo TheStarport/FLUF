@@ -22,9 +22,9 @@ def post_build(release: bool, dest: str):
         if os.path.isdir('./dist'):
             shutil.rmtree('./dist')
 
-        os.makedirs('./dist/DATA/INTERFACE/RML', exist_ok=True)
         os.makedirs('./dist/DATA/INTERFACE/IMAGES/SYMBOLS', exist_ok=True)
         os.makedirs('./dist/modules', exist_ok=True)
+        os.makedirs('./dist/lib', exist_ok=True)
 
         shutil.copy2('./vendor/freetype.dll', 'dist/modules/')
 
@@ -43,7 +43,7 @@ def post_build(release: bool, dest: str):
         for lib in result:
             if (release and 'Debug' in lib) or (not release and 'Release' in lib):
                 continue
-            shutil.copy2(lib, './dist/')
+            shutil.copy2(lib, './dist/lib/')
             log(f'copied {lib}')
 
         # DLL files inside vendor folder
@@ -71,9 +71,6 @@ def post_build(release: bool, dest: str):
             shutil.copy2(font, './dist/DATA/FONTS/')
             log(f'copied {font}')
 
-        if os.path.exists('./dist/modules/raid_ui.dll'):
-            shutil.copytree('./examples/shared_assets', 'dist/DATA/INTERFACE/RML', dirs_exist_ok=True)
-
         log('Zipping up dist folder to build.zip')
         shutil.make_archive('build', 'zip', './dist')
 
@@ -82,7 +79,7 @@ def post_build(release: bool, dest: str):
             if not dest.endswith(os.path.sep):
                 dest += os.path.sep
 
-            shutil.copytree('./dist', dest, dirs_exist_ok=True)
+            shutil.copytree('./dist', dest, dirs_exist_ok=True, ignore=ignore_patterns('*.h,*.hpp,*.lib'))
             shutil.copytree(dest + 'DATA', f'{dest}..{os.path.sep}DATA{os.path.sep}', dirs_exist_ok=True)
             shutil.rmtree(dest + 'DATA', ignore_errors=True)
     except Exception as e:
