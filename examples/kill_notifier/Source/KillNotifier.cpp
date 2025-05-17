@@ -2,6 +2,7 @@
 
 #include "KillNotifier.hpp"
 
+#include "ClientServerCommunicator.hpp"
 #include "Fluf.hpp"
 #include "FlufModule.hpp"
 
@@ -13,14 +14,14 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-FlufModule::ModuleProcessCode KillNotifier::OnPayloadReceived(uint sourceClientId, const std::array<char, 4> header, char* data, const size_t size)
+FlufModule::ModuleProcessCode KillNotifier::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
 {
-    if (!Fluf::IsRunningOnClient() || header != killMessageHeader)
+    if (!Fluf::IsRunningOnClient() || strncmp(payload.header, killMessageHeader, 4) != 0)
     {
         return ModuleProcessCode::ContinueUnhandled;
     }
 
-    auto result = rfl::msgpack::read<KillMessage>(data, size);
+    auto result = payload.Convert<KillMessage>();
     if (result.error().has_value())
     {
         Fluf::Error("Invalid kill message payload");

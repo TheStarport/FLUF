@@ -71,6 +71,7 @@ find_package(xbyak REQUIRED)
 find_package(spdlog)
 find_package(stb REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(zstd REQUIRED)
 
 set(REFLECTCPP_MSGPACK ON)
 set(REFLECTCPP_YAML ON)
@@ -149,6 +150,7 @@ function(set_general_targets)
             yaml-cpp::yaml-cpp
             msgpack-c
             spdlog::spdlog_header_only
+            zstd::libzstd_static
     )
 
     # Selectively skip PCH for certain files

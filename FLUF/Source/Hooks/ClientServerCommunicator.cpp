@@ -8,51 +8,36 @@
 
 void ClientServerCommunicator::OnReceiveChatMessageClient(uint sourceClientId, const uint destClientId, const size_t size, char* data)
 {
-    if (size < 6 || *reinterpret_cast<USHORT*>(data) != flufHeader)
+    auto payload = FlufPayload::FromPayload(data, size);
+    if (!payload)
     {
         oldSendChat(sourceClientId, destClientId, size, data);
         return;
     }
 
-    char* dataOffset = data + sizeof(flufHeader);
-
-    std::array<char, 4> header{};
-    memcpy_s(header.data(), header.size(), dataOffset, 4);
-
-    dataOffset += header.size();
-    const size_t newDataSize = size - sizeof(flufHeader) - header.size();
-
-    if (InfocardOverrides::HandlePayload(header, dataOffset, newDataSize))
+    if (InfocardOverrides::HandlePayload(*payload))
     {
         return;
     }
 
-    if (Fluf::instance->CallModuleEvent(&FlufModule::OnPayloadReceived, sourceClientId, header, dataOffset, newDataSize))
-    {
-        oldSendChat(sourceClientId, destClientId, size, data);
-    }
+    Fluf::instance->CallModuleEvent(&FlufModule::OnPayloadReceived, sourceClientId, *payload);
 }
 
 void ClientServerCommunicator::OnReceiveChatMessageServer(uint sourceClientId, size_t size, char* data, uint destTargetId, int unknown)
 {
-    if (size < 8 || *reinterpret_cast<unsigned long*>(data) != flufHeader)
+    const auto payload = FlufPayload::FromPayload(data, size);
+    if (!payload)
     {
         oldSubmitChat(sourceClientId, size, data, destTargetId, unknown);
         return;
     }
 
-    char* dataOffset = data + sizeof(flufHeader);
-
-    std::array<char, 4> header{};
-    memcpy_s(header.data(), header.size(), data + sizeof(flufHeader), sizeof(flufHeader));
-
-    dataOffset += header.size();
-    const size_t newDataSize = size - sizeof(flufHeader) - header.size();
-
-    if (Fluf::instance->CallModuleEvent(&FlufModule::OnPayloadReceived, sourceClientId, header, dataOffset, newDataSize))
+    if (InfocardOverrides::HandlePayload(*payload))
     {
-        oldSubmitChat(sourceClientId, size, data, destTargetId, unknown);
+        return;
     }
+
+    Fluf::instance->CallModuleEvent(&FlufModule::OnPayloadReceived, sourceClientId, *payload);
 }
 
 ClientServerCommunicator::ClientServerCommunicator()

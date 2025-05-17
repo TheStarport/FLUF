@@ -2,6 +2,7 @@
 
 #include "Utils/Detour.hpp"
 
+struct FlufPayload;
 class ClientServerCommunicator;
 class InfocardOverrides
 {
@@ -18,10 +19,16 @@ class InfocardOverrides
         static int GetIdsNameOverride(void* resourceHandle, uint ids, wchar_t* buffer, int length);
         static char* __stdcall GetIdsInfocardOverride(uint ids);
         static void GetIdsInfocardNaked();
-        static bool HandlePayload(const std::array<char, 4>& header, char* data, size_t size);
+        static bool HandlePayload(const FlufPayload& payload);
 
     public:
         static void ClearOverrides();
         static void Initialise();
         static void UpdateInfocard(uint ids, const std::wstring& data, bool isName);
+
+        struct InfocardPayload
+        {
+                std::unordered_map<uint, std::string> infoCards;
+                std::unordered_map<uint, std::string> infoNames;
+        };
 };

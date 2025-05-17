@@ -133,7 +133,8 @@ void __fastcall ClientSend::Login(IServerImpl* serverImpl, void*, SLoginInfo& li
 
     if (wcscmp(li.account, L"SinglePlayer") != 0)
     {
-        Fluf::GetClientServerCommunicator()->SendPayloadFromClient({ 'f', 'l', 'u', 'f' }, true);
+        constexpr char header[4] = { 'f', 'l', 'u', 'f' };
+        Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
     }
 
     using FuncType = void(__thiscall*)(IServerImpl*, SLoginInfo&, uint);

@@ -7,6 +7,7 @@
 
 #include <FLCore/Common/Packets.hpp>
 
+struct FlufPayload;
 class ClientServerCommunicator;
 class ClientSend;
 class ClientReceive;
@@ -152,10 +153,7 @@ class FLUF_API FlufModule
         virtual void OnGroupPositionResponse(uint client, uint, int) {}
         virtual void OnPlayerLeavingServer(uint onlineClient, uint leavingClient) {}
         virtual void OnFormationUpdate(uint client, uint shipId, Vector& formationOffset) {}
-        virtual ModuleProcessCode OnPayloadReceived(uint sourceClientId, std::array<char, 4> header, char* data, size_t size)
-        {
-            return ModuleProcessCode::ContinueUnhandled;
-        }
+        virtual ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) { return ModuleProcessCode::ContinueUnhandled; }
 
     public:
         virtual std::string_view GetModuleName() = 0;

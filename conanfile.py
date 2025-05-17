@@ -28,6 +28,7 @@ class CompressorRecipe(ConanFile):
         self.requires("stb/cci.20240531")
         self.requires("xbyak/7.07")
         self.requires("yaml-cpp/0.8.0")
+        self.requires("zstd/1.5.7")
 
     def layout(self):
         self.folders.generators = os.path.join("build", str(self.settings.build_type), "generators")

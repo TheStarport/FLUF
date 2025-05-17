@@ -2,6 +2,7 @@
 
 #include "Internal/Hooks/InfocardOverrides.hpp"
 
+#include "ClientServerCommunicator.hpp"
 #include "Fluf.hpp"
 #include "Utils/MemUtils.hpp"
 #include "Utils/StringUtils.hpp"
@@ -66,43 +67,30 @@ __declspec(naked) void InfocardOverrides::GetIdsInfocardNaked()
     }
 }
 
-bool InfocardOverrides::HandlePayload(const std::array<char, 4>& header, char* data, const size_t size)
+bool InfocardOverrides::HandlePayload(const FlufPayload& payload)
 {
-    constexpr auto structSize = sizeof(uint) + sizeof(bool) * 2;
-    if (strncmp(header.data(), "info", header.size()) != 0 || size <= structSize)
+    if (strncmp(payload.header, "info", sizeof(payload.header)) != 0)
     {
         return false;
     }
 
-    char* ptr = data;
-#define GET(x)                  \
-    *reinterpret_cast<x*>(ptr); \
-    ptr += sizeof(x)
-
-    const uint infoNum = GET(uint);
-    const bool isInfoName = GET(bool);
-    const bool isUtf8 = GET(bool);
-    const ushort stringLength = size - structSize;
-
-#undef GET
-
-    std::wstring stringToReplace;
-    if (isUtf8)
+    auto infoCardInfo = payload.Convert<InfocardPayload>();
+    if (infoCardInfo.error())
     {
-        const std::string str{ ptr, stringLength };
-        stringToReplace = StringUtils::stows(str);
-    }
-    else if (stringLength % 2 == 0)
-    {
-        stringToReplace = std::wstring{ reinterpret_cast<wchar_t*>(ptr), stringLength / 2u };
-    }
-    else
-    {
-        Fluf::Error("Received infocard payload with a wstring that wasn't aligned to 2 bytes (NOT UTF-16?)");
+        Fluf::Error("Received infocard payload with invalid data");
         return false;
     }
 
-    UpdateInfocard(infoNum, stringToReplace, isInfoName);
+    for (auto& [id, name] : infoCardInfo.value().infoNames)
+    {
+        infoNameOverrides[id] = StringUtils::stows(name);
+    }
+
+    for (auto& [id, card] : infoCardInfo.value().infoCards)
+    {
+        infoCardOverrides[id] = StringUtils::stows(card);
+    }
+
     return true;
 }
 
@@ -122,14 +110,12 @@ void InfocardOverrides::Initialise()
 
 void InfocardOverrides::UpdateInfocard(const uint ids, const std::wstring& data, const bool isName)
 {
-    auto cpy = data;
-    cpy.append(L"\0\0");
     if (isName)
     {
-        infoNameOverrides[ids] = cpy;
+        infoNameOverrides[ids] = data;
     }
     else
     {
-        infoCardOverrides[ids] = cpy;
+        infoCardOverrides[ids] = data;
     }
 }
