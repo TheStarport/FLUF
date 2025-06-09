@@ -217,6 +217,12 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
                 std::make_unique<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>>(dllName);
             VTableHack::HookClientServer(instance->remoteClientVTable.get(), instance->remoteServerVTable.get());
             instance->clientServerCommunicator->clientChatServer = reinterpret_cast<GetChatServer>(GetProcAddress(res, "GetChatServerInterface"))();
+
+            // disable no clip, godmode, and see everything, if they are on
+            *reinterpret_cast<BYTE*>(0x679cc4) = 0;
+            *reinterpret_cast<BYTE*>(0x67ecc0) = 0;
+            constexpr byte visitPatch = 0xc3;
+            MemUtils::WriteProcMem(0x4c4df1, &visitPatch, 1);
         }
 #endif
     }
