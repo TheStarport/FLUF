@@ -66,8 +66,8 @@ class Fluf
         void OnGameLoad() const;
         static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
 
-        void HookIClient(char* client, bool local);
-        void HookIServer(char* server);
+        void HookIClient(char* client, bool unhook, bool local);
+        void HookIServer(char* server, bool unhook);
         static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
         static BOOL __stdcall FreeLibraryDetour(HMODULE module);
         static bool GetUserDataPathDetour(char* path);

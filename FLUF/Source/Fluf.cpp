@@ -79,7 +79,7 @@ DWORD FDumpDetour(DWORD unk, const char* fmt, ...)
     return fdumpOriginal(unk, "[%s] %s", timestamp, line.c_str());
 }
 
-void Fluf::HookIClient(char* client, bool local)
+void Fluf::HookIClient(char* client, bool unhook, bool local)
 {
     if (!client)
     {
@@ -96,12 +96,30 @@ void Fluf::HookIClient(char* client, bool local)
         }
 
         char* address = vtable + offset;
-        MemUtils::ReadProcMem(reinterpret_cast<DWORD>(address), &oldFunc, 4);
-        MemUtils::WriteProcMem(reinterpret_cast<DWORD>(address), &newFunc, 4);
+        if (unhook && oldFunc)
+        {
+            MemUtils::WriteProcMem(reinterpret_cast<DWORD>(address), &oldFunc, 4);
+            oldFunc = nullptr;
+        }
+        else
+        {
+            char* oldFuncAddr;
+            MemUtils::ReadProcMem(reinterpret_cast<DWORD>(address), &oldFuncAddr, 4);
+
+            // Protection against double hooking
+            // happens if someone leaves a server and then reconnects without going back to the main menu
+            if (oldFuncAddr == newFunc)
+            {
+                continue;
+            }
+
+            oldFunc = oldFuncAddr;
+            MemUtils::WriteProcMem(reinterpret_cast<DWORD>(address), &newFunc, 4);
+        }
     }
 }
 
-void Fluf::HookIServer(char* server)
+void Fluf::HookIServer(char* server, bool unhook)
 {
     if (!server)
     {
@@ -118,8 +136,24 @@ void Fluf::HookIServer(char* server)
         }
 
         char* address = vtable + offset;
-        MemUtils::ReadProcMem(reinterpret_cast<DWORD>(address), &oldFunc, 4);
-        MemUtils::WriteProcMem(reinterpret_cast<DWORD>(address), &newFunc, 4);
+
+        if (unhook && oldFunc)
+        {
+            MemUtils::WriteProcMem(reinterpret_cast<DWORD>(address), &oldFunc, 4);
+            oldFunc = nullptr;
+        }
+        else
+        {
+            char* oldFuncAddr;
+            MemUtils::ReadProcMem(reinterpret_cast<DWORD>(address), &oldFuncAddr, 4);
+            if (oldFuncAddr == newFunc)
+            {
+                continue;
+            }
+
+            oldFunc = oldFuncAddr;
+            MemUtils::WriteProcMem(reinterpret_cast<DWORD>(address), &newFunc, 4);
+        }
     }
 }
 
@@ -143,14 +177,14 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
 #ifndef FLUF_DISABLE_HOOKS
         if (_stricmp(dllName, "rpclocal.dll") == 0)
         {
-            instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(dllHandle, "Client")), true);
-            instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(dllHandle, "Server")));
+            instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(dllHandle, "Client")), false, true);
+            instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(dllHandle, "Server")), false);
             instance->clientServerCommunicator->clientChatServer = reinterpret_cast<GetChatServer>(GetProcAddress(res, "GetChatServerInterface"))();
         }
         else if (_stricmp(dllName, "remoteserver.dll") == 0)
         {
-            instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(GetModuleHandleA(nullptr), "Client")), false);
-            instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(dllHandle, "Server")));
+            instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(GetModuleHandleA(nullptr), "Client")), false, false);
+            instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(dllHandle, "Server")), false);
             instance->clientServerCommunicator->clientChatServer = reinterpret_cast<GetChatServer>(GetProcAddress(res, "GetChatServerInterface"))();
 
             // disable no clip, godmode, and see everything, if they are on
@@ -183,11 +217,15 @@ BOOL __stdcall Fluf::FreeLibraryDetour(const HMODULE unloadedDll)
     {
         if (dllName == "rpclocal.dll")
         {
-            // TODO
+            instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(unloadedDll, "Client")), true, true);
+            instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(unloadedDll, "Server")), true);
+            instance->clientServerCommunicator->clientChatServer = nullptr;
         }
         else if (dllName == "remoteserver.dll")
         {
-            // TODO
+            instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(GetModuleHandleA(nullptr), "Client")), true, false);
+            instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(unloadedDll, "Server")), true);
+            instance->clientServerCommunicator->clientChatServer = nullptr;
         }
     }
 
@@ -475,7 +513,8 @@ Fluf::Fluf()
             std::array<char, MAX_PATH> path;
             GetUserDataPath(path.data());
 
-            logFile = spdlog::rotating_logger_st("file_logger", std::format("{}\\fluf.log", path.data()), 1048576 * 5, 3);
+            std::string_view pathPartial{ path.data(), strlen(path.data()) };
+            logFile = spdlog::rotating_logger_st("file_logger", std::format("{}\\fluf.log", pathPartial), 1048576 * 5, 3);
             logFile->set_pattern("[%H:%M:%S %z] %v");
         }
 
