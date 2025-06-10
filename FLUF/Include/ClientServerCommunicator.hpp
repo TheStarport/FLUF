@@ -38,11 +38,11 @@ struct FlufPayload
         {
             std::vector<char> bytes;
             bytes.resize(sizeof(flufHeader) + sizeof(header) + sizeof(compressed) + data.size());
-            memcpy_s(bytes.data(), data.size(), &flufHeader, sizeof(flufHeader));
-            memcpy_s(bytes.data() + sizeof(flufHeader), data.size() - sizeof(flufHeader), header, sizeof(header));
-            memcpy_s(bytes.data() + sizeof(flufHeader) + sizeof(header), data.size() - sizeof(flufHeader) - sizeof(header), &compressed, sizeof(bool));
+            memcpy_s(bytes.data(), bytes.size(), &flufHeader, sizeof(flufHeader));
+            memcpy_s(bytes.data() + sizeof(flufHeader), bytes.size() - sizeof(flufHeader), header, sizeof(header));
+            memcpy_s(bytes.data() + sizeof(flufHeader) + sizeof(header), bytes.size() - sizeof(flufHeader) - sizeof(header), &compressed, sizeof(bool));
             memcpy_s(bytes.data() + sizeof(flufHeader) + sizeof(header) + sizeof(compressed),
-                     data.size() - sizeof(flufHeader) - sizeof(header) - sizeof(compressed),
+                     bytes.size() - sizeof(flufHeader) - sizeof(header) - sizeof(compressed),
                      data.data(),
                      data.size());
 

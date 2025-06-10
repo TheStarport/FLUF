@@ -1,4 +1,12 @@
 #pragma once
+
+struct VTablePatch
+{
+        char* newFunc;
+        char* oldFunc;
+        long offset;
+};
+
 enum class IClientVTable
 {
     FireWeapon,
@@ -11,6 +19,7 @@ enum class IClientVTable
     LeaveTradeLane,
     JettisonCargo,
     SendPacket,
+    Startup,
     Nullsub,
     Login,
     CharacterInfo,
@@ -126,10 +135,7 @@ enum class IClientVTable
     unknown_124,
     unknown_125,
     unknown_126,
-    RemoteStart = 0x3B2A0,
-    RemoteEnd = 0x3B494,
-    LocalStart = 0x33250,
-    LocalEnd = 0x33444
+    Count
 };
 
 enum class IServerVTable
@@ -227,8 +233,5 @@ enum class IServerVTable
     DumpPacketStats,
     Dock,
     PushToServer,
-    RemoteStart = 0x3B4A0,
-    RemoteEnd = 0x3B610,
-    LocalStart = 0x33450,
-    LocalEnd = 0x335C0
+    Count
 };

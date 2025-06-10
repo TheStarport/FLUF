@@ -6,7 +6,9 @@
 
 #include "ImportFluf.hpp"
 
+#include "Internal/Hooks/ClientSend.hpp"
 #include "VTables.hpp"
+
 #include <memory>
 
 class ClientServerCommunicator;
@@ -54,10 +56,8 @@ class Fluf
         inline static auto getUserDataPathDetour =
             FunctionDetour(reinterpret_cast<GetUserDataPathSig>(GetProcAddress(GetModuleHandleA("common.dll"), "?GetUserDataPath@@YA_NQAD@Z")));
 
-        std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::LocalStart), static_cast<DWORD>(IClientVTable::LocalEnd)>> localClientVTable;
-        std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::LocalStart), static_cast<DWORD>(IServerVTable::LocalEnd)>> localServerVTable;
-        std::unique_ptr<VTableHook<static_cast<DWORD>(IClientVTable::RemoteStart), static_cast<DWORD>(IClientVTable::RemoteEnd)>> remoteClientVTable;
-        std::unique_ptr<VTableHook<static_cast<DWORD>(IServerVTable::RemoteStart), static_cast<DWORD>(IServerVTable::RemoteEnd)>> remoteServerVTable;
+        std::array<VTablePatch, static_cast<int>(IClientVTable::Count)> clientPatches;
+        std::array<VTablePatch, static_cast<int>(IServerVTable::Count)> serverPatches;
 
         std::unique_ptr<KeyManager> keyManager;
 
@@ -66,6 +66,8 @@ class Fluf
         void OnGameLoad() const;
         static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
 
+        void HookIClient(char* client, bool local);
+        void HookIServer(char* server);
         static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
         static BOOL __stdcall FreeLibraryDetour(HMODULE module);
         static bool GetUserDataPathDetour(char* path);
