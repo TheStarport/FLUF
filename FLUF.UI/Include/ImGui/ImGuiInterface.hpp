@@ -18,6 +18,7 @@ class ImGuiInterface
         bool showOptionsWindow = false;
         std::unordered_set<ImGuiModule*> imguiModules;
         std::unordered_map<FlufModule*, RegisterMenuFunc> registeredOptionMenus;
+        std::string iniPath;
 
         struct MouseState
         {

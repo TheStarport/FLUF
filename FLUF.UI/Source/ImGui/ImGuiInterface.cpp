@@ -318,7 +318,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     std::array<char, MAX_PATH> path{};
     GetUserDataPath(path.data());
 
-    static std::string iniPath = std::format("{}\\imgui.ini", path.data());
+    iniPath = std::format("{}\\imgui.ini", path.data());
 
     static const auto* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);
     const auto ctx = ImGui::CreateContext();
