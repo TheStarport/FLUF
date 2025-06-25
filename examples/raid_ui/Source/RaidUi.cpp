@@ -41,14 +41,59 @@ void RaidUi::OnFixedUpdate(const double delta)
 
     timer = customisationSettings->refreshRate;
 
+    static bool lastDebugState = customisationSettings->debugMode;
+
     const auto playerShip = Fluf::GetPlayerCShip();
-    if (!playerShip || !playerShip->playerGroup)
+    if (!playerShip || (!customisationSettings->debugMode && (!playerShip->playerGroup || lastDebugState)))
     {
+        lastDebugState = false;
         if (!members.empty())
         {
             members.clear();
         }
 
+        return;
+    }
+
+    if (customisationSettings->debugMode)
+    {
+        if (!members.empty())
+        {
+            return;
+        }
+        
+        lastDebugState = true;
+        auto shipClassIter = shipClassImageMap.shipClassImageMap.begin();
+
+        if (shipClassIter == shipClassImageMap.shipClassImageMap.end())
+        {
+            return;
+        }
+
+        for (char i = '0'; i < '0' + 32; ++i)
+        {
+            // clang-format off
+            members[(int)i] = {
+                .name = std::string(1,i),
+                .shipClass = shipClassIter->first,
+                .distance = 10.0f * (int)i,
+                .healthPercent = 0.8f,
+                .healthCurrent = 800.0f,
+                .healthMax = 1000.0f,
+                .shieldPercent = 0.5f,
+                .shieldCurrent = 500.0f,
+                .shieldMax = 1000.0f,
+                .shieldRecharging = false,
+                .shieldRechargeStart = 0.0f,
+                .shieldRechargeEnd = 0.0f,
+            };
+            // clang-format on
+
+            if (++shipClassIter == shipClassImageMap.shipClassImageMap.end())
+            {
+                shipClassIter = shipClassImageMap.shipClassImageMap.begin();
+            }
+        }
         return;
     }
 
@@ -59,7 +104,7 @@ void RaidUi::OnFixedUpdate(const double delta)
         const auto ship = dynamic_cast<CShip*>(next);
         next = CObject::FindNext();
 
-        if (!ship || ship == playerShip || !playerShip->ownerPlayer || playerShip->playerGroup != ship->playerGroup)
+        if (!ship || ship == playerShip || playerShip->playerGroup != ship->playerGroup)
         {
             continue;
         }
@@ -112,7 +157,6 @@ void RaidUi::OnFixedUpdate(const double delta)
         members[ship->id] = {
             .name = name,
             .shipClass = ship->shiparch()->shipClass,
-            .shipArch = ship->archetype->archId,
             .distance = distance,
             .healthPercent = health,
             .healthCurrent = ship->hitPoints,
@@ -441,6 +485,11 @@ void RaidUi::RenderRaidUiOptions(const bool saveRequested)
     ImGui::SameLine();
     ImGuiHelper::HelpMarker("When the cursor is stationary over the raid ui for 0.25s a lock will appear.\n"
                             "Ticking this box will prevent it from appearing at all.");
+
+    ImGui::Checkbox("Debug Mode", &wipSettings->debugMode);
+    ImGui::SameLine();
+    ImGuiHelper::HelpMarker("Creates a mock preview of a full group using all available ship classes");
+
     ImGui::SliderFloat("Refresh Rate", &wipSettings->refreshRate, 0.f, 2.f, "%.2f");
     ImGui::SameLine();
     ImGuiHelper::HelpMarker("The refresh rate determines how long to wait between updating the UI. "
