@@ -74,7 +74,7 @@ void RaidUi::OnFixedUpdate(const double delta)
         {
             // clang-format off
             members[(int)i] = {
-                .name = std::string(1,i),
+                .name = std::string(23,i),
                 .shipClass = shipClassIter->first,
                 .distance = 10.0f * (int)i,
                 .healthPercent = 0.8f,

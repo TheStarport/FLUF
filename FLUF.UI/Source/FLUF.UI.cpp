@@ -47,6 +47,11 @@ void FlufUi::OnGameLoad()
             imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx9, d3d9device);
         }
     }
+    else if(config->uiMode == UiMode::ImGui)
+    {
+        config->uiMode = UiMode::None;
+        MessageBoxA(nullptr, "DirectX 9 not loaded. D3D8to9 must be present.\nDisabling ImGui plugins.", "D3D8to9 not found", MB_OK);
+    }
 
     Fluf::Log(LogLevel::Info, std::format("UI Mode: {}", rfl::enum_to_string(config->uiMode)));
     Fluf::Log(LogLevel::Info, std::format("Rendering Backend: {}", rfl::enum_to_string(backend)));
