@@ -67,7 +67,7 @@ def post_build(release: bool, dest: str):
 
         # Fonts
         result = [y for x in os.walk('./fonts') for y in glob(os.path.join(x[0], '*.ttf'))]
-        os.mkdir('./dist/DATA/FONTS/')
+        os.makedirs('./dist/DATA/FONTS/', exist_ok=True)
         for font in result:
             shutil.copy2(font, './dist/DATA/FONTS/')
             log(f'copied {font}')

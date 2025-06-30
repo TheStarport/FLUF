@@ -2,8 +2,10 @@
 
 #include "FLUF.UI.hpp"
 
+#include "ClientServerCommunicator.hpp"
 #include "Fluf.hpp"
 #include "ImGui/ImGuiInterface.hpp"
+#include "ImGui/ImGuiNotify.hpp"
 #include "Typedefs.hpp"
 #include "Utils/Detour.hpp"
 #include "Vanilla/HudManager.hpp"
@@ -47,10 +49,14 @@ void FlufUi::OnGameLoad()
             imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx9, d3d9device);
         }
     }
-    else if(config->uiMode == UiMode::ImGui)
+    else if (config->uiMode == UiMode::ImGui)
     {
         config->uiMode = UiMode::None;
-        MessageBoxA(nullptr, "DirectX 9 not loaded. D3D8to9 must be present.\nDisabling ImGui plugins.", "D3D8to9 not found", MB_OK);
+        MessageBoxA(nullptr, "DirectX 9 not loaded. D3D8to9 must be present. Please disable ImGui interfaces, or use D3D8to9", "D3D8to9 not found", MB_OK);
+        if (config->enforceUiMode)
+        {
+            std::exit(0);
+        }
     }
 
     Fluf::Log(LogLevel::Info, std::format("UI Mode: {}", rfl::enum_to_string(config->uiMode)));

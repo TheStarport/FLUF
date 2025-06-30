@@ -337,22 +337,6 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     for (auto& loadedFont : config->loadedFonts)
     {
-        if (loadedFont.fontName == "FA")
-        {
-            static constexpr ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-            ImFontConfig fontConfig;
-
-            for (auto fontSize : loadedFont.fontSizes)
-            {
-                auto* font = io.Fonts->AddFontFromMemoryCompressedTTF(
-                    FontAwesomeCompressedData, FontAwesomeCompressedSize, static_cast<float>(fontSize), &fontConfig, iconRanges);
-                assert(font);
-                loadedFont.fontSizesInternal.value()[fontSize] = font;
-            }
-
-            continue;
-        }
-
         if (loadedFont.isDefault)
         {
             loadedFont.fontSizes.insert(DefaultFontSize);
@@ -360,13 +344,29 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
         for (auto fontSize : loadedFont.fontSizes)
         {
-            auto* font = io.Fonts->AddFontFromFileTTF(std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath).c_str(), static_cast<float>(fontSize));
+            std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
+            if (!std::filesystem::exists(fontPath))
+            {
+                Fluf::Warn(std::format("Unable to load font: {}", fontPath));
+                continue;
+            }
+
+            auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), static_cast<float>(fontSize));
             assert(font);
 
             if (loadedFont.isDefault && fontSize == DefaultFontSize)
             {
                 io.FontDefault = font;
             }
+
+            static constexpr ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+
+            ImFontConfig fontConfig;
+            const float iconFontSize = fontSize * 0.666666666f;
+            fontConfig.MergeMode = true;
+            fontConfig.PixelSnapH = true;
+            fontConfig.GlyphMinAdvanceX = iconFontSize;
+            io.Fonts->AddFontFromMemoryCompressedTTF(FontAwesomeCompressedData, FontAwesomeCompressedSize, iconFontSize, &fontConfig, iconRanges);
 
             loadedFont.fontSizesInternal.value()[fontSize] = font;
         }
