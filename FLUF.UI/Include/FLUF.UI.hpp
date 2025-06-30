@@ -57,6 +57,8 @@ class FlufUi final : public FlufModule
                                                          D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
         bool OpenOptionsMenu() const;
 
+        ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
+
     public:
         static constexpr std::string_view moduleName = "FLUF.UI";
 

@@ -149,6 +149,54 @@ bool FlufUi::OpenOptionsMenu() const
     return true;
 }
 
+FlufModule::ModuleProcessCode FlufUi::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
+{
+    if (strncmp(payload.header, "tpop", sizeof(payload.header)) != 0)
+    {
+        return ModuleProcessCode::ContinueUnhandled;
+    }
+
+    struct ToastPayload
+    {
+            std::string title;
+            std::string content;
+            ImGuiToastType toastType;
+            int timeUntilDismiss;
+            bool addSeparator;
+    };
+
+    auto convertedPayload = FlufPayload::Convert<ToastPayload>();
+    if (!convertedPayload)
+    {
+        return ModuleProcessCode::Handled;
+    }
+
+    auto& [title, content, toastType, timeUntilDismiss, addSeparator] = convertedPayload.value();
+
+    if (timeUntilDismiss <= 0)
+    {
+        timeUntilDismiss = INT_MAX;
+    }
+
+    if (content.size() > NOTIFY_MAX_MSG_LENGTH)
+    {
+        content.resize(NOTIFY_MAX_MSG_LENGTH);
+    }
+
+    if (title.size() > NOTIFY_MAX_MSG_LENGTH)
+    {
+        title.resize(NOTIFY_MAX_MSG_LENGTH);
+    }
+
+    ImGuiToast toast{ toastType, timeUntilDismiss };
+    toast.setTitle(title.c_str());
+    toast.setContent(content.c_str());
+    toast.setSeperator(addSeparator);
+
+    ImGui::InsertNotification(toast);
+    return ModuleProcessCode::Handled;
+}
+
 std::weak_ptr<HudManager> FlufUi::GetHudManager() { return hudManager; }
 
 std::shared_ptr<FlufUiConfig> FlufUi::GetConfig() { return config; }

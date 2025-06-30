@@ -8,6 +8,7 @@
 #include "ImGui/ImGuiModule.hpp"
 
 #include "ImGui/FontAwesomeSolid.hpp"
+#include "ImGui/ImGuiNotify.hpp"
 #include <d3dx9.h>
 #include <imgui.h>
 #include <imgui_impl_dx9.h>
@@ -151,7 +152,8 @@ void ImGuiInterface::Render()
         module->Render();
     }
 
-    ImGui::EndFrame();
+    ImGui::RenderNotifications();
+
     ImGui::Render();
 
     switch (backend)
