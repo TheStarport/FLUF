@@ -215,11 +215,11 @@ add_subdirectory(FLUF.UI) # FLUF user interface module
 add_subdirectory(FLUF.CrashWalker) # FLUF anti-crash protections
 
 if (BUILD_SAMPLES)
-    file(GLOB V_GLOB LIST_DIRECTORIES true "examples/*")
+    file(GLOB V_GLOB LIST_DIRECTORIES true "modules/*")
     foreach (ENTRY ${V_GLOB})
         get_filename_component(DIR ${ENTRY} NAME_WLE)
         if (IS_DIRECTORY ${ENTRY} AND NOT ${DIR} STREQUAL "shared_assets")
-            message(STATUS "Configuring Example: ${DIR}")
+            message(STATUS "Configuring Module: ${DIR}")
             add_subdirectory(${ENTRY})
         endif ()
     endforeach ()

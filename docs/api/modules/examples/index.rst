@@ -1,11 +1,11 @@
-.. _api_plugins_examples:
+.. _api_modules:
 
-Examples
+Modules
 ==================================
 
 .. toctree::
    :maxdepth: 2
-   :caption: Examples
+   :caption: Modules
    :glob:
    
    data/*

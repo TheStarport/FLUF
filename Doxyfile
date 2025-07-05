@@ -861,7 +861,7 @@ WARN_LOGFILE           =
 INPUT                  = FLUF \
     FLUF.UI \
     FLUF.CrashWalker \
-    examples \
+    modules \
 
 
                          
