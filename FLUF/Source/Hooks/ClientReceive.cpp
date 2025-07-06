@@ -109,9 +109,11 @@ bool __thiscall ClientReceive::Login(IClientImpl* clientImpl, uint client, FLPAC
     using FuncType = bool(__thiscall*)(IClientImpl*, uint, FLPACKET_UNKNOWN*);
     const auto result = reinterpret_cast<FuncType>(Fluf::instance->clientPatches[static_cast<int>(IClientVTable::Login)].oldFunc)(clientImpl, client, unk);
 
-    constexpr char header[4] = { 'f', 'l', 'u', 'f' };
-    Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
-
+    if (!SinglePlayer())
+    {
+        constexpr char header[4] = { 'f', 'l', 'u', 'f' };
+        Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
+    }
     Fluf::instance->CallModuleEvent(&FlufModule::OnLogin, client, unk);
     return result;
 }
