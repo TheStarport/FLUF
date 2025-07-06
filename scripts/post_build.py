@@ -61,6 +61,7 @@ def post_build(release: bool, dest: str):
         shutil.copytree('./FLUF/Include', 'dist/include/FLUF', ignore=ignore_patterns('Internal'))
         shutil.copytree('./vendor/imgui', 'dist/include/imgui')
         shutil.copy2('./vendor/imgui-markdown/imgui_markdown.h', 'dist/include/imgui_markdown.h')
+        shutil.copy2('./vendor/ImGuiColorTextEdit/TextEditor.h', 'dist/include/TextEditor.h')
 
         shutil.copy2('./vendor/curl-ca-bundle.crt', './dist/')
         log(f'copied ./vendor/curl-ca-bundle.crt')

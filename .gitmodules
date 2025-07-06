@@ -17,3 +17,6 @@
 [submodule "vendor/imgui-markdown"]
 	path = vendor/imgui-markdown
 	url = https://github.com/enkisoftware/imgui_markdown.git
+[submodule "vendor/ImGuiColorTextEdit"]
+	path = vendor/ImGuiColorTextEdit
+	url = https://github.com/santaclose/ImGuiColorTextEdit.git

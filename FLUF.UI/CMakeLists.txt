@@ -7,14 +7,38 @@ set(NAME "FLUF UI")
 set(DESCRIPTION "FLUF UI is a framework designed to making UI extensions for Freelancer (2003) possible")
 set(FLUF_UI_PATH ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 
-configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
-add_library(FLUF.UI SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc
-        ${IMGUI_PATH}/imgui.cpp ${IMGUI_PATH}/imgui_demo.cpp ${IMGUI_PATH}/imgui_draw.cpp ${IMGUI_PATH}/imgui_tables.cpp
-        ${IMGUI_PATH}/imgui_widgets.cpp ${IMGUI_PATH}/misc/cpp/imgui_stdlib.cpp ${IMGUI_PATH}/misc/freetype/imgui_freetype.cpp
-        ${IMGUI_PATH}/backends/imgui_impl_win32.cpp ${IMGUI_PATH}/backends/imgui_impl_dx9.cpp
+# ImGuiColorTextEdit dependency
+set(IMGUI_COLOR_TEXT_EDIT_DIR "${VENDOR_PATH}/ImGuiColorTextEdit")
+add_subdirectory(${IMGUI_COLOR_TEXT_EDIT_DIR}/vendor/regex ${CMAKE_CURRENT_BINARY_DIR}/regex EXCLUDE_FROM_ALL)
+set(IMGUI_COLOR_TEXT_EDIT_SOURCE_FILES
+        ${IMGUI_COLOR_TEXT_EDIT_DIR}/TextEditor.cpp
+        ${IMGUI_COLOR_TEXT_EDIT_DIR}/LanguageDefinitions.cpp
 )
 
-target_include_directories(FLUF.UI PRIVATE ${FREETYPE_INCLUDE_DIRS} ${IMGUI_PATH}/backends)
+configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
+add_library(FLUF.UI SHARED
+        ${SOURCE_FILES}
+        ${ROOT_DIR}/PCH.cpp
+        ${ROOT_DIR}/PCH.hpp
+        ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc
+        ${IMGUI_PATH}/imgui.cpp
+        ${IMGUI_PATH}/imgui_demo.cpp
+        ${IMGUI_PATH}/imgui_draw.cpp
+        ${IMGUI_PATH}/imgui_tables.cpp
+        ${IMGUI_PATH}/imgui_widgets.cpp
+        ${IMGUI_PATH}/misc/cpp/imgui_stdlib.cpp
+        ${IMGUI_PATH}/misc/freetype/imgui_freetype.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_win32.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_dx9.cpp
+        ${IMGUI_COLOR_TEXT_EDIT_SOURCE_FILES}
+)
+
+target_include_directories(FLUF.UI PRIVATE
+        ${FREETYPE_INCLUDE_DIRS}
+        ${IMGUI_PATH}/backends
+        ${IMGUI_COLOR_TEXT_EDIT_DIR}
+        ${IMGUI_COLOR_TEXT_EDIT_DIR}/vendor/regex/include
+)
 
 target_link_libraries(FLUF.UI PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
 target_link_libraries(FLUF.UI PRIVATE FLUF)

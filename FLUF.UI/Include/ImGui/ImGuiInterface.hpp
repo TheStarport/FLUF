@@ -72,6 +72,8 @@ class ImGuiInterface
          */
         FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, int fontSize) const;
 
+        FLUF_UI_API const ImFont* GetDefaultFont(int fontSize = 0);
+
         /**
          * @brief Register a callback that will be called when the custom options menu is visible for the module that calls it.
          * Every registered module gets it's own tab within the options window, and the callback will be called when that tab is selected.

@@ -71,13 +71,13 @@ void __declspec(naked) DelayDisplayNaked()
 
 void Patch()
 {
-    HMODULE hFreelancer = GetModuleHandleA(0);
+    HMODULE fl = GetModuleHandleA(nullptr);
     BYTE patch[] = { 0xB8, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xD0 };
-    DWORD* iAddr = (DWORD*)((char*)&patch + 1);
-    *iAddr = reinterpret_cast<DWORD>((void*)DelayDisplayNaked);
-    MemUtils::WriteProcMem(DWORD(hFreelancer) + 0xDDFD5, patch, sizeof(patch));
-    BYTE patch2[] = { 0x00 };
-    MemUtils::WriteProcMem(DWORD(hFreelancer) + 0xDDFC0, patch2, sizeof(patch2));
+    auto address = reinterpret_cast<DWORD*>(reinterpret_cast<char*>(&patch) + 1);
+    *address = reinterpret_cast<DWORD>((void*)DelayDisplayNaked);
+    MemUtils::WriteProcMem(reinterpret_cast<DWORD>(fl) + 0xDDFD5, patch, sizeof(patch));
+    constexpr BYTE patch2[1]{};
+    MemUtils::WriteProcMem(reinterpret_cast<DWORD>(fl) + 0xDDFC0, patch2, sizeof(patch2));
 }
 
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
@@ -91,7 +91,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-DelayDisplay::DelayDisplay() {}
+DelayDisplay::DelayDisplay() = default;
 
 std::string_view DelayDisplay::GetModuleName() { return moduleName; }
 

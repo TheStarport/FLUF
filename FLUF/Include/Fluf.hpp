@@ -36,6 +36,18 @@ class FlufConfiguration;
 struct CShip;
 struct SStartupInfo;
 class KeyManager;
+struct EquipDesc;
+
+namespace Universe
+{
+    struct ISystem;
+}
+
+namespace Archetype
+{
+    struct Ship;
+}
+
 class Fluf
 {
         friend KeyManager;
@@ -145,6 +157,10 @@ class Fluf
         FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string_view identifier);
         FLUF_API static CShip* GetPlayerCShip();
         FLUF_API static IObjRW* GetPlayerIObjRW();
+        FLUF_API static unsigned int GetPlayerClientId();
+        FLUF_API static const Universe::ISystem* GetPlayerSystem();
+        FLUF_API static Archetype::Ship* GetPlayerShipArch();
+        FLUF_API static EquipDesc* GetPlayerEquipDesc();
         FLUF_API static bool IsRunningOnClient();
 
         /**

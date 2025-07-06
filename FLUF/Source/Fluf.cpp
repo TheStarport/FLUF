@@ -436,6 +436,26 @@ IObjRW* Fluf::GetPlayerIObjRW()
     return getIObjRW();
 }
 
+uint Fluf::GetPlayerClientId()
+{
+    const auto* id = reinterpret_cast<uint*>(0x673344);
+    return *id;
+}
+
+const Universe::ISystem* Fluf::GetPlayerSystem()
+{
+    const auto* id = reinterpret_cast<uint*>(0x273354);
+    return Universe::get_system(*id);
+}
+
+Archetype::Ship* Fluf::GetPlayerShipArch()
+{
+    const auto* shipId = reinterpret_cast<uint*>(0x67337C);
+    return Archetype::GetShip(*shipId);
+}
+
+EquipDesc* Fluf::GetPlayerEquipDesc() { return reinterpret_cast<EquipDesc*>(0x272960); }
+
 bool Fluf::IsRunningOnClient() { return instance->runningOnClient; }
 
 KeyManager* Fluf::GetKeyManager() { return instance->keyManager.get(); }

@@ -472,6 +472,31 @@ ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int font
     return size->second;
 }
 
+const ImFont* ImGuiInterface::GetDefaultFont(int fontSize)
+{
+    if (fontSize == 0)
+    {
+        fontSize = DefaultFontSize;
+    }
+
+    for (const auto& font : config->loadedFonts)
+    {
+        if (!font.isDefault)
+        {
+            continue;
+        }
+
+        if (!font.fontSizes.contains(fontSize))
+        {
+            throw std::runtime_error("Default font doesn't contain specified font size");
+        }
+
+        return font.fontSizesInternal.value().find(fontSize)->second;
+    }
+
+    throw std::runtime_error("No font was specified as default");
+}
+
 bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterMenuFunc function)
 {
     if (registeredOptionMenus.contains(module))

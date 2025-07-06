@@ -165,7 +165,7 @@ FlufModule::ModuleProcessCode FlufUi::OnPayloadReceived(uint sourceClientId, con
             bool addSeparator;
     };
 
-    auto convertedPayload = FlufPayload::Convert<ToastPayload>();
+    auto convertedPayload = payload.Convert<ToastPayload>();
     if (!convertedPayload)
     {
         return ModuleProcessCode::Handled;
