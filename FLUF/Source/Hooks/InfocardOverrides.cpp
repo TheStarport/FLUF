@@ -69,7 +69,7 @@ __declspec(naked) void InfocardOverrides::GetIdsInfocardNaked()
 
 bool InfocardOverrides::HandlePayload(const FlufPayload& payload)
 {
-    if (strncmp(payload.header, "info", sizeof(payload.header)) != 0)
+    if (payload.header != "infocard_override")
     {
         return false;
     }

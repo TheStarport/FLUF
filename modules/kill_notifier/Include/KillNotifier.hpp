@@ -9,7 +9,7 @@ struct KillMessage
 
 class KillNotifier final : public FlufModule
 {
-        static constexpr char killMessageHeader[4] = { 'k', 'i', 'l', 'l' };
+        static constexpr std::string_view killMessageHeader{ "kill_message" };
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
 
     public:

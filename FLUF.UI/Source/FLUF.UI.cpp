@@ -151,7 +151,7 @@ bool FlufUi::OpenOptionsMenu() const
 
 FlufModule::ModuleProcessCode FlufUi::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
 {
-    if (strncmp(payload.header, "tpop", sizeof(payload.header)) != 0)
+    if (payload.header != "toast")
     {
         return ModuleProcessCode::ContinueUnhandled;
     }

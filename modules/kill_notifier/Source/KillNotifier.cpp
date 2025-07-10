@@ -16,7 +16,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 FlufModule::ModuleProcessCode KillNotifier::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
 {
-    if (!Fluf::IsRunningOnClient() || strncmp(payload.header, killMessageHeader, 4) != 0)
+    if (!Fluf::IsRunningOnClient() || payload.header != killMessageHeader)
     {
         return ModuleProcessCode::ContinueUnhandled;
     }

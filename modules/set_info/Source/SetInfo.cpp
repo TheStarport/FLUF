@@ -100,7 +100,7 @@ void SetInfo::Render()
 
 FlufModule::ModuleProcessCode SetInfo::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
 {
-    if (strncmp(payload.header, "sinf", sizeof(payload.header)) != 0)
+    if (payload.header != "set_info")
     {
         return ModuleProcessCode::ContinueUnhandled;
     }
@@ -124,7 +124,7 @@ FlufModule::ModuleProcessCode SetInfo::OnPayloadReceived(uint sourceClientId, co
 
 void SetInfo::SendServerInfocardUpdate()
 {
-    constexpr char header[4] = { 's', 'i', 'n', 'f' };
+    constexpr std::string_view header = "set_info";
     auto payload = FlufPayload::ToPayload(infocardBeingEdited, header);
     Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
     waitingForUpdate = true;
