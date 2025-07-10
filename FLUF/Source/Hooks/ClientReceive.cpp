@@ -111,9 +111,10 @@ bool __thiscall ClientReceive::Login(IClientImpl* clientImpl, uint client, FLPAC
 
     if (!SinglePlayer())
     {
-        constexpr char header[4] = { 'f', 'l', 'u', 'f' };
+        constexpr std::string_view header = "fluf";
         Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
     }
+
     Fluf::instance->CallModuleEvent(&FlufModule::OnLogin, client, unk);
     return result;
 }
