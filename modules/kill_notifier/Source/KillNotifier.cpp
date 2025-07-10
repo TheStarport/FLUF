@@ -29,7 +29,6 @@ FlufModule::ModuleProcessCode KillNotifier::OnPayloadReceived(uint sourceClientI
     }
 
     MessageBoxA(nullptr, result.value().textMessage.c_str(), "OH NO THEY KILLED KENNY!", MB_OK);
-
     return ModuleProcessCode::Handled;
 }
 

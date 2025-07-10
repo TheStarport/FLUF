@@ -5,7 +5,7 @@ Modules
 
 .. toctree::
    :maxdepth: 2
-   :caption: Modules
+   :caption: Examples
    :glob:
    
    data/*

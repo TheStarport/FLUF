@@ -1,5 +1,7 @@
 ![Fluf Logo](./.github/images/fluf.png)
 
+### N.B. This project is still in a pre-release state and likely contains bugs or issues that cause instability.
+
 ## What is FLUF
 
 FLUF is a client/server framework for the video game Freelancer (2003). It is designed to make
@@ -32,6 +34,22 @@ and see if the error code that occurred was in the there and inform the user of 
 it will create a memory dump that can be reviewed by mod developers to discern a cause.
 
 [See more](https://fluf.the-starport.com/api/modules/data/fluf_crash_walker.html).
+
+### Others
+
+There are many other modules that are provided as part of FLUF, see
+the [docs](https://fluf.the-starport.com/api/modules) page for more, or examples for making your own.
+
+## Runtime Requirements
+
+For general usage, it is assumed that
+the [VS2022 Redists](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#visual-studio-2015-2017-2019-and-2022)
+are installed on the system.
+
+In addition, if you are using FLUF.UI with ImGui enabled you need a compatible renderer as DirectX8 is not supported.
+At this time the only option is to use [d3d8to9](https://github.com/crosire/d3d8to9). Simply place the d3d8.dll in the
+EXE folder to use it. If using DirectX9, you need to ensure that
+the [DirectX End User Runtime](https://www.microsoft.com/en-gb/download/details.aspx?id=8109) is installed as well.
 
 ## Building
 
