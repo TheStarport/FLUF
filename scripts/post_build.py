@@ -81,8 +81,11 @@ def post_build(release: bool, dest: str):
             if not dest.endswith(os.path.sep):
                 dest += os.path.sep
 
-            shutil.copytree('./dist', dest, dirs_exist_ok=True, ignore=ignore_patterns('*.h,*.hpp,*.lib'))
-            shutil.copytree(dest + 'DATA', f'{dest}..{os.path.sep}DATA{os.path.sep}', dirs_exist_ok=True)
-            shutil.rmtree(dest + 'DATA', ignore_errors=True)
+            module_path = f'{dest}{os.path.sep}modules'
+            os.makedirs(module_path, exist_ok=True)
+            shutil.copytree('./dist/modules', module_path, dirs_exist_ok=True)
+            shutil.copytree('./dist/DATA', f'{dest}..{os.path.sep}DATA{os.path.sep}', dirs_exist_ok=True)
+            shutil.copy2(f'dist/FLUF.dll', dest)
+            shutil.copy2(f'dist/curl-ca-bundle.crt', dest)
     except Exception as e:
         print(e)
