@@ -20,3 +20,6 @@
 [submodule "vendor/ImGuiColorTextEdit"]
 	path = vendor/ImGuiColorTextEdit
 	url = https://github.com/santaclose/ImGuiColorTextEdit.git
+[submodule "vendor/imgui_gradient"]
+	path = vendor/imgui_gradient
+	url = https://github.com/Coollab-Art/imgui_gradient.git

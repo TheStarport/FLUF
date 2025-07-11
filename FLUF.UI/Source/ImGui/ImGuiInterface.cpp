@@ -17,6 +17,9 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "KeyManager.hpp"
+#include "Internal/CustomHud.hpp"
+#include "Internal/PlayerStatusWindow.hpp"
+#include "Vanilla/HudManager.hpp"
 
 #include <ImGui/IconFontAwesome6.hpp>
 #include <stb_image.h>
@@ -152,6 +155,9 @@ void ImGuiInterface::Render()
         module->Render();
     }
 
+    playerStatusWindow->Render(statMenus);
+
+    // Render notifications above all else
     ImGui::RenderNotifications();
 
     ImGui::Render();
@@ -394,6 +400,17 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     }
 
     Fluf::GetKeyManager()->RegisterKey(flufUi, "FLUF_OPEN_EXTENDED_OPTIONS_MENU", Key::USER_NO_OVERRIDE, reinterpret_cast<KeyFunc>(&FlufUi::OpenOptionsMenu));
+
+    // Init submenus
+    playerStatusWindow = std::make_unique<PlayerStatusWindow>();
+
+    // Register custom hud for listening to the player status button
+    customHud = std::make_unique<CustomHud>(playerStatusWindow.get());
+    flufUi->GetHudManager().lock()->RegisterHud(customHud.get());
+
+    // Dummy menus for needed categories (these menus are integrated directly into PlayerStatusMenu)
+    RegisterStatsMenu(flufUi, "Exploration", nullptr);
+    RegisterStatsMenu(flufUi, "Kill Counts", nullptr);
 }
 
 void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)
@@ -497,7 +514,7 @@ const ImFont* ImGuiInterface::GetDefaultFont(int fontSize)
     throw std::runtime_error("No font was specified as default");
 }
 
-bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterMenuFunc function)
+bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterOptionsFunc function)
 {
     if (registeredOptionMenus.contains(module))
     {
@@ -506,5 +523,39 @@ bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterMenuF
 
     Fluf::Log(LogLevel::Info, std::format("({}) Registering Option Menu", module->GetModuleName()));
     registeredOptionMenus[module] = function;
+    return true;
+}
+
+bool ImGuiInterface::RegisterStatusMenu(FlufModule* module, RegisterMenuFunc function) const
+{
+    if (registeredOptionMenus.contains(module))
+    {
+        return false;
+    }
+
+    playerStatusWindow->RegisterNewMenu(module, function);
+    return true;
+}
+
+bool ImGuiInterface::RegisterStatsMenu(FlufModule* module, const std::string& category, OnRenderStatsMenu function)
+{
+    const auto iter = statMenus.find(category);
+    if (iter == statMenus.end())
+    {
+        Fluf::Info(std::format("Registering new stats category: {}.", category));
+        statMenus[category] = {
+            { module, { function } }
+        };
+
+        return true;
+    }
+
+    if (const auto subList = iter->second.find(module); subList != iter->second.end())
+    {
+        Fluf::Error("Tried to register stats menu category multiple times.");
+        return false;
+    }
+
+    iter->second[module] = function;
     return true;
 }

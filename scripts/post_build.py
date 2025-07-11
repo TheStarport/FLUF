@@ -57,7 +57,7 @@ def post_build(release: bool, dest: str):
             log(f'copied {dll}')
 
         # Include Files
-        shutil.copytree('./FLUF.UI/Include', 'dist/include/FLUF.UI')
+        shutil.copytree('./FLUF.UI/Include', 'dist/include/FLUF.UI', ignore=ignore_patterns('Internal'))
         shutil.copytree('./FLUF/Include', 'dist/include/FLUF', ignore=ignore_patterns('Internal'))
         shutil.copytree('./vendor/imgui', 'dist/include/imgui')
         shutil.copy2('./vendor/imgui-markdown/imgui_markdown.h', 'dist/include/imgui_markdown.h')

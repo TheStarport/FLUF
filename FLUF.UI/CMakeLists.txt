@@ -15,6 +15,9 @@ set(IMGUI_COLOR_TEXT_EDIT_SOURCE_FILES
         ${IMGUI_COLOR_TEXT_EDIT_DIR}/LanguageDefinitions.cpp
 )
 
+add_subdirectory(${VENDOR_PATH}/imgui_gradient ${CMAKE_CURRENT_BINARY_DIR}/imgui_gradient EXCLUDE_FROM_ALL)
+target_include_directories(imgui_gradient SYSTEM PRIVATE ${IMGUI_PATH})
+
 configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
 add_library(FLUF.UI SHARED
         ${SOURCE_FILES}
@@ -42,6 +45,7 @@ target_include_directories(FLUF.UI PRIVATE
 
 target_link_libraries(FLUF.UI PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
 target_link_libraries(FLUF.UI PRIVATE FLUF)
+target_link_libraries(FLUF.UI PRIVATE imgui_gradient::imgui_gradient)
 target_compile_definitions(FLUF.UI PRIVATE FLUF_UI FLCore)
 add_dependencies(FLUF.UI FLUF)
 
