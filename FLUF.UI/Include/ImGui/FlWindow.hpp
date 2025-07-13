@@ -19,6 +19,8 @@ class FlWindow
         inline static ImTextureID backgroundTexture;
         inline static ImVec2 imageSize;
 
+        static void DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize);
+
     protected:
         bool isOpen = false;
         ~FlWindow() = default;
