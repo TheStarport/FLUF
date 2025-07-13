@@ -8,7 +8,9 @@
 #include "ImGui/ImGuiHelper.hpp"
 #include <imgui_gradient/imgui_gradient.hpp>
 
-PlayerStatusWindow::PlayerStatusWindow() {}
+PlayerStatusWindow::PlayerStatusWindow(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>& statsMenus)
+    : FlWindow("Player Status", ImGuiWindowFlags_NoResize), statsMenus(statsMenus)
+{}
 
 void PlayerStatusWindow::RegisterNewMenu(FlufModule* module, const RegisterMenuFunc func)
 {
@@ -16,20 +18,8 @@ void PlayerStatusWindow::RegisterNewMenu(FlufModule* module, const RegisterMenuF
     registeredMenus[module] = func;
 }
 
-void PlayerStatusWindow::Render(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>& statsMenus)
+void PlayerStatusWindow::RenderWindowContents()
 {
-    if (!windowOpen)
-    {
-        return;
-    }
-
-    ImGuiHelper::CenterNextWindow();
-    if (!ImGui::Begin("Player Status", &windowOpen, ImGuiWindowFlags_NoResize))
-    {
-        ImGui::End();
-        return;
-    }
-
     if (!ImGui::BeginTabBar("##ps-tabs"))
     {
         ImGui::End();
@@ -141,5 +131,6 @@ void PlayerStatusWindow::Render(const std::unordered_map<std::string, std::unord
     }
 
     ImGui::EndTabBar();
-    ImGui::End();
 }
+
+void PlayerStatusWindow::SetOpen() { this->isOpen = true; }

@@ -130,6 +130,20 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
     return style;
 }
 
+void ImGuiInterface::InitSubmenus()
+{
+    // Init submenus
+    playerStatusWindow = std::make_unique<PlayerStatusWindow>(statMenus);
+
+    // Register custom hud for listening to the player status button
+    customHud = std::make_unique<CustomHud>(playerStatusWindow.get());
+    flufUi->GetHudManager().lock()->RegisterHud(customHud.get());
+
+    // Dummy menus for needed categories (these menus are integrated directly into PlayerStatusMenu)
+    RegisterStatsMenu(flufUi, "Exploration", nullptr);
+    RegisterStatsMenu(flufUi, "Kill Counts", nullptr);
+}
+
 void ImGuiInterface::Render()
 {
     PollInput();
@@ -155,7 +169,7 @@ void ImGuiInterface::Render()
         module->Render();
     }
 
-    playerStatusWindow->Render(statMenus);
+    playerStatusWindow->Render();
 
     // Render notifications above all else
     ImGui::RenderNotifications();
@@ -305,6 +319,8 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
     return true;
 }
 
+void* ImGuiInterface::GetDxDevice() { return dxDevice; }
+
 ImGuiInterface::~ImGuiInterface()
 {
     switch (backend)
@@ -321,7 +337,8 @@ ImGuiInterface::~ImGuiInterface()
     ImGui::DestroyContext();
 }
 
-ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device) : dxDevice(device), config(flufUi->GetConfig()), backend(backend)
+ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device)
+    : dxDevice(device), flufUi(flufUi), config(flufUi->GetConfig()), backend(backend)
 {
     std::array<char, MAX_PATH> path{};
     GetUserDataPath(path.data());
@@ -400,17 +417,6 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     }
 
     Fluf::GetKeyManager()->RegisterKey(flufUi, "FLUF_OPEN_EXTENDED_OPTIONS_MENU", Key::USER_NO_OVERRIDE, reinterpret_cast<KeyFunc>(&FlufUi::OpenOptionsMenu));
-
-    // Init submenus
-    playerStatusWindow = std::make_unique<PlayerStatusWindow>();
-
-    // Register custom hud for listening to the player status button
-    customHud = std::make_unique<CustomHud>(playerStatusWindow.get());
-    flufUi->GetHudManager().lock()->RegisterHud(customHud.get());
-
-    // Dummy menus for needed categories (these menus are integrated directly into PlayerStatusMenu)
-    RegisterStatsMenu(flufUi, "Exploration", nullptr);
-    RegisterStatsMenu(flufUi, "Kill Counts", nullptr);
 }
 
 void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)

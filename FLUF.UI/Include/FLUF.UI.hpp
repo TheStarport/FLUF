@@ -42,6 +42,7 @@ class FlufUi final : public FlufModule
         std::shared_ptr<HudManager> hudManager;
         std::shared_ptr<FlufUiConfig> config;
         std::shared_ptr<ImGuiInterface> imguiInterface;
+        RenderingBackend renderingBackend = RenderingBackend::Dx8;
 
         /**
          * @brief Hook on OnGameLoad (main menu loaded). Initialises RML with Directx9 if the mode is enabled and DX9 is found.
@@ -77,6 +78,11 @@ class FlufUi final : public FlufModule
          */
         [[nodiscard]]
         FLUF_UI_API ImGuiInterface* GetImGuiInterface() const;
+
+        /**
+         * @brief Gets which rendering backend that is currently being used for UI modifications
+         */
+        FLUF_UI_API RenderingBackend GetRenderingBackend() const;
 
         FlufUi();
         ~FlufUi() override;

@@ -10,9 +10,9 @@ bool CustomHud::OnExecuteButton(FlButtonControl* control)
 {
     if (control->GetName() == "NNPlayerInfoButtonRoot")
     {
-        // TODO: Add flashy animation!
-        statusWindow->windowOpen = true;
-        return false;
+        // TODO: Add flashy animation! Enable once complete
+        //statusWindow->SetOpen();
+        //return false;
     }
 
     return true;

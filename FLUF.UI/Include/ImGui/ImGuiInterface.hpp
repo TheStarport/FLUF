@@ -45,10 +45,12 @@ class ImGuiInterface
         std::unique_ptr<PlayerStatusWindow> playerStatusWindow;
         std::unique_ptr<CustomHud> customHud;
 #endif
+        FlufUi* flufUi;
         std::shared_ptr<FlufUiConfig> config;
         RenderingBackend backend;
         static ImGuiStyle& GenerateDefaultStyle();
 
+        void InitSubmenus();
         void Render();
         void RenderOptionsMenu();
         static void PollInput();
@@ -56,6 +58,7 @@ class ImGuiInterface
         static bool WndProc(FlufUiConfig* config, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     public:
+        void* GetDxDevice();
         ~ImGuiInterface();
         explicit ImGuiInterface(FlufUi* flufUi, RenderingBackend backend, void* device);
 

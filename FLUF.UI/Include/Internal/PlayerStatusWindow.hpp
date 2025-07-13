@@ -1,17 +1,20 @@
 #pragma once
 
 #include "ImGui/ImGuiInterface.hpp"
+#include "ImGui/FlWindow.hpp"
 
 class CustomHud;
-class PlayerStatusWindow
+class PlayerStatusWindow final : public FlWindow
 {
         friend CustomHud;
 
-        bool windowOpen = false;
         std::unordered_map<FlufModule*, RegisterMenuFunc> registeredMenus;
+        const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>& statsMenus;
+
+        void RenderWindowContents() override;
 
     public:
-        PlayerStatusWindow();
+        void SetOpen();
+        explicit PlayerStatusWindow(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>&);
         void RegisterNewMenu(FlufModule* module, RegisterMenuFunc func);
-        void Render(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>& statsMenus);
 };
