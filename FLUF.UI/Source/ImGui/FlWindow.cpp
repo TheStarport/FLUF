@@ -47,7 +47,7 @@ void FlWindow::Render()
                     auto* dx = static_cast<IDirect3DDevice9*>(dxDevice);
                     dx->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_MIRROR);
                     dx->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_MIRROR);
-                };
+                }
             },
             nullptr);
         drawList->AddImage(backgroundTexture,
@@ -76,7 +76,7 @@ FlWindow::FlWindow(const std::string& windowName, const ImGuiWindowFlags flags, 
     renderingBackend = flufUi->GetRenderingBackend();
 
     const auto imguiInterface = flufUi->GetImGuiInterface();
-    dxDevice = imguiInterface->GetDxDevice();
+    dxDevice = imguiInterface->GetRenderingContext();
 
     // TODO: Make this texture customizable
     uint width = 0, height = 0;

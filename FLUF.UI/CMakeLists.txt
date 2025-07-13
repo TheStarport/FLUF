@@ -33,6 +33,7 @@ add_library(FLUF.UI SHARED
         ${IMGUI_PATH}/misc/freetype/imgui_freetype.cpp
         ${IMGUI_PATH}/backends/imgui_impl_win32.cpp
         ${IMGUI_PATH}/backends/imgui_impl_dx9.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
         ${IMGUI_COLOR_TEXT_EDIT_SOURCE_FILES}
 )
 
@@ -43,9 +44,13 @@ target_include_directories(FLUF.UI PRIVATE
         ${IMGUI_COLOR_TEXT_EDIT_DIR}/vendor/regex/include
 )
 
-target_link_libraries(FLUF.UI PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
-target_link_libraries(FLUF.UI PRIVATE FLUF)
-target_link_libraries(FLUF.UI PRIVATE imgui_gradient::imgui_gradient)
+target_link_libraries(FLUF.UI PRIVATE
+        "${SDK_PATH}/lib/FLCoreCommon.lib"
+        FLUF
+        imgui_gradient::imgui_gradient
+        opengl32.lib
+)
+
 target_compile_definitions(FLUF.UI PRIVATE FLUF_UI FLCore)
 add_dependencies(FLUF.UI FLUF)
 

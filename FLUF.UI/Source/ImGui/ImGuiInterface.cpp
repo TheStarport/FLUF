@@ -12,8 +12,10 @@
 #include <d3dx9.h>
 #include <imgui.h>
 #include <imgui_impl_dx9.h>
+#include <imgui_impl_opengl3.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
+#include <gl/GL.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "KeyManager.hpp"
@@ -151,6 +153,7 @@ void ImGuiInterface::Render()
     switch (backend)
     {
         case RenderingBackend::Dx9: ImGui_ImplDX9_NewFrame(); break;
+        case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_NewFrame(); break;
         default: throw std::runtime_error("Unknown backend");
     }
 
@@ -179,6 +182,7 @@ void ImGuiInterface::Render()
     switch (backend)
     {
         case RenderingBackend::Dx9: ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData()); break;
+        case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); break;
         default: throw std::runtime_error("Unknown backend");
     }
 }
@@ -319,7 +323,7 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
     return true;
 }
 
-void* ImGuiInterface::GetDxDevice() { return dxDevice; }
+void* ImGuiInterface::GetRenderingContext() const { return renderingContext; }
 
 ImGuiInterface::~ImGuiInterface()
 {
@@ -330,6 +334,7 @@ ImGuiInterface::~ImGuiInterface()
             *static_cast<LPDIRECT3DDEVICE9*>(ImGui::GetIO().BackendRendererUserData) = nullptr;
             ImGui_ImplDX9_Shutdown();
             break;
+        case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_Shutdown(); break;
         default: break;
     }
 
@@ -337,8 +342,8 @@ ImGuiInterface::~ImGuiInterface()
     ImGui::DestroyContext();
 }
 
-ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device)
-    : dxDevice(device), flufUi(flufUi), config(flufUi->GetConfig()), backend(backend)
+ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* context)
+    : renderingContext(context), flufUi(flufUi), config(flufUi->GetConfig()), backend(backend)
 {
     std::array<char, MAX_PATH> path{};
     GetUserDataPath(path.data());
@@ -370,7 +375,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
         for (auto fontSize : loadedFont.fontSizes)
         {
             std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
-            if (!std::filesystem::exists(fontPath))
+            if (!std::filesystem::exists(fontPath) && std::filesystem::is_regular_file(fontPath))
             {
                 Fluf::Warn(std::format("Unable to load font: {}", fontPath));
                 continue;
@@ -403,8 +408,13 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     {
         case RenderingBackend::Dx9:
             {
-                const auto dx9Device = static_cast<IDirect3DDevice9*>(device);
+                const auto dx9Device = static_cast<IDirect3DDevice9*>(context);
                 ImGui_ImplDX9_Init(dx9Device);
+                break;
+            }
+        case RenderingBackend::OpenGL:
+            {
+                ImGui_ImplOpenGL3_Init();
                 break;
             }
         case RenderingBackend::Dx8:
@@ -429,7 +439,7 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
     if (backend == RenderingBackend::Dx9)
     {
         PDIRECT3DTEXTURE9 d3dTexture = nullptr;
-        if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(dxDevice), path.c_str(), &d3dTexture); hr != D3D_OK)
+        if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(renderingContext), path.c_str(), &d3dTexture); hr != D3D_OK)
         {
             goto failed;
         }
@@ -446,6 +456,40 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
         width = surfaceDesc.Width;
         height = surfaceDesc.Height;
         return d3dTexture;
+    }
+
+    if (backend == RenderingBackend::OpenGL)
+    {
+        FILE* f = fopen(path.c_str(), "rb");
+        if (f == nullptr)
+        {
+            goto failed;
+        }
+
+        auto imageHandle = stbi_load_from_file(f, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height), nullptr, 4);
+        if (!imageHandle)
+        {
+            fclose(f);
+            goto failed;
+        }
+
+        // Create a OpenGL texture identifier
+        GLuint imageTexture;
+        glGenTextures(1, &imageTexture);
+        glBindTexture(GL_TEXTURE_2D, imageTexture);
+
+        // Setup filtering parameters for display
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Upload pixels into texture
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageHandle);
+        stbi_image_free(imageHandle);
+        fclose(f);
+
+        loadedTextures[path] = reinterpret_cast<void*>(imageTexture);
+        return reinterpret_cast<void*>(imageTexture);
     }
 
 failed:

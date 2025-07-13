@@ -21,7 +21,7 @@ class ImGuiInterface
 {
         static constexpr int DefaultFontSize = 36;
         inline static bool showDemoWindow = false;
-        void* dxDevice;
+        void* renderingContext;
         std::unordered_map<std::string, void*> loadedTextures;
 
         bool showOptionsWindow = false;
@@ -58,9 +58,9 @@ class ImGuiInterface
         static bool WndProc(FlufUiConfig* config, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     public:
-        void* GetDxDevice();
+        void* GetRenderingContext() const;
         ~ImGuiInterface();
-        explicit ImGuiInterface(FlufUi* flufUi, RenderingBackend backend, void* device);
+        explicit ImGuiInterface(FlufUi* flufUi, RenderingBackend backend, void* context);
 
         /**
          * @brief Loads an image from the specified path using the currently running render backend.\n
