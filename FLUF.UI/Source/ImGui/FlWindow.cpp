@@ -10,7 +10,7 @@
 #include "ImGui/ImGuiInterface.hpp"
 #include <imgui_internal.h>
 
-void FlWindow::DrawScrollbars()
+void FlWindow::DrawScrollbars() const
 {
     if (!drawScrollbars)
     {

@@ -20,7 +20,7 @@ class FlWindow
         inline static ImTextureID backgroundTexture;
         inline static ImVec2 imageSize;
 
-        void DrawScrollbars();
+        void DrawScrollbars() const;
         static void DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize);
 
     protected:
