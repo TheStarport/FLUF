@@ -14,11 +14,13 @@ class FlWindow
         bool centered = false;
         ImGuiWindowFlags windowFlags;
         ImGuiCond conditionFlag;
+        bool drawScrollbars;
         inline static RenderingBackend renderingBackend;
         inline static void* dxDevice;
         inline static ImTextureID backgroundTexture;
         inline static ImVec2 imageSize;
 
+        void DrawScrollbars();
         static void DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize);
 
     protected:
@@ -33,5 +35,5 @@ class FlWindow
         void SetPosition(ImVec2 position);
         void SetPivot(ImVec2 pivot);
         void Render();
-        explicit FlWindow(const std::string& windowName, ImGuiWindowFlags flags = ImGuiWindowFlags_None, ImGuiCond condition = ImGuiCond_Appearing);
+        explicit FlWindow(std::string windowName, ImGuiWindowFlags flags = ImGuiWindowFlags_None, ImGuiCond condition = ImGuiCond_Appearing);
 };

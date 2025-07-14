@@ -22,7 +22,6 @@ void PlayerStatusWindow::RenderWindowContents()
 {
     if (!ImGui::BeginTabBar("##ps-tabs"))
     {
-        ImGui::End();
         return;
     }
 

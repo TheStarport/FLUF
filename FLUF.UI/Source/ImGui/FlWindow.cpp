@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "PCH.hpp"
 
 #include "ImGui/FlWindow.hpp"
@@ -6,8 +8,123 @@
 #include "Fluf.hpp"
 #include "d3d9.h"
 #include "ImGui/ImGuiInterface.hpp"
+#include <imgui_internal.h>
 
-void FlWindow::DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize)
+void FlWindow::DrawScrollbars()
+{
+    if (!drawScrollbars)
+    {
+        return;
+    }
+
+    static auto getBoundingBox = [](ImGuiWindow* window, const ImGuiAxis axis)
+    {
+        const auto scrollBarSize = ImGui::GetStyle().ScrollbarSize;
+        // Calculate scrollbar bounding box
+        const ImRect outerRect = window->Rect();
+        const ImRect innerRect = window->InnerRect;
+        const float borderSize = window->WindowBorderSize;
+        if (axis == ImGuiAxis_X)
+        {
+            return ImRect(innerRect.Min.x,
+                          ImMax(outerRect.Min.y, outerRect.Max.y - borderSize - scrollBarSize),
+                          innerRect.Max.x - borderSize,
+                          outerRect.Max.y - borderSize);
+        }
+
+        return ImRect(
+            ImMax(outerRect.Min.x, outerRect.Max.x - borderSize - scrollBarSize), innerRect.Min.y, outerRect.Max.x - borderSize, innerRect.Max.y - borderSize);
+    };
+
+    const auto drawScrollbar = [](ImGuiWindow* window, const ImGuiAxis axis)
+    {
+        const ImGuiID id = ImGui::GetWindowScrollbarID(window, axis);
+        auto barBox = getBoundingBox(window, axis);
+
+        if (axis == ImGuiAxis_Y)
+        {
+            barBox.Min.x -= 20.f;
+            barBox.Max.x -= 20.f;
+            barBox.Min.y += 20.f;
+            barBox.Max.y -= 20.f;
+        }
+        else
+        {
+            barBox.Min.x += 20.f;
+            barBox.Max.x -= 20.f;
+            barBox.Min.y -= 20.f;
+            barBox.Max.y -= 20.f;
+        }
+
+        ImDrawFlags rounding = ImDrawFlags_RoundCornersNone;
+
+        if (window->Flags & ImGuiWindowFlags_NoTitleBar && !(window->Flags & ImGuiWindowFlags_MenuBar))
+        {
+            rounding |= ImDrawFlags_RoundCornersTopRight;
+        }
+
+        if (!window->ScrollbarX)
+        {
+            rounding |= ImDrawFlags_RoundCornersBottomRight;
+        }
+
+        const float sizeVisible = window->InnerRect.Max[axis] - window->InnerRect.Min[axis];
+        const float sizeContents = window->ContentSize[axis] + window->WindowPadding[axis] * 2.0f;
+        auto scroll = static_cast<ImS64>(window->Scroll[axis]);
+        ImGui::ScrollbarEx(barBox, id, axis, &scroll, (ImS64)sizeVisible, (ImS64)sizeContents, rounding);
+        window->Scroll[axis] = static_cast<float>(scroll);
+    };
+
+    const auto scrollBarSize = ImGui::GetStyle().ScrollbarSize;
+
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    static ImVec2 scrollBarSizesLastFrame{};
+
+    bool useCurrentSizeForX = window->Appearing;
+    bool useCurrentSizeForY = window->Appearing;
+    bool windowSizeXSetByApi = false;
+    bool windowSizeYSetByApi = false;
+
+    const ImGuiContext* g = ImGui::GetCurrentContext();
+    windowSizeXSetByApi = (window->SetWindowSizeAllowFlags & g->NextWindowData.SizeCond) != 0 && g->NextWindowData.SizeVal.x > 0.0f;
+    windowSizeYSetByApi = (window->SetWindowSizeAllowFlags & g->NextWindowData.SizeCond) != 0 && g->NextWindowData.SizeVal.y > 0.0f;
+
+    if (windowSizeXSetByApi && window->ContentSizeExplicit.x != 0.0f)
+    {
+        useCurrentSizeForX = true;
+    }
+    if (windowSizeYSetByApi && window->ContentSizeExplicit.y != 0.0f) // #7252
+    {
+        useCurrentSizeForY = true;
+    }
+
+    const ImVec2 currentFrameAvail = ImVec2(window->SizeFull.x, window->SizeFull.y - (window->DecoOuterSizeY1 + window->DecoOuterSizeY2));
+    const ImVec2 lastFrameAvail = window->InnerRect.GetSize() + scrollBarSizesLastFrame;
+    const ImVec2 neededSizeFromLastFrame = window->Appearing ? ImVec2(0, 0) : window->ContentSize + window->WindowPadding * 2.0f;
+    const float scrollBarSizeX = useCurrentSizeForX ? currentFrameAvail.x : lastFrameAvail.x;
+    const float scrollBarSizeY = useCurrentSizeForY ? currentFrameAvail.y : lastFrameAvail.y;
+
+    const auto scrollbarY = neededSizeFromLastFrame.y > scrollBarSizeY;
+    const auto scrollbarX = neededSizeFromLastFrame.x > scrollBarSizeX - (scrollbarY ? scrollBarSize : 0.0f);
+    if (window->ScrollbarX && !window->ScrollbarY)
+    {
+        window->ScrollbarY = neededSizeFromLastFrame.y > scrollBarSizeY - scrollBarSize;
+    }
+
+    if (scrollbarY)
+    {
+        drawScrollbar(window, ImGuiAxis_Y);
+    }
+
+    if (scrollbarX)
+    {
+        drawScrollbar(window, ImGuiAxis_X);
+    }
+
+    scrollBarSizesLastFrame = ImVec2(scrollbarY ? scrollBarSize : 0.0f, scrollbarX ? scrollBarSize : 0.0f);
+}
+
+void FlWindow::DrawWindowDecorations(const ImVec2 startingPos, const ImVec2 windowSize)
 {
     static std::array<std::pair<float, float>, 12> windowRatios = {
         {
@@ -26,7 +143,7 @@ void FlWindow::DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize)
          },
     };
 
-    static auto drawCorner = [](ImVec2 pos, ImVec2 size, bool invertX, bool invertY)
+    static auto drawCorner = [](ImVec2 pos, const ImVec2 size, const bool invertX, const bool invertY)
     {
         pos.x += invertX ? 20.f : -20.f;
         pos.y += invertY ? 20.f : -20.f;
@@ -68,7 +185,7 @@ void FlWindow::Render()
 {
     if (!isOpen)
     {
-        //return;
+        return;
     }
 
     if (centered)
@@ -82,8 +199,8 @@ void FlWindow::Render()
     }
 
     ImGui::SetNextWindowSize(size, conditionFlag);
-    ImGui::PushStyleVarX(ImGuiStyleVar_WindowPadding, 30.f);
-    ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, 30.f);
+    ImGui::PushStyleVarX(ImGuiStyleVar_WindowPadding, 35.f);
+    ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, 35.f);
     ImGui::Begin(title.c_str(), &isOpen, windowFlags | ImGuiWindowFlags_NoTitleBar);
 
     const auto windowPos = ImGui::GetWindowPos();
@@ -139,14 +256,18 @@ void FlWindow::Render()
 
     drawList->PathStroke(0xFFAF9019, 0, 5.f);*/
     DrawWindowDecorations(windowPos, windowSize);
+    DrawScrollbars();
 
     ImGui::End();
     ImGui::PopStyleVar(2);
 }
 
-FlWindow::FlWindow(const std::string& windowName, const ImGuiWindowFlags flags, const ImGuiCond condition)
-    : title(windowName), windowFlags(flags), conditionFlag(condition)
+FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const ImGuiCond condition)
+    : title(std::move(windowName)), windowFlags(flags), conditionFlag(condition)
 {
+    drawScrollbars = (flags & ImGuiWindowFlags_NoScrollbar) == 0;
+    windowFlags |= ImGuiWindowFlags_NoScrollbar;
+
     if (backgroundTexture)
     {
         return;
