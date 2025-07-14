@@ -4,6 +4,7 @@
 #include "Internal/PlayerStatusWindow.hpp"
 
 #include "Fluf.hpp"
+#include "Random.hpp"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "ImGui/IconFontAwesome6.hpp"
@@ -57,11 +58,36 @@ void PlayerStatusWindow::RenderFactionOverview()
         ImGui::Text(text);
         ImGui::Dummy(ImVec2(0.0f, barSize.y - (headerSpace.y + textSize.y)));
 
-        // Draw the boxes
-        for (uint box = 1; box <= 20; ++box)
+        const float rep = .6733224f;
+        auto boxOffset = ImVec2{ barSize.x * 0.1f, barSize.y * 0.60f };
+        auto height = boxOffset.y + barSize.y * 0.3f + pos.y;
+        auto midPoint = ImVec2{ boxOffset.x + barSize.x * (0.04f * 10.0f), boxOffset.y } + pos;
+
+        if (rep < 0.0f)
         {
-            auto boxOffset = ImVec2{ barSize.x * 0.1f, barSize.y * 0.60f };
-            drawList->AddRect(pos + boxOffset, pos + boxOffset + ImVec2(barSize.x * (0.04f * static_cast<float>(box)), barSize.y * 0.3f), UINT_MAX);
+            drawList->AddRectFilledMultiColor(ImVec2{ midPoint.x - barSize.x * (0.04f * (std::abs(rep) * 10.f)), boxOffset.y + pos.y },
+                                              ImVec2{ midPoint.x, height },
+                                              0xFF2124BD,
+                                              UINT_MAX,
+                                              UINT_MAX,
+                                              0xFF2124BD);
+        }
+        else if (rep > 0.0f)
+        {
+            drawList->AddRectFilledMultiColor(ImVec2{ midPoint.x, height },
+                                              ImVec2{ midPoint.x + barSize.x * (0.04f * (std::abs(rep) * 10.f)), boxOffset.y + pos.y },
+                                              UINT_MAX,
+                                              0xFF21C242,
+                                              0xFF21C242,
+                                              UINT_MAX);
+        }
+
+        // Draw all the box outlines
+        for (uint box = 0; box < 20; ++box)
+        {
+            auto min = ImVec2{ boxOffset.x + barSize.x * (0.04f * box), boxOffset.y } + pos;
+            auto max = ImVec2{ boxOffset.x + barSize.x * (0.04f * (box + 1)) + pos.x, height };
+            drawList->AddRect(min, max, 0xFFAF9019, 0.0f, 0, 3.0f);
         }
 
         ImGui::EndGroup();
@@ -77,7 +103,7 @@ void PlayerStatusWindow::RenderFactionOverview()
     ImGui::PushStyleVarY(ImGuiStyleVar_ItemSpacing, 20.f);
 
     pos = startingPos + ImVec2(100.f + barSize.x, 0.f);
-    const auto filterBoxSize = ImVec2(530.f, 800.f);
+    constexpr auto filterBoxSize = ImVec2(530.f, 800.f);
     ImGui::SetCursorScreenPos(ImVec2(pos.x + 20.f, pos.y));
     ImGui::BeginChild("Filters", filterBoxSize);
 
