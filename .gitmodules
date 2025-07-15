@@ -20,3 +20,6 @@
 [submodule "vendor/imgui_gradient"]
 	path = vendor/imgui_gradient
 	url = https://github.com/Coollab-Art/imgui_gradient.git
+[submodule "vendor/ImGuiTextUtils"]
+	path = vendor/ImGuiTextUtils
+	url = https://github.com/MadLadSquad/UntitledImGuiTextUtils.git

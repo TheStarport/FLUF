@@ -25,6 +25,7 @@ class FlWindow
 
     protected:
         bool isOpen = false;
+        inline static ImGuiInterface* imguiInterface;
         ~FlWindow() = default;
         virtual void RenderWindowContents() = 0;
 
@@ -35,5 +36,6 @@ class FlWindow
         void SetPosition(ImVec2 position);
         void SetPivot(ImVec2 pivot);
         void Render();
+        static void RenderImguiFromDisplayList(RenderDisplayList* rdl);
         explicit FlWindow(std::string windowName, ImGuiWindowFlags flags = ImGuiWindowFlags_None, ImGuiCond condition = ImGuiCond_Appearing);
 };

@@ -19,10 +19,12 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "KeyManager.hpp"
+#include "UImGuiTextUtils.hpp"
 #include "Internal/CustomHud.hpp"
 #include "Internal/PlayerStatusWindow.hpp"
 #include "Vanilla/HudManager.hpp"
 
+#include <magic_enum.hpp>
 #include <ImGui/IconFontAwesome6.hpp>
 #include <stb_image.h>
 #undef STB_IMAGE_IMPLEMENTATION
@@ -367,28 +369,19 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     for (auto& loadedFont : config->loadedFonts)
     {
-        if (loadedFont.isDefault)
+        if (!loadedFont.fontSizes)
         {
-            loadedFont.fontSizes.insert(DefaultFontSize);
+            loadedFont.fontSizes = std::set<int>{};
         }
 
-        for (auto fontSize : loadedFont.fontSizes)
+        // Ensure the default sizes are present
+        for (auto size : magic_enum::enum_values<FontSize>())
         {
-            std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
-            if (!std::filesystem::exists(fontPath) && std::filesystem::is_regular_file(fontPath))
-            {
-                Fluf::Warn(std::format("Unable to load font: {}", fontPath));
-                continue;
-            }
+            loadedFont.fontSizes->insert(static_cast<int>(size));
+        }
 
-            auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), static_cast<float>(fontSize));
-            assert(font);
-
-            if (loadedFont.isDefault && fontSize == DefaultFontSize)
-            {
-                io.FontDefault = font;
-            }
-
+        auto addFa = [](const float fontSize)
+        {
             static constexpr ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
 
             ImFontConfig fontConfig;
@@ -396,9 +389,80 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             fontConfig.MergeMode = true;
             fontConfig.PixelSnapH = true;
             fontConfig.GlyphMinAdvanceX = iconFontSize;
-            io.Fonts->AddFontFromMemoryCompressedTTF(FontAwesomeCompressedData, FontAwesomeCompressedSize, iconFontSize, &fontConfig, iconRanges);
+            ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(FontAwesomeCompressedData, FontAwesomeCompressedSize, iconFontSize, &fontConfig, iconRanges);
+        };
 
+        for (auto fontSize : *loadedFont.fontSizes)
+        {
+            std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
+            if (!std::filesystem::exists(fontPath) && !std::filesystem::is_regular_file(fontPath))
+            {
+                Fluf::Warn(std::format("Unable to load font: {}", fontPath));
+                continue;
+            }
+
+            auto fontSizeFloat = static_cast<float>(fontSize);
+            auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), fontSizeFloat);
+            assert(font);
+
+            if (loadedFont.isDefault && fontSize == static_cast<int>(FontSize::Default))
+            {
+                io.FontDefault = font;
+            }
+
+            addFa(fontSizeFloat);
             loadedFont.fontSizesInternal.value()[fontSize] = font;
+        }
+
+        if (loadedFont.isDefault)
+        {
+            static UImGui::TextUtilsData data;
+
+            std::filesystem::path fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
+            auto lightPath = fontPath.parent_path().append(fontPath.stem().string()).string() + +"-Light" + fontPath.extension().string();
+            auto boldPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-Bold" + fontPath.extension().string();
+            auto italicPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-Italic" + fontPath.extension().string();
+            auto boldAndItalicPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-BoldItalic" + fontPath.extension().string();
+
+            ImFont* lightFont = io.FontDefault;
+            ImFont* boldFont = io.FontDefault;
+            ImFont* italicFont = io.FontDefault;
+            ImFont* boldItalicFont = io.FontDefault;
+
+            constexpr auto fontSize = static_cast<float>(FontSize::Default);
+
+            if (std::filesystem::exists(lightPath))
+            {
+                lightFont = io.Fonts->AddFontFromFileTTF(lightPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            if (std::filesystem::exists(boldPath))
+            {
+                boldFont = io.Fonts->AddFontFromFileTTF(boldPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            if (std::filesystem::exists(italicPath))
+            {
+                italicFont = io.Fonts->AddFontFromFileTTF(italicPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            if (std::filesystem::exists(boldAndItalicPath))
+            {
+                boldItalicFont = io.Fonts->AddFontFromFileTTF(boldAndItalicPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            data = {
+                .bold = boldFont,
+                .italic = italicFont,
+                .boldItalic = boldItalicFont,
+                .smallFont = lightFont,
+            };
+
+            UImGui::TextUtils::initTextUtilsData(&data);
         }
     }
 
@@ -539,11 +603,13 @@ ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int font
     return size->second;
 }
 
-const ImFont* ImGuiInterface::GetDefaultFont(int fontSize)
+ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const FontSize fontSize) const { return GetImGuiFont(fontName, static_cast<int>(fontSize)); }
+
+ImFont* ImGuiInterface::GetDefaultFont(int fontSize) const
 {
-    if (fontSize == 0)
+    if (fontSize <= 0)
     {
-        fontSize = DefaultFontSize;
+        fontSize = static_cast<int>(FontSize::Default);
     }
 
     for (const auto& font : config->loadedFonts)
@@ -553,7 +619,12 @@ const ImFont* ImGuiInterface::GetDefaultFont(int fontSize)
             continue;
         }
 
-        if (!font.fontSizes.contains(fontSize))
+        if (!font.fontSizes)
+        {
+            throw std::runtime_error("Trying to access default fonts before initialisation is invalid");
+        }
+
+        if (!font.fontSizes->contains(fontSize))
         {
             throw std::runtime_error("Default font doesn't contain specified font size");
         }

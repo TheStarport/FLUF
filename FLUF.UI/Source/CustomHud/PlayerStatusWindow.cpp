@@ -9,6 +9,8 @@
 #include "imgui_stdlib.h"
 #include "ImGui/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiHelper.hpp"
+#include "Utils/StringUtils.hpp"
+
 #include <imgui_gradient/imgui_gradient.hpp>
 
 PlayerStatusWindow::PlayerStatusWindow(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>& statsMenus)
@@ -139,11 +141,50 @@ void PlayerStatusWindow::RenderIndividualFaction()
 {
     if (ImGui::Button(ICON_FA_ARROW_LEFT "##fo-go-back"))
     {
+        renderDisplayList = std::nullopt;
         currentlySelectedFaction = "";
         return;
     }
 
-    ImGui::Text(currentlySelectedFaction.c_str());
+    if (!renderDisplayList)
+    {
+        renderDisplayList = RenderDisplayList();
+        Fluf::GetInfocard(66172, &*renderDisplayList);
+    }
+
+    const auto titleFont = imguiInterface->GetDefaultFont(static_cast<int>(FontSize::Big));
+    ImGui::PushFont(titleFont);
+    ImGuiHelper::CenteredText(currentlySelectedFaction.c_str());
+    ImGui::PopFont();
+
+    if (!ImGui::BeginTable("##fo-faction-table", 2))
+    {
+        return;
+    }
+
+    ImGui::TableNextColumn();
+    ImGui::BeginChild("##fo-faction-infocard");
+
+    ImGui::SeparatorText("Infocard");
+
+    RenderImguiFromDisplayList(&*renderDisplayList);
+
+    ImGui::EndChild();
+
+    ImGui::TableNextColumn();
+    ImGui::SeparatorText("Known Bases");
+    ImGui::Bullet();
+    ImGui::SmallButton("Planet Manhattan");
+    ImGui::Bullet();
+    ImGui::SmallButton("Planet New Berlin");
+    ImGui::Bullet();
+    ImGui::SmallButton("Battleship Westfalen");
+
+    ImGui::SeparatorText("Heard Rumours");
+    ImGui::Bullet();
+    ImGui::SmallButton("123456");
+
+    ImGui::EndTable();
 }
 
 void PlayerStatusWindow::RenderPlayerStats() const

@@ -6,8 +6,11 @@
 
 #include "FLUF.UI.hpp"
 #include "Fluf.hpp"
+#include "UImGuiTextUtils.hpp"
 #include "d3d9.h"
 #include "ImGui/ImGuiInterface.hpp"
+#include "Utils/StringUtils.hpp"
+
 #include <imgui_internal.h>
 
 void FlWindow::DrawScrollbars() const
@@ -226,40 +229,97 @@ void FlWindow::Render()
 
     RenderWindowContents();
 
-    /*ImDrawList* drawList = ImGui::GetForegroundDrawList();
-
-    windowPos.x -= 20;
-    windowPos.y -= 30;
-
-    // clang-format off
-    const std::array points {
-        ImVec2(windowPos.x + 40, windowPos.y),
-        ImVec2(windowPos.x + 210, windowPos.y),
-        ImVec2(windowPos.x + 240, windowPos.y + 15),
-        ImVec2(windowPos.x + 310, windowPos.y + 15),
-        ImVec2(windowPos.x + 310, windowPos.y + 35),
-        ImVec2(windowPos.x + 35, windowPos.y + 35),
-        ImVec2(windowPos.x + 35, windowPos.y + 120),
-        ImVec2(windowPos.x + 25, windowPos.y + 165),
-        ImVec2(windowPos.x + 25, windowPos.y + 235),
-        ImVec2(windowPos.x, windowPos.y + 280),
-        ImVec2(windowPos.x, windowPos.y + 30),
-        ImVec2(windowPos.x + 40, windowPos.y),
-    };
-    // clang-format on
-
-    drawList->AddConvexPolyFilled(points.data(), points.size(), 0xFF371A00);
-    for (auto& p : points)
-    {
-        drawList->PathLineTo(p);
-    }
-
-    drawList->PathStroke(0xFFAF9019, 0, 5.f);*/
     DrawWindowDecorations(windowPos, windowSize);
     DrawScrollbars();
 
     ImGui::End();
     ImGui::PopStyleVar(2);
+}
+
+void FlWindow::RenderImguiFromDisplayList(RenderDisplayList* rdl)
+{
+    if (!rdl)
+    {
+        return;
+    }
+
+    bool boldText = false;
+    bool italicText = false;
+    bool underlineText = false;
+    auto fontSize = FontSize::Default;
+    DWORD textColor = ImGui::GetColorU32(ImGuiCol_Text);
+
+    for (const auto node : rdl->nodes)
+    {
+        if (const auto text = dynamic_cast<TextNode*>(node))
+        {
+            auto str = StringUtils::wstos(reinterpret_cast<const wchar_t*>(text->text.c_str()));
+            if (boldText && italicText)
+            {
+                UImGui::TextUtils::BoldItalicWrapped(str.c_str());
+            }
+            else if (boldText)
+            {
+                UImGui::TextUtils::BoldWrapped(str.c_str());
+            }
+            else if (italicText)
+            {
+                UImGui::TextUtils::ItalicWrapped(str.c_str());
+            }
+            else if (underlineText)
+            {
+                UImGui::TextUtils::UnderlineWrapped(str.c_str());
+            }
+            else
+            {
+                ImGui::TextWrapped(str.c_str());
+            }
+
+            ImGui::SameLine();
+        }
+        else if (dynamic_cast<ParagraphNode*>(node))
+        {
+            ImGui::NewLine();
+        }
+        else if (auto tra = dynamic_cast<TRANode*>(node))
+        {
+            constexpr DWORD blueMask = 0xFF000000;
+            constexpr DWORD greenMask = 0x00FF0000;
+            constexpr DWORD redMask = 0x0000FF00;
+            constexpr DWORD formatMask = 0x000000FF;
+
+            auto blue = (tra->attributes & blueMask) >> 24;
+            auto green = (tra->attributes & greenMask) >> 16;
+            auto red = (tra->attributes & redMask) >> 8;
+            auto format = tra->attributes & formatMask;
+
+            if (red || green || blue)
+            {
+                textColor = 0xFF << 24 | blue << 16 | green << 8 | red;
+            }
+            else
+            {
+                textColor = ImGui::GetColorU32(ImGuiCol_Text);
+            }
+
+            boldText = (format & 0x1) != 0;
+            italicText = (format & 0x2) != 0;
+            underlineText = (format & 0x4) != 0;
+
+            if ((format & 0x90) != 0)
+            {
+                fontSize = FontSize::Small;
+            }
+            else if ((format & 0x08) != 0)
+            {
+                fontSize = FontSize::Big;
+            }
+            else if ((format & 0x20) != 0)
+            {
+                fontSize = FontSize::VeryBig;
+            }
+        }
+    }
 }
 
 FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const ImGuiCond condition)
@@ -276,7 +336,7 @@ FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const I
     const auto flufUi = std::static_pointer_cast<FlufUi>(Fluf::GetModule(FlufUi::moduleName).lock());
     renderingBackend = flufUi->GetRenderingBackend();
 
-    const auto imguiInterface = flufUi->GetImGuiInterface();
+    imguiInterface = flufUi->GetImGuiInterface();
     dxDevice = imguiInterface->GetRenderingContext();
 
     // TODO: Make this texture customizable

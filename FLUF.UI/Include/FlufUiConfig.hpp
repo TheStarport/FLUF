@@ -21,7 +21,7 @@ struct LoadedFont
         std::string fontName;
         std::string fontPath;
         bool isDefault = false;
-        std::set<int> fontSizes;
+        std::optional<std::set<int>> fontSizes;
         rfl::Skip<std::unordered_map<int, ImFont*>> fontSizesInternal;
 };
 
@@ -34,6 +34,6 @@ struct FlufUiConfig
         float dpi = 1.0f;
         bool enforceUiMode;
         std::vector<LoadedFont> loadedFonts{
-            { "Saira", "SairaCondensed-Light.ttf", true, { 24, 36, 46, 48 } }
+            { "Saira", "SairaCondensed-Light.ttf", true }
         };
 };

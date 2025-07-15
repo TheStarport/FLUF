@@ -32,6 +32,7 @@ class PlayerStatusWindow final : public FlWindow
         int currentSortByIndex = 0;
         int currentFactionRelationshipIndex = 0;
         std::string currentlySelectedFaction;
+        std::optional<RenderDisplayList> renderDisplayList;
 
         void RenderFactionOverview();
         void RenderIndividualFaction();

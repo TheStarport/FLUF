@@ -162,6 +162,8 @@ class Fluf
         FLUF_API static Archetype::Ship* GetPlayerShipArch();
         FLUF_API static EquipDesc* GetPlayerEquipDesc();
         FLUF_API static bool IsRunningOnClient();
+        FLUF_API static std::wstring GetInfocardName(uint ids);
+        FLUF_API static bool GetInfocard(uint ids, RenderDisplayList* rdl);
 
         /**
          * @brief Gets the KeyManager for setting up custom key callbacks

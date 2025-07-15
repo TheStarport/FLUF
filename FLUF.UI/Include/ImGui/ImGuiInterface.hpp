@@ -12,6 +12,15 @@ using OnRenderStatsMenu = ModuleCall;
 using RegisterMenuFunc = ModuleCall;
 using RegisterOptionsFunc = void (FlufModule::*)(bool saveRequested);
 
+enum class FontSize
+{
+    VerySmall = 12,
+    Small = 24,
+    Default = 36,
+    Big = 48,
+    VeryBig = 60
+};
+
 // Conditional fwd decs
 #ifdef FLUF_UI
 class PlayerStatusWindow;
@@ -19,7 +28,6 @@ class CustomHud;
 #endif
 class ImGuiInterface
 {
-        static constexpr int DefaultFontSize = 36;
         inline static bool showDemoWindow = false;
         void* renderingContext;
         std::unordered_map<std::string, void*> loadedTextures;
@@ -87,9 +95,14 @@ class ImGuiInterface
          * @brief Gets a loaded font with the provided name and size. If the font has been loaded,
          * but this font size has not been used previously, it will reload the font in the desired size.
          */
+        [[nodiscard]]
         FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, int fontSize) const;
 
-        FLUF_UI_API const ImFont* GetDefaultFont(int fontSize = 0);
+        [[nodiscard]]
+        FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, FontSize fontSize) const;
+
+        [[nodiscard]]
+        FLUF_UI_API ImFont* GetDefaultFont(int fontSize = static_cast<int>(FontSize::Default)) const;
 
         /**
          * @brief Register a callback that will be called when the custom options menu is visible for the module that calls it.

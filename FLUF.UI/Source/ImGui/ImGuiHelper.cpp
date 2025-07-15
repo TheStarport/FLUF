@@ -20,3 +20,9 @@ void ImGuiHelper::CenterNextWindow(const ImVec2 size)
     const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 }
+
+void ImGuiHelper::CenteredText(const char* text, std::optional<float> widthOverride)
+{
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (widthOverride.value_or(ImGui::GetWindowWidth()) - ImGui::CalcTextSize(text).x) * 0.5f);
+    ImGui::Text(text);
+}
