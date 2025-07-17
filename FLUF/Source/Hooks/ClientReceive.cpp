@@ -115,7 +115,7 @@ bool __thiscall ClientReceive::Login(IClientImpl* clientImpl, uint client, FLPAC
         Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
     }
 
-    Fluf::instance->CallModuleEvent(&FlufModule::OnLogin, client, unk);
+    Fluf::instance->CallModuleEvent(&FlufModule::OnLogin, client, SinglePlayer(), unk);
     return result;
 }
 

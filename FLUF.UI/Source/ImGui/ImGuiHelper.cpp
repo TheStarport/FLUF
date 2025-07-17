@@ -2,15 +2,25 @@
 
 #include "ImGui/ImGuiHelper.hpp"
 
-void ImGuiHelper::HelpMarker(const char* desc)
+void ImGuiHelper::HelpMarker(const char* desc, const char character, const ImU32 color)
 {
-    ImGui::TextDisabled("(?)");
+    if (color)
+    {
+        ImGui::PushStyleColor(ImGuiCol_TextDisabled, color);
+    }
+
+    ImGui::TextDisabled("(%c)", character);
     if (ImGui::BeginItemTooltip())
     {
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
         ImGui::TextUnformatted(desc);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
+    }
+
+    if (color)
+    {
+        ImGui::PopStyleColor();
     }
 }
 

@@ -14,7 +14,6 @@ configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.r
 add_library(ship_dealer_enhancements SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
 
 # Dependencies
-target_include_directories(ship_dealer_enhancements PRIVATE ${RML_PATH}/Include)
 target_include_directories(ship_dealer_enhancements PRIVATE ${FLUF_UI_PATH}/Include)
 add_dependencies(ship_dealer_enhancements FLUF FLUF.UI)
 target_link_libraries(ship_dealer_enhancements PRIVATE FLUF FLUF.UI)

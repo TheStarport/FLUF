@@ -44,9 +44,7 @@ void Fluf::ClientPatches()
     MemUtils::WriteProcMem(common + 0x13F48C, &maxDockRange, 4);
 
     const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
-    PATCH(fl + 0x01AD6F, 0x00, 0x20);  // Fix low quality texture bug
-    PATCH(fl + 0x02477A, 0x00, 0x00);  // Remove window borders in windowed mode
-    PATCH(fl + 0x002490D, 0x00, 0x00); // Remove window borders in windowed mode
+    PATCH(fl + 0x01AD6F, 0x00, 0x20); // Fix low quality texture bug
 
     char chatCount = 127; // Update max lines and characters for multiplayer chat
     MemUtils::WriteProcMem(fl + 0x06A440, &chatCount, 1);

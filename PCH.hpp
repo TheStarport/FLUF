@@ -55,7 +55,7 @@ struct ConfigHelper
                 return std::nullopt;
             }
 
-            auto newConfig = rfl::yaml::read<T>(inFile);
+            auto newConfig = rfl::yaml::read<T, rfl::DefaultIfMissing>(inFile);
             if (newConfig.error().has_value())
             {
                 const std::string err =

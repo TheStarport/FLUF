@@ -7,6 +7,7 @@
 #include "PatchNoteConfig.hpp"
 #include "PatchNotes.hpp"
 
+#include "Exceptions.hpp"
 #include "MemoryHelper.hpp"
 #include "imgui_markdown.h"
 
@@ -294,15 +295,14 @@ PatchNotes::PatchNotes()
     Fluf::Log(LogLevel::Trace, std::format("{}", reinterpret_cast<DWORD>(module.get())));
     if (module->GetConfig()->uiMode != UiMode::ImGui)
     {
-        Fluf::Log(LogLevel::Error, "Patch Notes was loaded, but FLUF.UI's ui mode was not set to ImGui.");
-        return;
+        throw ModuleLoadException("Patch Notes was loaded, but FLUF.UI's ui mode was not set to ImGui.");
     }
 
     config = std::make_shared<PatchNoteConfig>(*ConfigHelper<PatchNoteConfig, PatchNoteConfig::path>::Load());
 
     if (config->url.empty() || (!config->url.starts_with("https://") && !config->url.starts_with("http://")))
     {
-        Fluf::Log(LogLevel::Error, "No url was provided within the config file, or did not begin with http");
+        throw ModuleLoadException("No url was provided within the config file, or did not begin with http");
     }
 
     flufUi = module;
