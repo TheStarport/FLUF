@@ -102,6 +102,9 @@ class ImGuiInterface
         FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, FontSize fontSize) const;
 
         [[nodiscard]]
+        FLUF_UI_API ImFont* GetDefaultFont(FontSize fontSize) const;
+
+        [[nodiscard]]
         FLUF_UI_API ImFont* GetDefaultFont(int fontSize = static_cast<int>(FontSize::Default)) const;
 
         /**

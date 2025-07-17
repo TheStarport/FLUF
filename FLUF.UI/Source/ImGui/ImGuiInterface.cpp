@@ -605,6 +605,8 @@ ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int font
 
 ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const FontSize fontSize) const { return GetImGuiFont(fontName, static_cast<int>(fontSize)); }
 
+ImFont* ImGuiInterface::GetDefaultFont(FontSize fontSize) const { return GetDefaultFont(static_cast<int>(fontSize)); }
+
 ImFont* ImGuiInterface::GetDefaultFont(int fontSize) const
 {
     if (fontSize <= 0)
