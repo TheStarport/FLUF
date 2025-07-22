@@ -113,8 +113,7 @@ FlufModule::ModuleProcessCode SetInfo::OnPayloadReceived(uint sourceClientId, co
 void SetInfo::SendServerInfocardUpdate()
 {
     constexpr std::string_view header = "set_info";
-    auto payload = FlufPayload::ToPayload(infocardBeingEdited, header);
-    Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
+    Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, infocardBeingEdited);
     waitingForUpdate = true;
 }
 

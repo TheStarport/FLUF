@@ -108,7 +108,7 @@ struct FlufPayload
             payload.header.resize(header.size());
             memcpy_s(payload.header.data(), payload.header.size(), header.data(), header.size());
 
-            auto msgPack = rfl::msgpack::write<T>(data);
+            auto msgPack = rfl::msgpack::write(data);
 
             const size_t maxPossibleSize = ZSTD_compressBound(msgPack.size());
             payload.data.resize(maxPossibleSize);

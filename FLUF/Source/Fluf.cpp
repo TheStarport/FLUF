@@ -252,7 +252,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
             return false;
         }
 
-        fluf = std::make_shared<Fluf>();
+        fluf = std::make_shared<Fluf>(mod);
     }
     else if (reason == DLL_PROCESS_DETACH)
     {
@@ -520,8 +520,9 @@ std::string GetLastErrorAsString()
     return message;
 }
 
-Fluf::Fluf()
+Fluf::Fluf(const HMODULE dll)
 {
+    thisDll = dll;
     instance = this;
     config = std::make_shared<FlufConfiguration>();
     config->Load();
@@ -813,6 +814,9 @@ Fluf::Fluf()
 
         keyManager = std::make_unique<KeyManager>();
         ClientPatches();
+
+        loadResourceDllDetour = std::make_unique<FunctionDetour<LoadResourceDll>>(reinterpret_cast<LoadResourceDll>(0x5B0C30));
+        loadResourceDllDetour->Detour(ResourceDllLoadDetour);
     }
 
     clientServerCommunicator = std::make_unique<ClientServerCommunicator>();
