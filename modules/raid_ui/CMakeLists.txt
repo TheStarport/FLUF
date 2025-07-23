@@ -15,7 +15,6 @@ configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.r
 add_library(${CUR_PROJECT} SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
 
 # Dependencies
-target_include_directories(${CUR_PROJECT} PRIVATE ${RML_PATH}/Include)
 target_include_directories(${CUR_PROJECT} PRIVATE ${FLUF_UI_PATH}/Include)
 add_dependencies(${CUR_PROJECT} FLUF FLUF.UI)
 target_link_libraries(${CUR_PROJECT} PRIVATE FLUF FLUF.UI)

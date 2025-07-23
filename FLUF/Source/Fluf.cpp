@@ -252,7 +252,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
             return false;
         }
 
-        fluf = std::make_shared<Fluf>();
+        fluf = std::make_shared<Fluf>(mod);
     }
     else if (reason == DLL_PROCESS_DETACH)
     {
@@ -458,6 +458,34 @@ EquipDesc* Fluf::GetPlayerEquipDesc() { return reinterpret_cast<EquipDesc*>(0x27
 
 bool Fluf::IsRunningOnClient() { return instance->runningOnClient; }
 
+std::wstring Fluf::GetInfocardName(uint ids)
+{
+    const auto resourceTable = *reinterpret_cast<void**>(0x67eca8);
+    // TODO: Handle infocard overrides
+
+    using GetIdsNameType = size_t (*)(void* rsc, uint number, wchar_t* buffer, size_t bufferSize);
+    auto getIdsName = reinterpret_cast<GetIdsNameType>(0x4347e0);
+    static std::array<wchar_t, 4096> buffer;
+
+    auto charactersRead = getIdsName(resourceTable, ids, buffer.data(), buffer.size());
+    if (!charactersRead)
+    {
+        return {};
+    }
+
+    std::wstring ret{ buffer.data(), charactersRead };
+    std::memset(buffer.data(), 0, buffer.size()); // Clear buffer when done
+    return ret;
+}
+
+bool Fluf::GetInfocard(uint ids, RenderDisplayList* rdl)
+{
+    using GetInfocardType = bool (*)(uint number, RenderDisplayList* rdl);
+    static auto getInfocard = reinterpret_cast<GetInfocardType>(0x57DA40);
+
+    return getInfocard(ids, rdl);
+}
+
 KeyManager* Fluf::GetKeyManager() { return instance->keyManager.get(); }
 ClientServerCommunicator* Fluf::GetClientServerCommunicator() { return instance->clientServerCommunicator.get(); }
 
@@ -492,8 +520,9 @@ std::string GetLastErrorAsString()
     return message;
 }
 
-Fluf::Fluf()
+Fluf::Fluf(const HMODULE dll)
 {
+    thisDll = dll;
     instance = this;
     config = std::make_shared<FlufConfiguration>();
     config->Load();
@@ -785,6 +814,9 @@ Fluf::Fluf()
 
         keyManager = std::make_unique<KeyManager>();
         ClientPatches();
+
+        loadResourceDllDetour = std::make_unique<FunctionDetour<LoadResourceDll>>(reinterpret_cast<LoadResourceDll>(0x5B0C30));
+        loadResourceDllDetour->Detour(ResourceDllLoadDetour);
     }
 
     clientServerCommunicator = std::make_unique<ClientServerCommunicator>();

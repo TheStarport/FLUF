@@ -39,13 +39,21 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void FlufUi::OnGameLoad()
 {
-    RenderingBackend backend = RenderingBackend::Dx8;
-    if (d3d9)
+    if (auto glContext = wglGetCurrentContext())
     {
-        backend = RenderingBackend::Dx9;
+        renderingBackend = RenderingBackend::OpenGL;
         if (config->uiMode == UiMode::ImGui)
         {
-            Fluf::Log(LogLevel::Info, "Create ImGuiInterface");
+            Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ OpenGL");
+            imguiInterface = std::make_shared<ImGuiInterface>(this, renderingBackend, glContext);
+        }
+    }
+    else if (d3d9)
+    {
+        renderingBackend = RenderingBackend::Dx9;
+        if (config->uiMode == UiMode::ImGui)
+        {
+            Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ DX9");
             imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx9, d3d9device);
         }
     }
@@ -60,7 +68,13 @@ void FlufUi::OnGameLoad()
     }
 
     Fluf::Log(LogLevel::Info, std::format("UI Mode: {}", rfl::enum_to_string(config->uiMode)));
-    Fluf::Log(LogLevel::Info, std::format("Rendering Backend: {}", rfl::enum_to_string(backend)));
+    Fluf::Log(LogLevel::Info, std::format("Rendering Backend: {}", rfl::enum_to_string(renderingBackend)));
+
+    // Assuming success, create our submenus
+    if (imguiInterface)
+    {
+        imguiInterface->InitSubmenus();
+    }
 }
 
 LRESULT __stdcall FlufUi::WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
@@ -202,6 +216,7 @@ std::weak_ptr<HudManager> FlufUi::GetHudManager() { return hudManager; }
 std::shared_ptr<FlufUiConfig> FlufUi::GetConfig() { return config; }
 
 ImGuiInterface* FlufUi::GetImGuiInterface() const { return imguiInterface.get(); }
+RenderingBackend FlufUi::GetRenderingBackend() const { return renderingBackend; }
 
 FlufUi::FlufUi()
 {

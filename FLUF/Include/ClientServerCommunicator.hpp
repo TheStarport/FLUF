@@ -45,7 +45,7 @@ struct FlufPayload
 
             // Write our string header
             ptr += sizeof(flufHeader);
-            auto newSize = bytes.size() - size + 1;
+            auto newSize = bytes.size() - size - 1;
 
             *ptr = static_cast<byte>(header.size());
             ++ptr;
@@ -73,13 +73,16 @@ struct FlufPayload
 
             const char* ptr = data + sizeof(flufHeader);
             const auto headerSize = *ptr;
+            ptr++;
 
-            if (sizeof(flufHeader) + sizeof(compressed) + 2 + headerSize < size)
+            if (sizeof(flufHeader) + sizeof(compressed) + 1 + headerSize > size)
             {
                 return std::nullopt;
             }
+
             FlufPayload payload;
-            payload.data.resize(headerSize);
+            payload.header.resize(headerSize);
+
             memcpy_s(payload.header.data(), headerSize, ptr, headerSize);
             ptr += headerSize;
 
@@ -105,7 +108,7 @@ struct FlufPayload
             payload.header.resize(header.size());
             memcpy_s(payload.header.data(), payload.header.size(), header.data(), header.size());
 
-            auto msgPack = rfl::msgpack::write<T>(data);
+            auto msgPack = rfl::msgpack::write(data);
 
             const size_t maxPossibleSize = ZSTD_compressBound(msgPack.size());
             payload.data.resize(maxPossibleSize);

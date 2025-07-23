@@ -57,6 +57,7 @@ class Fluf
         friend ClientReceive;
         friend ClientServerCommunicator;
         friend FlufModule;
+        inline static HMODULE thisDll;
         inline static Fluf* instance;
 
         std::vector<std::shared_ptr<FlufModule>> loadedModules{};
@@ -138,13 +139,20 @@ class Fluf
             return !handled;
         }
 
+        using LoadResourceDll = bool (*)(const char*);
+        using ForceLoadResource = DWORD (*)(HINSTANCE);
+        inline static std::unique_ptr<FunctionDetour<LoadResourceDll>> loadResourceDllDetour;
+        static bool ResourceDllLoadDetour(const char* unk);
+        // What IDS range is given to FLUF.dll
+        inline static DWORD startingResourceIndex = 0;
+
         // Hardcoded patches that we realistically want to always apply
         static void ClientPatches();
 
         std::unique_ptr<ClientServerCommunicator> clientServerCommunicator;
 
     public:
-        Fluf();
+        explicit Fluf(HMODULE dll);
         ~Fluf();
 
         FLUF_API static void Log(LogLevel logLevel, std::string_view message);
@@ -162,6 +170,8 @@ class Fluf
         FLUF_API static Archetype::Ship* GetPlayerShipArch();
         FLUF_API static EquipDesc* GetPlayerEquipDesc();
         FLUF_API static bool IsRunningOnClient();
+        FLUF_API static std::wstring GetInfocardName(uint ids);
+        FLUF_API static bool GetInfocard(uint ids, RenderDisplayList* rdl);
 
         /**
          * @brief Gets the KeyManager for setting up custom key callbacks

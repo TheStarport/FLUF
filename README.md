@@ -40,7 +40,46 @@ it will create a memory dump that can be reviewed by mod developers to discern a
 There are many other modules that are provided as part of FLUF, see
 the [docs](https://fluf.the-starport.com/api/modules) page for more, or examples for making your own.
 
-## Runtime Requirements
+## Running
+
+In the [release packages](https://github.com/TheStarport/FLUF/releases/latest) there are a number of files.
+For basic (non-developer) usage, extract FLUF.dll and the crt files into your EXE folder of Freelancer and add FLUF.dll
+to dacom.ini after all the vanilla dlls (by default flmaterials.dll is the last in the list).
+
+After running the game once, if loading was successful, there should be a yml file in your EXE folder created (assuming
+non-read only) which can be used to configure FLUF. At this point you can setup which modules FLUF loads and use, and
+you can extract the modules folder to the EXE folder from the release package, as well as the DATA files to your
+Freelancer DATA folder.
+
+In the case of using FLUF.UI, you need to ensure that you are using either d3d8to9 (see below) or [Freelancer Advanced
+Renderer](https://www.flnu.net/downloads/FLAR%20beta%202.2.7z).
+
+### Config
+
+Your FLUF.yml config should look something like this:
+
+```yaml
+logLevel: Info
+logSinks:
+  - File
+  - Console
+modules:
+  - FLUF.UI.dll
+setSaveDirectoryRelativeToExecutable: false
+writeSpewToLogSinks: true
+```
+
+Basic explanation:
+
+- `logLevel` denotes what things should be logged by FLUF, valid values are: Trace, Debug, Info, Warn, Error
+- `logSinks` denotes where logs should be presented, valid values are File, Console, if you do not want logs write `[]`.
+- `modules` denotes which modules should be loaded from the modules folder by FLUF.
+- `setSaveDirectoryRelativeToExecutable` applies a hack that changes the location of saves to be in the root of
+  Freelancer, rather than in the My Games folder (allowing the game to be portable).
+- `writeSpewToLogSinks` will merge FLSpew logs (vanilla log file) with the FLUF logs, as well as adding timestamps to
+  them
+
+### Runtime Requirements
 
 For general usage, it is assumed that
 the [VS2022 Redists](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170#visual-studio-2015-2017-2019-and-2022)

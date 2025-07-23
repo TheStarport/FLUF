@@ -12,12 +12,19 @@
 #include <d3dx9.h>
 #include <imgui.h>
 #include <imgui_impl_dx9.h>
+#include <imgui_impl_opengl3.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
+#include <gl/GL.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "KeyManager.hpp"
+#include "UImGuiTextUtils.hpp"
+#include "Internal/CustomHud.hpp"
+#include "Internal/PlayerStatusWindow.hpp"
+#include "Vanilla/HudManager.hpp"
 
+#include <magic_enum.hpp>
 #include <ImGui/IconFontAwesome6.hpp>
 #include <stb_image.h>
 #undef STB_IMAGE_IMPLEMENTATION
@@ -127,6 +134,20 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
     return style;
 }
 
+void ImGuiInterface::InitSubmenus()
+{
+    // Init submenus
+    playerStatusWindow = std::make_unique<PlayerStatusWindow>(statMenus);
+
+    // Register custom hud for listening to the player status button
+    customHud = std::make_unique<CustomHud>(playerStatusWindow.get());
+    flufUi->GetHudManager().lock()->RegisterHud(customHud.get());
+
+    // Dummy menus for needed categories (these menus are integrated directly into PlayerStatusMenu)
+    RegisterStatsMenu(flufUi, "Exploration", nullptr);
+    RegisterStatsMenu(flufUi, "Kill Counts", nullptr);
+}
+
 void ImGuiInterface::Render()
 {
     PollInput();
@@ -134,6 +155,7 @@ void ImGuiInterface::Render()
     switch (backend)
     {
         case RenderingBackend::Dx9: ImGui_ImplDX9_NewFrame(); break;
+        case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_NewFrame(); break;
         default: throw std::runtime_error("Unknown backend");
     }
 
@@ -152,6 +174,9 @@ void ImGuiInterface::Render()
         module->Render();
     }
 
+    playerStatusWindow->Render();
+
+    // Render notifications above all else
     ImGui::RenderNotifications();
 
     ImGui::Render();
@@ -159,6 +184,7 @@ void ImGuiInterface::Render()
     switch (backend)
     {
         case RenderingBackend::Dx9: ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData()); break;
+        case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); break;
         default: throw std::runtime_error("Unknown backend");
     }
 }
@@ -299,6 +325,8 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
     return true;
 }
 
+void* ImGuiInterface::GetRenderingContext() const { return renderingContext; }
+
 ImGuiInterface::~ImGuiInterface()
 {
     switch (backend)
@@ -308,6 +336,7 @@ ImGuiInterface::~ImGuiInterface()
             *static_cast<LPDIRECT3DDEVICE9*>(ImGui::GetIO().BackendRendererUserData) = nullptr;
             ImGui_ImplDX9_Shutdown();
             break;
+        case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_Shutdown(); break;
         default: break;
     }
 
@@ -315,7 +344,8 @@ ImGuiInterface::~ImGuiInterface()
     ImGui::DestroyContext();
 }
 
-ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* device) : dxDevice(device), config(flufUi->GetConfig()), backend(backend)
+ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, void* context)
+    : renderingContext(context), flufUi(flufUi), config(flufUi->GetConfig()), backend(backend)
 {
     std::array<char, MAX_PATH> path{};
     GetUserDataPath(path.data());
@@ -339,28 +369,19 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     for (auto& loadedFont : config->loadedFonts)
     {
-        if (loadedFont.isDefault)
+        if (!loadedFont.fontSizes)
         {
-            loadedFont.fontSizes.insert(DefaultFontSize);
+            loadedFont.fontSizes = std::set<int>{};
         }
 
-        for (auto fontSize : loadedFont.fontSizes)
+        // Ensure the default sizes are present
+        for (auto size : magic_enum::enum_values<FontSize>())
         {
-            std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
-            if (!std::filesystem::exists(fontPath))
-            {
-                Fluf::Warn(std::format("Unable to load font: {}", fontPath));
-                continue;
-            }
+            loadedFont.fontSizes->insert(static_cast<int>(size));
+        }
 
-            auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), static_cast<float>(fontSize));
-            assert(font);
-
-            if (loadedFont.isDefault && fontSize == DefaultFontSize)
-            {
-                io.FontDefault = font;
-            }
-
+        auto addFa = [](const float fontSize)
+        {
             static constexpr ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
 
             ImFontConfig fontConfig;
@@ -368,9 +389,80 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             fontConfig.MergeMode = true;
             fontConfig.PixelSnapH = true;
             fontConfig.GlyphMinAdvanceX = iconFontSize;
-            io.Fonts->AddFontFromMemoryCompressedTTF(FontAwesomeCompressedData, FontAwesomeCompressedSize, iconFontSize, &fontConfig, iconRanges);
+            ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(FontAwesomeCompressedData, FontAwesomeCompressedSize, iconFontSize, &fontConfig, iconRanges);
+        };
 
+        for (auto fontSize : *loadedFont.fontSizes)
+        {
+            std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
+            if (!std::filesystem::exists(fontPath) && !std::filesystem::is_regular_file(fontPath))
+            {
+                Fluf::Warn(std::format("Unable to load font: {}", fontPath));
+                continue;
+            }
+
+            auto fontSizeFloat = static_cast<float>(fontSize);
+            auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), fontSizeFloat);
+            assert(font);
+
+            if (loadedFont.isDefault && fontSize == static_cast<int>(FontSize::Default))
+            {
+                io.FontDefault = font;
+            }
+
+            addFa(fontSizeFloat);
             loadedFont.fontSizesInternal.value()[fontSize] = font;
+        }
+
+        if (loadedFont.isDefault)
+        {
+            static UImGui::TextUtilsData data;
+
+            std::filesystem::path fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
+            auto lightPath = fontPath.parent_path().append(fontPath.stem().string()).string() + +"-Light" + fontPath.extension().string();
+            auto boldPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-Bold" + fontPath.extension().string();
+            auto italicPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-Italic" + fontPath.extension().string();
+            auto boldAndItalicPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-BoldItalic" + fontPath.extension().string();
+
+            ImFont* lightFont = io.FontDefault;
+            ImFont* boldFont = io.FontDefault;
+            ImFont* italicFont = io.FontDefault;
+            ImFont* boldItalicFont = io.FontDefault;
+
+            constexpr auto fontSize = static_cast<float>(FontSize::Default);
+
+            if (std::filesystem::exists(lightPath))
+            {
+                lightFont = io.Fonts->AddFontFromFileTTF(lightPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            if (std::filesystem::exists(boldPath))
+            {
+                boldFont = io.Fonts->AddFontFromFileTTF(boldPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            if (std::filesystem::exists(italicPath))
+            {
+                italicFont = io.Fonts->AddFontFromFileTTF(italicPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            if (std::filesystem::exists(boldAndItalicPath))
+            {
+                boldItalicFont = io.Fonts->AddFontFromFileTTF(boldAndItalicPath.c_str(), fontSize);
+                addFa(fontSize);
+            }
+
+            data = {
+                .bold = boldFont,
+                .italic = italicFont,
+                .boldItalic = boldItalicFont,
+                .smallFont = lightFont,
+            };
+
+            UImGui::TextUtils::initTextUtilsData(&data);
         }
     }
 
@@ -380,8 +472,13 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     {
         case RenderingBackend::Dx9:
             {
-                const auto dx9Device = static_cast<IDirect3DDevice9*>(device);
+                const auto dx9Device = static_cast<IDirect3DDevice9*>(context);
                 ImGui_ImplDX9_Init(dx9Device);
+                break;
+            }
+        case RenderingBackend::OpenGL:
+            {
+                ImGui_ImplOpenGL3_Init();
                 break;
             }
         case RenderingBackend::Dx8:
@@ -406,7 +503,7 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
     if (backend == RenderingBackend::Dx9)
     {
         PDIRECT3DTEXTURE9 d3dTexture = nullptr;
-        if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(dxDevice), path.c_str(), &d3dTexture); hr != D3D_OK)
+        if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(renderingContext), path.c_str(), &d3dTexture); hr != D3D_OK)
         {
             goto failed;
         }
@@ -423,6 +520,40 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
         width = surfaceDesc.Width;
         height = surfaceDesc.Height;
         return d3dTexture;
+    }
+
+    if (backend == RenderingBackend::OpenGL)
+    {
+        FILE* f = fopen(path.c_str(), "rb");
+        if (f == nullptr)
+        {
+            goto failed;
+        }
+
+        auto imageHandle = stbi_load_from_file(f, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height), nullptr, 4);
+        if (!imageHandle)
+        {
+            fclose(f);
+            goto failed;
+        }
+
+        // Create a OpenGL texture identifier
+        GLuint imageTexture;
+        glGenTextures(1, &imageTexture);
+        glBindTexture(GL_TEXTURE_2D, imageTexture);
+
+        // Setup filtering parameters for display
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // Upload pixels into texture
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageHandle);
+        stbi_image_free(imageHandle);
+        fclose(f);
+
+        loadedTextures[path] = reinterpret_cast<void*>(imageTexture);
+        return reinterpret_cast<void*>(imageTexture);
     }
 
 failed:
@@ -472,11 +603,15 @@ ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int font
     return size->second;
 }
 
-const ImFont* ImGuiInterface::GetDefaultFont(int fontSize)
+ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const FontSize fontSize) const { return GetImGuiFont(fontName, static_cast<int>(fontSize)); }
+
+ImFont* ImGuiInterface::GetDefaultFont(FontSize fontSize) const { return GetDefaultFont(static_cast<int>(fontSize)); }
+
+ImFont* ImGuiInterface::GetDefaultFont(int fontSize) const
 {
-    if (fontSize == 0)
+    if (fontSize <= 0)
     {
-        fontSize = DefaultFontSize;
+        fontSize = static_cast<int>(FontSize::Default);
     }
 
     for (const auto& font : config->loadedFonts)
@@ -486,7 +621,12 @@ const ImFont* ImGuiInterface::GetDefaultFont(int fontSize)
             continue;
         }
 
-        if (!font.fontSizes.contains(fontSize))
+        if (!font.fontSizes)
+        {
+            throw std::runtime_error("Trying to access default fonts before initialisation is invalid");
+        }
+
+        if (!font.fontSizes->contains(fontSize))
         {
             throw std::runtime_error("Default font doesn't contain specified font size");
         }
@@ -497,7 +637,7 @@ const ImFont* ImGuiInterface::GetDefaultFont(int fontSize)
     throw std::runtime_error("No font was specified as default");
 }
 
-bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterMenuFunc function)
+bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterOptionsFunc function)
 {
     if (registeredOptionMenus.contains(module))
     {
@@ -506,5 +646,39 @@ bool ImGuiInterface::RegisterOptionsMenu(FlufModule* module, const RegisterMenuF
 
     Fluf::Log(LogLevel::Info, std::format("({}) Registering Option Menu", module->GetModuleName()));
     registeredOptionMenus[module] = function;
+    return true;
+}
+
+bool ImGuiInterface::RegisterStatusMenu(FlufModule* module, RegisterMenuFunc function) const
+{
+    if (registeredOptionMenus.contains(module))
+    {
+        return false;
+    }
+
+    playerStatusWindow->RegisterNewMenu(module, function);
+    return true;
+}
+
+bool ImGuiInterface::RegisterStatsMenu(FlufModule* module, const std::string& category, OnRenderStatsMenu function)
+{
+    const auto iter = statMenus.find(category);
+    if (iter == statMenus.end())
+    {
+        Fluf::Info(std::format("Registering new stats category: {}.", category));
+        statMenus[category] = {
+            { module, { function } }
+        };
+
+        return true;
+    }
+
+    if (const auto subList = iter->second.find(module); subList != iter->second.end())
+    {
+        Fluf::Error("Tried to register stats menu category multiple times.");
+        return false;
+    }
+
+    iter->second[module] = function;
     return true;
 }

@@ -10,7 +10,7 @@
 
 class FlufUi;
 
-class SetInfo final : public FlufModule, public ImGuiModule
+class SetInfo final : public FlufModule
 {
         std::shared_ptr<FlufUi> flufUi;
         std::unordered_map<uint, std::string> clientInfocards;
@@ -22,7 +22,7 @@ class SetInfo final : public FlufModule, public ImGuiModule
         bool renderInfoCardEditPage = false;
 
         void OnGameLoad() override;
-        void Render() override;
+        void Render();
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
         void SendServerInfocardUpdate();
 
@@ -30,6 +30,6 @@ class SetInfo final : public FlufModule, public ImGuiModule
         static constexpr std::string_view moduleName = "Set Info";
 
         SetInfo();
-        ~SetInfo() override;
+        ~SetInfo() override = default;
         std::string_view GetModuleName() override;
 };
