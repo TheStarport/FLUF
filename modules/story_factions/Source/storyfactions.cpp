@@ -57,11 +57,6 @@ void StoryFactions::OnGameLoad()
     ApplyPatches();
 }
 
-void StoryFactions::LoadFactions()
-{
-    // Deprecated - kept for backward compatibility but does nothing
-    Fluf::Warn("Story Factions: LoadFactions() is deprecated - configure factions in YAML instead");
-}
 void StoryFactions::ApplyPatches()
 {
     if (factions.empty())
@@ -70,17 +65,16 @@ void StoryFactions::ApplyPatches()
         return;
     }
 
-    // Lee los valores que hay en OFFSET11+1 y OFFSET10+1 (para inspección con breakpoints)
+    // Reads whats on OFFSET11+1 y OFFSET10+1, separated for better readability
     uint32_t offset11_value = *(uint32_t*)(OFFSET11 + 1);
     uint32_t offset10_value = *(uint32_t*)(OFFSET10 + 1);
 
-    // Variables separadas para depuración
     constexpr uint32_t expected11 = 0x63ed5d8;
     constexpr uint32_t expected10 = 0x63ec5d8;
 
     uint32_t offset = 0;
 
-    // Elige el offset en función del contenido
+    // Offset based on content
     if (offset11_value == expected11)
     {
         offset = OFFSET11;
@@ -95,19 +89,15 @@ void StoryFactions::ApplyPatches()
         return;
     }
 
-    // Agrega null terminator al final
     factions.push_back("");
 
-    // Dirección del array final
+    // Last array
     const uint32_t factionsAddress = reinterpret_cast<uint32_t>(factions.data());
 
-    // Muestra por consola para depuración
-    Fluf::Debug("Factions memory address: 0x{:X}");
-
-    // Cambia protección de memoria
+    // Change mem protection
     MemUtils::ProtectExecuteReadWrite(reinterpret_cast<void*>(offset), 0x575);
 
-    // Aplica todos los parches
+    // Apply patches
     *(uint32_t*)(offset + 0x001) = factionsAddress;
     *(uint32_t*)(offset + 0x00a) = factionsAddress;
     *(uint32_t*)(offset + 0x4e2) = factionsAddress;
