@@ -11,6 +11,7 @@ class QolPatcher final : public FlufModule
 {
         class MemoryPatch
         {
+            protected:
                 std::string moduleName;
                 DWORD patchOffset;
                 std::vector<byte> oldData;
@@ -19,24 +20,96 @@ class QolPatcher final : public FlufModule
                 bool requiresRestart = false;
 
             public:
+                virtual ~MemoryPatch() = default;
                 MemoryPatch(const std::string& module, DWORD offset, const std::initializer_list<byte> newData);
                 void Patch();
                 void Unpatch();
-                static std::shared_ptr<MemoryPatch> Create(const std::string& module, DWORD offset, const std::initializer_list<byte> newData);
+                virtual void RenderComponent() {};
+                std::string GetPatchId() const;
+        };
+
+        class ColorPatch final : public MemoryPatch
+        {
+                DWORD* newColor;
+                bool bgr = true;
+                bool alpha = false;
+
+            public:
+                ColorPatch(const std::string& moduleName, DWORD offset, DWORD* newColor, bool isBgr = true, bool includeAlpha = false);
+                void RenderComponent() override;
+        };
+
+        template <typename T>
+        class ValuePatch final : public MemoryPatch
+        {
+                T* newValue;
+                T min;
+                T max;
+
+            public:
+                ValuePatch(const std::string& moduleName, const DWORD offset, T* newValue, T min, T max)
+                    : MemoryPatch(moduleName, offset, {}), newValue(newValue), min(min), max(max)
+                {
+                    const auto module = reinterpret_cast<DWORD>(GetModuleHandleA(moduleName.empty() ? nullptr : moduleName.c_str()));
+                    if (!module)
+                    {
+                        return;
+                    }
+
+                    const auto address = module + patchOffset;
+                    oldData.resize(sizeof(T));
+                    patchedData.resize(sizeof(T));
+                    MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
+
+                    // Default to the original color if none provided
+                    if (!*newValue)
+                    {
+                        *newValue = *reinterpret_cast<T*>(oldData.data());
+                        patchedData = oldData;
+                    }
+                    else
+                    {
+                        memcpy(patchedData.data(), newValue, sizeof(T));
+                    }
+                }
+
+                void RenderComponent() override
+                {
+                    T value = *newValue;
+
+                    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>)
+                    {
+                        float f = static_cast<float>(value);
+                        ImGui::SliderFloat("##value", &f, static_cast<float>(min), static_cast<float>(max));
+                        value = static_cast<T>(f);
+                    }
+                    else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, unsigned int> || std::is_same_v<T, long> || std::is_same_v<T, unsigned long>)
+                    {
+                        int i = static_cast<int>(value);
+                        ImGui::SliderInt("##value", &i, static_cast<int>(min), static_cast<int>(max));
+                        value = static_cast<T>(i);
+                    }
+
+                    if (value != *newValue)
+                    {
+                        *newValue = value;
+                        memcpy(patchedData.data(), newValue, sizeof(T));
+                    }
+                }
         };
 
         struct Option
         {
                 std::string name;
                 std::string description;
-                std::vector<std::shared_ptr<MemoryPatch>> patches;
+                std::vector<MemoryPatch*> patches;
                 bool requiresRestart = false;
                 bool* flag = nullptr;
 
-                void Patch();
-                void Unpatch();
+                void Patch() const;
+                void Unpatch() const;
                 Option(const std::string& name, const std::string& description, bool* configFlag, bool requiresRestart,
-                       std::initializer_list<std::shared_ptr<MemoryPatch>> patches);
+                       std::initializer_list<MemoryPatch*> patches);
         };
 
         std::shared_ptr<FlufUi> flufUi;
@@ -48,6 +121,9 @@ class QolPatcher final : public FlufModule
         void OnLogin(uint client, bool singlePlayer, FLPACKET_UNKNOWN*) override;
         void OnGameLoad() override;
 
+        void RegisterHudPatches();
+        void RegisterDisplayPatches();
+
     public:
         static constexpr std::string_view moduleName = "qol_patcher";
 
@@ -55,3 +131,11 @@ class QolPatcher final : public FlufModule
         ~QolPatcher() override;
         std::string_view GetModuleName() override;
 };
+
+#define PATCH(module, offset, ...)                                  \
+    new MemoryPatch                                                 \
+    {                                                               \
+        module, offset, std::initializer_list<byte> { __VA_ARGS__ } \
+    }
+#define OPTION(name, description, flag, restart, ...) \
+    category.emplace_back(name, description, flag, restart, std::initializer_list<MemoryPatch*>{ __VA_ARGS__ })

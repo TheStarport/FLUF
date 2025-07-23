@@ -64,34 +64,31 @@ void QolPatcher::MemoryPatch::Unpatch()
     MemUtils::WriteProcMem(address, oldData.data(), oldData.size());
 }
 
-std::shared_ptr<QolPatcher::MemoryPatch> QolPatcher::MemoryPatch::Create(const std::string& module, DWORD offset, const std::initializer_list<byte> newData)
-{
-    return std::make_shared<MemoryPatch>(module, offset, newData);
-}
+std::string QolPatcher::MemoryPatch::GetPatchId() const { return std::to_string(patchOffset); }
 
-void QolPatcher::Option::Patch()
+void QolPatcher::Option::Patch() const
 {
     if (!*flag)
     {
         return;
     }
 
-    for (auto patch : patches)
+    for (const auto& patch : patches)
     {
         patch->Patch();
     }
 }
 
-void QolPatcher::Option::Unpatch()
+void QolPatcher::Option::Unpatch() const
 {
-    for (auto patch : patches)
+    for (const auto& patch : patches)
     {
         patch->Unpatch();
     }
 }
 
 QolPatcher::Option::Option(const std::string& name, const std::string& description, bool* configFlag, bool requiresRestart,
-                           std::initializer_list<std::shared_ptr<MemoryPatch>> patches)
+                           std::initializer_list<MemoryPatch*> patches)
 {
     this->name = name;
     this->description = description;
@@ -118,6 +115,13 @@ void QolPatcher::Render(bool saveRequested)
             {
                 ImGui::SameLine();
                 ImGuiHelper::HelpMarker("This change will not take effect until after a restart.", '*', 0xFF0000CC);
+            }
+
+            for (const auto& patch : option.patches)
+            {
+                ImGui::PushID(patch->GetPatchId().c_str());
+                patch->RenderComponent();
+                ImGui::PopID();
             }
         }
     }
@@ -187,21 +191,26 @@ QolPatcher::QolPatcher()
 {
     config = rfl::Box<PatcherConfig>::make(*ConfigHelper<PatcherConfig, PatcherConfig::path>::Load(true));
 
-#define PATCH(module, offset, ...)                    MemoryPatch::Create(module, offset, { __VA_ARGS__ })
-#define OPTION(name, description, flag, restart, ...) category.emplace_back(name, description, flag, restart, std::initializer_list{ __VA_ARGS__ })
-
-    auto& category = memoryPatches["Display"];
-
-    OPTION("Borderless Window",
-           "Removes the window borders when in windowed mode",
-           &config->borderlessWindow,
-           true,
-           PATCH("", 0x02477A, 0x00, 0x00),
-           PATCH("", 0x002490D, 0x00, 0x00));
+    RegisterDisplayPatches();
+    RegisterHudPatches();
 
     TogglePatches(true);
 };
-QolPatcher::~QolPatcher() = default;
+QolPatcher::~QolPatcher()
+{
+    for (const auto& options : memoryPatches | std::views::values)
+    {
+        for (auto& option : options)
+        {
+            option.Unpatch();
+
+            for (const auto patch : option.patches)
+            {
+                delete patch;
+            }
+        }
+    }
+};
 
 std::string_view QolPatcher::GetModuleName() { return moduleName; }
 
