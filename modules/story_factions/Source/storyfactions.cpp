@@ -6,7 +6,6 @@
   The story factions are those that are excluded from the reputation list.  This
   plugin overrides the defaults and reads them from DATA\storyfactions.ini.
 
-  Fluf adaptation by Josbyte, 2025 
 */
 
 #include "PCH.hpp"
@@ -67,29 +66,18 @@ void StoryFactions::ApplyPatches()
 
     // Reads whats on OFFSET11+1 y OFFSET10+1, separated for better readability
     uint32_t offset11_value = *(uint32_t*)(OFFSET11 + 1);
-    uint32_t offset10_value = *(uint32_t*)(OFFSET10 + 1);
 
     constexpr uint32_t expected11 = 0x63ed5d8;
-    constexpr uint32_t expected10 = 0x63ec5d8;
 
     uint32_t offset = 0;
 
-    // Offset based on content
-    if (offset11_value == expected11)
-    {
-        offset = OFFSET11;
-    }
-    else if (offset10_value == expected10)
-    {
-        offset = OFFSET10;
-        ;
-    }
-    else
+    // If offset is not valid
+    if (offset11_value != expected11)
     {
         return;
+        
     }
-
-    factions.push_back("");
+    offset = OFFSET11;
 
     // Last array
     const uint32_t factionsAddress = reinterpret_cast<uint32_t>(factions.data());

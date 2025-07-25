@@ -15,7 +15,6 @@ private:
     std::vector<std::string> factions;
     
     // Memory addresses for patching
-    static constexpr uint32_t OFFSET10 = 0x631f800;
     static constexpr uint32_t OFFSET11 = 0x631f930;
     
     // Load factions from configuration file
