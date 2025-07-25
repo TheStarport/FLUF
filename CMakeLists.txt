@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 project("FLUF" LANGUAGES C CXX)
 
-set(BINARY_COPY_DESTINATION "C:/Users/josem/Desktop/HomeworldRiseofHiigara/Rise of Hiigara/EXE")
-
 find_program(CCACHE_FOUND ccache)
 if (CCACHE_FOUND)
     message(STATUS "Found CCache, applying rules")
