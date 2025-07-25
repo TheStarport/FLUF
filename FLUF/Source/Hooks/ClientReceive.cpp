@@ -111,10 +111,21 @@ bool __thiscall ClientReceive::Login(IClientImpl* clientImpl, uint client, FLPAC
 
     if (!SinglePlayer())
     {
-        constexpr char header[4] = { 'f', 'l', 'u', 'f' };
-        Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
+        constexpr std::string_view header = "fluf";
+
+        struct FlufMetadata
+        {
+                DWORD infocardIndex;
+        };
+
+        const FlufMetadata metadata{
+            .infocardIndex = Fluf::startingResourceIndex,
+        };
+
+        Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, metadata);
     }
-    Fluf::instance->CallModuleEvent(&FlufModule::OnLogin, client, unk);
+
+    Fluf::instance->CallModuleEvent(&FlufModule::OnLogin, client, SinglePlayer(), unk);
     return result;
 }
 

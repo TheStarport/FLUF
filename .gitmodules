@@ -1,6 +1,3 @@
-[submodule "vendor/imgui-filebrowser"]
-	path = vendor/imgui-filebrowser
-	url = https://github.com/AirGuanZ/imgui-filebrowser.git
 [submodule "vendor/FLHookSDK"]
 	path = vendor/FLHookSDK
 	url = https://github.com/TheStarport/FLHookSDK
@@ -20,3 +17,9 @@
 [submodule "vendor/ImGuiColorTextEdit"]
 	path = vendor/ImGuiColorTextEdit
 	url = https://github.com/santaclose/ImGuiColorTextEdit.git
+[submodule "vendor/imgui_gradient"]
+	path = vendor/imgui_gradient
+	url = https://github.com/Coollab-Art/imgui_gradient.git
+[submodule "vendor/ImGuiTextUtils"]
+	path = vendor/ImGuiTextUtils
+	url = https://github.com/MadLadSquad/UntitledImGuiTextUtils.git

@@ -15,6 +15,11 @@ set(IMGUI_COLOR_TEXT_EDIT_SOURCE_FILES
         ${IMGUI_COLOR_TEXT_EDIT_DIR}/LanguageDefinitions.cpp
 )
 
+add_subdirectory(${VENDOR_PATH}/imgui_gradient ${CMAKE_CURRENT_BINARY_DIR}/imgui_gradient EXCLUDE_FROM_ALL)
+target_include_directories(imgui_gradient SYSTEM PRIVATE ${IMGUI_PATH})
+
+set(IMGUI_TEXT_PATH ${VENDOR_PATH}/ImGuiTextUtils)
+
 configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
 add_library(FLUF.UI SHARED
         ${SOURCE_FILES}
@@ -30,7 +35,11 @@ add_library(FLUF.UI SHARED
         ${IMGUI_PATH}/misc/freetype/imgui_freetype.cpp
         ${IMGUI_PATH}/backends/imgui_impl_win32.cpp
         ${IMGUI_PATH}/backends/imgui_impl_dx9.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
         ${IMGUI_COLOR_TEXT_EDIT_SOURCE_FILES}
+        ${IMGUI_TEXT_PATH}/UImGuiTextUtils.cpp
+        ${IMGUI_TEXT_PATH}/UImGuiTextUtilsTextMarkdown.cpp
+        ${IMGUI_TEXT_PATH}/UImGuiTextUtilsTypefaces.cpp
 )
 
 target_include_directories(FLUF.UI PRIVATE
@@ -38,11 +47,21 @@ target_include_directories(FLUF.UI PRIVATE
         ${IMGUI_PATH}/backends
         ${IMGUI_COLOR_TEXT_EDIT_DIR}
         ${IMGUI_COLOR_TEXT_EDIT_DIR}/vendor/regex/include
+        ${VENDOR_PATH}/ImGuiTextUtils
 )
 
-target_link_libraries(FLUF.UI PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
-target_link_libraries(FLUF.UI PRIVATE FLUF)
-target_compile_definitions(FLUF.UI PRIVATE FLUF_UI FLCore)
+target_link_libraries(FLUF.UI PRIVATE
+        "${SDK_PATH}/lib/FLCoreCommon.lib"
+        FLUF
+        imgui_gradient::imgui_gradient
+        opengl32.lib
+)
+
+target_compile_definitions(FLUF.UI PRIVATE
+        FLUF_UI
+        FLCore
+        MLS_LIB_COMPILE
+)
 add_dependencies(FLUF.UI FLUF)
 
 # DirectX9 SDK

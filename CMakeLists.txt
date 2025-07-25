@@ -210,6 +210,9 @@ function(create_post_build)
     endif ()
 endfunction()
 
+# For ImGuiTextUtils
+add_definitions(-DMLS_EXPORT_LIBRARY=1)
+
 # Now we add our sub-projects
 
 add_subdirectory(FLUF) # FLUF Core

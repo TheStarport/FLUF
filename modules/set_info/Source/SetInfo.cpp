@@ -33,11 +33,9 @@ void SetInfo::OnGameLoad()
 
     const auto imgui = flufUi->GetImGuiInterface();
 
-    imgui->RegisterImGuiModule(this);
-
     // TODO: Standardise font sizes!
-    const auto h1 = imgui->GetDefaultFont(48);
-    const auto h2 = imgui->GetDefaultFont(46);
+    const auto h1 = imgui->GetDefaultFont(FontSize::VeryBig);
+    const auto h2 = imgui->GetDefaultFont(FontSize::Big);
     const auto h3 = imgui->GetDefaultFont();
 
     // clang-format off
@@ -51,35 +49,26 @@ void SetInfo::OnGameLoad()
     };
     // clang-format on
 
-    mdConfig.headingFormats[0] = { const_cast<ImFont*>(h1), true };
-    mdConfig.headingFormats[1] = { const_cast<ImFont*>(h2), true };
-    mdConfig.headingFormats[2] = { const_cast<ImFont*>(h3), true };
+    mdConfig.headingFormats[0] = { const_cast<ImFont*>(h1), false };
+    mdConfig.headingFormats[1] = { const_cast<ImFont*>(h2), false };
+    mdConfig.headingFormats[2] = { const_cast<ImFont*>(h3), false };
 
     editor = std::make_unique<TextEditor>();
+
+    imgui->RegisterStatusMenu(this, static_cast<RegisterMenuFunc>(&SetInfo::Render));
 }
 
 void SetInfo::Render()
 {
-    if (!renderInfoCardEditPage)
-    {
-        return;
-    }
-
-    static ImVec2 windowSize{ 1280.f, 1024.f };
+    auto windowSize = ImGui::GetWindowSize();
     static ImVec2 childWindowSize{ windowSize.x - 20.f, windowSize.y * 0.45f };
-    ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
-    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::Begin("Infocard Editor", &renderInfoCardEditPage, ImGuiWindowFlags_NoResize);
 
-    ImGui::SetNextWindowSize(childWindowSize, ImGuiCond_Always);
-    ImGui::BeginChild("infocard-preview-markdown");
+    ImGui::BeginChild("infocard-preview-markdown", childWindowSize);
     ImGui::Markdown(infocardBeingEdited.c_str(), infocardBeingEdited.size(), mdConfig);
     ImGui::EndChild();
 
-    ImGui::SetNextWindowSize(childWindowSize, ImGuiCond_Always);
-    ImGui::BeginChild("infocard-edit-markdown");
-    ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+    ImGui::BeginChild("infocard-edit-markdown", childWindowSize);
+    ImGui::PushFont(ImGui::GetDefaultFont(), 24.f);
 
     editor->Render("Infocard Editor");
 
@@ -93,9 +82,8 @@ void SetInfo::Render()
     {
         SendServerInfocardUpdate();
     }
-    ImGui::EndDisabled();
 
-    ImGui::End();
+    ImGui::EndDisabled();
 }
 
 FlufModule::ModuleProcessCode SetInfo::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
@@ -125,8 +113,7 @@ FlufModule::ModuleProcessCode SetInfo::OnPayloadReceived(uint sourceClientId, co
 void SetInfo::SendServerInfocardUpdate()
 {
     constexpr std::string_view header = "set_info";
-    auto payload = FlufPayload::ToPayload(infocardBeingEdited, header);
-    Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, true);
+    Fluf::GetClientServerCommunicator()->SendPayloadFromClient(header, infocardBeingEdited);
     waitingForUpdate = true;
 }
 
@@ -146,14 +133,6 @@ SetInfo::SetInfo()
     if (module->GetConfig()->uiMode != UiMode::ImGui)
     {
         throw ModuleLoadException("SetInfo was loaded, but FLUF UI's ui mode was not set to 'ImGui'");
-    }
-}
-
-SetInfo::~SetInfo()
-{
-    if (flufUi->GetConfig()->uiMode == UiMode::ImGui)
-    {
-        flufUi->GetImGuiInterface()->UnregisterImGuiModule(this);
     }
 }
 

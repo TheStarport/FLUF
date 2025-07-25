@@ -130,7 +130,7 @@ class FLUF_API FlufModule
         virtual void OnEnterTradeLane(uint client, XGoTradelane& tl) {}
         virtual void OnStopTradeLane(uint client, uint shipId, uint archTradelane1, uint archTradelane2) {}
         virtual void OnJettisonCargo(uint client, XJettisonCargo& jc) {}
-        virtual void OnLogin(uint client, FLPACKET_UNKNOWN*) {}
+        virtual void OnLogin(uint client, bool singlePlayer, FLPACKET_UNKNOWN*) {}
         virtual void OnCharacterInformationReceived(uint client, FLPACKET_UNKNOWN*) {}
         virtual void OnCharacterSelect(uint client, FLPACKET_UNKNOWN*) {}
         virtual void OnAddItem(uint client, FLPACKET_UNKNOWN*, FLPACKET_UNKNOWN*) {}

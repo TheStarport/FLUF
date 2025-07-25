@@ -198,7 +198,7 @@ void RaidUi::OnGameLoad()
     }
 
     flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
-    flufUi->GetImGuiInterface()->RegisterOptionsMenu(this, static_cast<RegisterMenuFunc>(&RaidUi::RenderRaidUiOptions));
+    flufUi->GetImGuiInterface()->RegisterOptionsMenu(this, static_cast<RegisterOptionsFunc>(&RaidUi::RenderRaidUiOptions));
 }
 
 void RaidUi::RadialProgressBar(const std::string& label, const float progress, const ImVec2& size, const ImVec4& color, ImVec2 center)
