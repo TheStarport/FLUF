@@ -99,6 +99,10 @@ This project can be build on both Linux and Windows. Both assume that Python 3.1
 For Windows you should have Visual Studio 2022 installed with all the latest libs. This project builds with the v143
 toolchain and C++20.
 
+You will need the `7z` tool which can be installed via the installers on [7-zip.org](https://www.7-zip.org/download.html).
+On Windows systems at least, you will need to add the location of the `7z` binary to your PATH, e.g. `C:\Program Files\7-Zip\`.
+This must be done before running the `cli.py dependencies` step below.
+
 Linux requires compilation to be done through [MSVC Wine](https://github.com/mstorsjo/msvc-wine). Follow the
 instructions there for setting it up. Once setup in your directories of choice, add these to your .bashrc
 (or convert to your shell of choice):
