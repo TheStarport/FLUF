@@ -15,7 +15,7 @@ class ShipDealerEnhancements final : public FlufModule
         static void InitShipDealerHooks();
 
     public:
-        static constexpr std::string_view moduleName = "ship_dealer_enhancements";
+        static constexpr std::string_view moduleName = "Ship Dealer Enhancements";
 
         ShipDealerEnhancements();
         std::string_view GetModuleName() override;

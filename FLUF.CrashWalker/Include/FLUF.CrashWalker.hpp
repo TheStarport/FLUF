@@ -45,7 +45,7 @@ class FlufCrashWalker final : public FlufModule
 
     public:
         static void TryCatchDetour(double time);
-        static constexpr std::string_view moduleName = "FLUF.CrashWalker";
+        static constexpr std::string_view moduleName = "FLUF CrashWalker";
         std::string_view GetModuleName() override;
         ErrorPayload* FindError(std::string_view module, size_t offset);
 

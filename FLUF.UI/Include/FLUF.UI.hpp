@@ -61,7 +61,7 @@ class FlufUi final : public FlufModule
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
 
     public:
-        static constexpr std::string_view moduleName = "FLUF.UI";
+        static constexpr std::string_view moduleName = "FLUF UI";
 
         /**
          * @brief Gets the HudManager class which is used to manipulate the vanilla freelancer interface.

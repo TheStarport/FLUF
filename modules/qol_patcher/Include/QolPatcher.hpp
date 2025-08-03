@@ -160,7 +160,7 @@ class QolPatcher final : public FlufModule
         void RegisterControlPatches();
 
     public:
-        static constexpr std::string_view moduleName = "qol_patcher";
+        static constexpr std::string_view moduleName = "QoL Patcher";
 
         QolPatcher();
         ~QolPatcher() override;
