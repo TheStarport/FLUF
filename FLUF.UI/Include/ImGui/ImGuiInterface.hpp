@@ -24,6 +24,7 @@ enum class FontSize
 // Conditional fwd decs
 #ifdef FLUF_UI
 class PlayerStatusWindow;
+class CustomOptionsWindow;
 class CustomHud;
 #endif
 class ImGuiInterface
@@ -32,7 +33,6 @@ class ImGuiInterface
         void* renderingContext;
         std::unordered_map<std::string, void*> loadedTextures;
 
-        bool showOptionsWindow = false;
         std::unordered_set<ImGuiModule*> imguiModules;
         std::unordered_map<FlufModule*, RegisterOptionsFunc> registeredOptionMenus;
         std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>> statMenus;
@@ -52,6 +52,7 @@ class ImGuiInterface
 #ifdef FLUF_UI
         std::unique_ptr<PlayerStatusWindow> playerStatusWindow;
         std::unique_ptr<CustomHud> customHud;
+        std::unique_ptr<CustomOptionsWindow> customOptionsWindow;
 #endif
         FlufUi* flufUi;
         std::shared_ptr<FlufUiConfig> config;
@@ -60,7 +61,6 @@ class ImGuiInterface
 
         void InitSubmenus();
         void Render();
-        void RenderOptionsMenu();
         static void PollInput();
         static MouseState ConvertState(DWORD state);
         static bool WndProc(FlufUiConfig* config, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

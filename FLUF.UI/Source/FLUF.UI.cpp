@@ -7,6 +7,7 @@
 #include "ImGui/ImGuiInterface.hpp"
 #include "ImGui/ImGuiNotify.hpp"
 #include "Typedefs.hpp"
+#include "Internal/CustomOptionsWindow.hpp"
 #include "Utils/Detour.hpp"
 #include "Vanilla/HudManager.hpp"
 
@@ -159,7 +160,7 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
 
 bool FlufUi::OpenOptionsMenu() const
 {
-    imguiInterface->showOptionsWindow = true;
+    imguiInterface->customOptionsWindow->SetOpen();
     return true;
 }
 

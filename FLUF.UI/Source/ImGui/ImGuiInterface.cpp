@@ -21,6 +21,7 @@
 #include "KeyManager.hpp"
 #include "UImGuiTextUtils.hpp"
 #include "Internal/CustomHud.hpp"
+#include "Internal/CustomOptionsWindow.hpp"
 #include "Internal/PlayerStatusWindow.hpp"
 #include "Vanilla/HudManager.hpp"
 
@@ -138,6 +139,7 @@ void ImGuiInterface::InitSubmenus()
 {
     // Init submenus
     playerStatusWindow = std::make_unique<PlayerStatusWindow>(statMenus);
+    customOptionsWindow = std::make_unique<CustomOptionsWindow>(registeredOptionMenus);
 
     // Register custom hud for listening to the player status button
     customHud = std::make_unique<CustomHud>(playerStatusWindow.get());
@@ -171,13 +173,12 @@ void ImGuiInterface::Render()
         ImGui::ShowDemoWindow(&showDemoWindow);
     }
 
-    RenderOptionsMenu();
-
     for (auto* module : imguiModules)
     {
         module->Render();
     }
 
+    customOptionsWindow->Render();
     playerStatusWindow->Render();
 
     // Render notifications above all else
@@ -191,69 +192,6 @@ void ImGuiInterface::Render()
         case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); break;
         default: throw std::runtime_error("Unknown backend");
     }
-}
-
-void ImGuiInterface::RenderOptionsMenu()
-{
-    using namespace std::string_view_literals;
-    if (!showOptionsWindow)
-    {
-        return;
-    }
-
-    static std::string_view lastSavedModule;
-    ImGui::SetNextWindowSize({ 1280.f, 1024.f }, ImGuiCond_Appearing);
-    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 4.f);
-    if (ImGui::Begin("Extended Options Menu", &showOptionsWindow))
-    {
-        if (ImGui::BeginTabBar("##option-tabs"))
-        {
-            const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-            int counter = 0;
-            for (const auto& menu : registeredOptionMenus)
-            {
-                const auto nameView = menu.first->GetModuleName();
-                auto name = std::string(nameView) + "##";
-                ImGui::PushID(counter++);
-                if (ImGui::BeginTabItem(name.c_str()))
-                {
-                    constexpr auto saveChangesText = "Save Changes"sv;
-                    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
-                                         (ImGui::CalcTextSize(saveChangesText.data()).x + itemSpacing.x * 2.0f));
-                    const auto saveRequested = ImGui::Button(saveChangesText.data());
-
-                    (menu.first->*menu.second)(saveRequested);
-
-                    if (saveRequested)
-                    {
-                        Fluf::Log(LogLevel::Info, "Saved changes");
-                        lastSavedModule = nameView;
-                        ImGui::OpenPopup("Changes Saved!");
-                    }
-
-                    if (ImGui::BeginPopupModal("Changes Saved!", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-                    {
-                        std::string text = std::format("Successfully saved settings for {}", lastSavedModule);
-                        ImGui::Text(text.c_str());
-                        if (ImGui::Button("OK"))
-                        {
-                            ImGui::CloseCurrentPopup();
-                        }
-                        ImGui::EndPopup();
-                    }
-
-                    ImGui::EndTabItem();
-                }
-                ImGui::PopID();
-            }
-            ImGui::EndTabBar();
-        }
-
-        ImGui::End();
-    }
-    ImGui::PopStyleVar();
 }
 
 ImGuiInterface::MouseState ImGuiInterface::ConvertState(const DWORD state)
