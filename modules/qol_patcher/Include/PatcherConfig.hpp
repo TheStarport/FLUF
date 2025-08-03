@@ -25,4 +25,11 @@ struct PatcherConfig
         DWORD newHealthColor = 0;
         bool customStatusBarWidth = false;
         double statusBarWidth = 0.85;
+
+        // Chat
+
+        bool disableNewPlayerMessages = false;
+        bool disableDepartingPlayerMessages = false;
+        bool customNewDepartingPlayerColor = false;
+        DWORD newPlayerColor = 0;
 };

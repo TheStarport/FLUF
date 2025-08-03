@@ -87,7 +87,6 @@ class QolPatcher final : public FlufModule
                     // Default to the original color if none provided
                     if (!*newValue)
                     {
-                        *newValue = *reinterpret_cast<T*>(oldData.data());
                         *newValue = defaultValue;
                         patchedData = oldData;
                     }
@@ -157,6 +156,7 @@ class QolPatcher final : public FlufModule
 
         void RegisterHudPatches();
         void RegisterDisplayPatches();
+        void RegisterChatPatches();
 
     public:
         static constexpr std::string_view moduleName = "qol_patcher";
