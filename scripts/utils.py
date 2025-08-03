@@ -2,6 +2,7 @@ import os
 import platform
 import subprocess
 from sys import stdout
+from shutil import which
 
 import click
 import requests
@@ -66,3 +67,8 @@ def run(cmd: str, no_log: bool = False, allow_error: bool = False) -> int:
 @click.group()
 def cli():
     pass
+
+
+def raise_if_missing_exe(app: str):
+    if which(app) is None:
+        raise FileNotFoundError(f'Could not find required application: {app}')

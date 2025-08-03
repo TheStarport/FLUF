@@ -28,9 +28,9 @@ void CustomOptionsWindow::RenderWindowContents()
 
     const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
     int counter = 0;
-    for (const auto& menu : registeredMenus)
+    for (const auto& [module, menuFunc] : registeredMenus)
     {
-        const auto nameView = menu.first->GetModuleName();
+        const auto nameView = module->GetModuleName();
         auto name = std::string(nameView) + "##";
         ImGui::PushID(counter++);
         if (!ImGui::BeginTabItem(name.c_str()))
@@ -42,7 +42,7 @@ void CustomOptionsWindow::RenderWindowContents()
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - (ImGui::CalcTextSize(saveChangesText).x + itemSpacing.x * 2.0f));
         const auto saveRequested = ImGui::Button(saveChangesText);
 
-        (menu.first->*menu.second)(saveRequested);
+        (module->*menuFunc)(saveRequested);
 
         if (saveRequested)
         {
