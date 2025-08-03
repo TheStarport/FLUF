@@ -1,12 +1,7 @@
 /*
-  storyfactions.cpp - Patch Freelancer to define the story factions.
-
-  Jason Hood, 23 March, 2010.
-
-  The story factions are those that are excluded from the reputation list.  This
-  plugin overrides the defaults and reads them from DATA\storyfactions.ini.
-
-*/
+ * Originally written by Jason Hood, 2010
+ * Ported to FLUF by Josbyte, 2025
+ */
 
 #include "PCH.hpp"
 
@@ -14,10 +9,6 @@
 #include "StoryFactionsConfig.hpp"
 #include "Fluf.hpp"
 #include "Utils/MemUtils.hpp"
-
-#include <filesystem>
-#include <fstream>
-#include <string>
 
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
 {
@@ -53,6 +44,7 @@ void StoryFactions::OnGameLoad()
     {
         Fluf::Warn("Story Factions: No factions loaded - check YAML configuration");
     }
+
     ApplyPatches();
 }
 
@@ -65,32 +57,28 @@ void StoryFactions::ApplyPatches()
     }
 
     // Reads whats on OFFSET11+1 y OFFSET10+1, separated for better readability
-    uint32_t offset11_value = *(uint32_t*)(OFFSET11 + 1);
+    const uint32_t offset11 = *reinterpret_cast<uint32_t*>(OFFSET11 + 1);
 
     constexpr uint32_t expected11 = 0x63ed5d8;
 
     uint32_t offset = 0;
 
     // If offset is not valid
-    if (offset11_value != expected11)
+    if (offset11 != expected11)
     {
         return;
-        
     }
+
     offset = OFFSET11;
 
     // Last array
     const uint32_t factionsAddress = reinterpret_cast<uint32_t>(factions.data());
 
-    // Change mem protection
-    MemUtils::ProtectExecuteReadWrite(reinterpret_cast<void*>(offset), 0x575);
-
-    // Apply patches
-    *(uint32_t*)(offset + 0x001) = factionsAddress;
-    *(uint32_t*)(offset + 0x00a) = factionsAddress;
-    *(uint32_t*)(offset + 0x4e2) = factionsAddress;
-    *(uint32_t*)(offset + 0x530) = factionsAddress;
-    *(uint32_t*)(offset + 0x571) = factionsAddress;
+    MemUtils::WriteProcMem(offset + 0x1, &factionsAddress, sizeof(uint32_t));
+    MemUtils::WriteProcMem(offset + 0xA, &factionsAddress, sizeof(uint32_t));
+    MemUtils::WriteProcMem(offset + 0x4E2, &factionsAddress, sizeof(uint32_t));
+    MemUtils::WriteProcMem(offset + 0x530, &factionsAddress, sizeof(uint32_t));
+    MemUtils::WriteProcMem(offset + 0x571, &factionsAddress, sizeof(uint32_t));
 
     Fluf::Info("Story Factions: Applied patches successfully");
 }
