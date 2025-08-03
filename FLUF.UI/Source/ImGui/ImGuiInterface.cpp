@@ -162,6 +162,10 @@ void ImGuiInterface::Render()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    ImGui::SetShortcutRouting(ImGuiMod_Ctrl | ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteGlobal);
+    ImGui::SetShortcutRouting(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteGlobal);
+    ImGui::SetShortcutRouting(ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteGlobal);
+
     if (showDemoWindow)
     {
         ImGui::ShowDemoWindow(&showDemoWindow);
