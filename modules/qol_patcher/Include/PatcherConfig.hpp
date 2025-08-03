@@ -25,6 +25,9 @@ struct PatcherConfig
         DWORD newHealthColor = 0;
         bool customStatusBarWidth = false;
         double statusBarWidth = 0.85;
+        bool disableTargetingBrackets = false;
+        bool customiseDamageIndicatorTime = false;
+        float damageIndicatorFadeTime = 0.8f;
 
         // Chat
 
@@ -32,4 +35,12 @@ struct PatcherConfig
         bool disableDepartingPlayerMessages = false;
         bool customNewDepartingPlayerColor = false;
         DWORD newPlayerColor = 0;
+        bool disableMultiplayerChat = false;
+
+        // Control
+        bool customiseHullScreenShake = false;
+        bool customiseShieldScreenShake = false;
+        float hullScreenShakeValue = 0.02f;
+        float shieldScreenShakeValue = 0.005f;
+        bool disableDefaultAutoLevel = false;
 };

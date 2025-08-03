@@ -157,6 +157,7 @@ class QolPatcher final : public FlufModule
         void RegisterHudPatches();
         void RegisterDisplayPatches();
         void RegisterChatPatches();
+        void RegisterControlPatches();
 
     public:
         static constexpr std::string_view moduleName = "qol_patcher";

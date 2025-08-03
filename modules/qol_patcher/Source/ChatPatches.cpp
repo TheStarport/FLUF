@@ -23,4 +23,11 @@ void QolPatcher::RegisterChatPatches()
            &config->customNewDepartingPlayerColor,
            false,
            new ColorPatch{ "", 0x05E01B, &config->newPlayerColor });
+
+    OPTION("Disable Multiplayer Chat",
+           "Disables the chat from appearing on screen entirely. Useful for recording gameplay footage. "
+           "Please ensure that this is allowed on the server you are connected to.",
+           &config->disableMultiplayerChat,
+           false,
+           PATCH("", 0x1A6250, 0xC2, 0x10, 0x00));
 }

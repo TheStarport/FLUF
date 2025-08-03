@@ -29,4 +29,16 @@ void QolPatcher::RegisterHudPatches()
            &config->customStatusBarWidth,
            false,
            new ValuePatch{ "", 0x1D7E50, &config->statusBarWidth, 0.05, 1.0 });
+
+    OPTION("Disable Targeting Brackets",
+           "Disable the targeting brackets that appear on ships that are not currently selected.",
+           &config->disableTargetingBrackets,
+           false,
+           PATCH("", 0x0EC087, 0x90, 0xE9));
+
+    OPTION("Damage Indicator Fade Time",
+           "The amount of time the damage indicator will be on screen, set to 0 to disable entirely.",
+           &config->customiseDamageIndicatorTime,
+           false,
+           new ValuePatch{ "", 0x1D800C, &config->damageIndicatorFadeTime, 0.0f, 1.5f });
 }

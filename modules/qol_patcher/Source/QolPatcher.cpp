@@ -201,6 +201,7 @@ QolPatcher::QolPatcher()
     RegisterDisplayPatches();
     RegisterHudPatches();
     RegisterChatPatches();
+    RegisterControlPatches();
 
     TogglePatches(true);
 };
