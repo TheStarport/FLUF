@@ -25,6 +25,7 @@ class QolPatcher final : public FlufModule
                 void Patch();
                 void Unpatch();
                 virtual void RenderComponent() {};
+                [[nodiscard]]
                 std::string GetPatchId() const;
         };
 
@@ -39,12 +40,32 @@ class QolPatcher final : public FlufModule
                 void RenderComponent() override;
         };
 
+        class OptionPatch final : public MemoryPatch
+        {
+            public:
+                struct PatchOption
+                {
+                        std::string label;
+                        std::vector<byte> data;
+                };
+
+            private:
+                std::vector<PatchOption> patches{};
+                int* selectedPatch;
+                size_t patchSize;
+
+            public:
+                OptionPatch(const std::string& moduleName, DWORD offset, int* optionIndex, std::initializer_list<PatchOption> patches);
+                void RenderComponent() override;
+        };
+
         template <typename T>
         class ValuePatch final : public MemoryPatch
         {
                 T* newValue;
                 T min;
                 T max;
+                T defaultValue;
 
             public:
                 ValuePatch(const std::string& moduleName, const DWORD offset, T* newValue, T min, T max)
@@ -61,10 +82,13 @@ class QolPatcher final : public FlufModule
                     patchedData.resize(sizeof(T));
                     MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
 
+                    defaultValue = *reinterpret_cast<T*>(oldData.data());
+
                     // Default to the original color if none provided
                     if (!*newValue)
                     {
                         *newValue = *reinterpret_cast<T*>(oldData.data());
+                        *newValue = defaultValue;
                         patchedData = oldData;
                     }
                     else
@@ -88,6 +112,15 @@ class QolPatcher final : public FlufModule
                         int i = static_cast<int>(value);
                         ImGui::SliderInt("##value", &i, static_cast<int>(min), static_cast<int>(max));
                         value = static_cast<T>(i);
+                    }
+
+                    if (*newValue != defaultValue)
+                    {
+                        ImGui::SameLine();
+                        if (ImGui::Button("Reset##"))
+                        {
+                            value = defaultValue;
+                        }
                     }
 
                     if (value != *newValue)
@@ -119,6 +152,7 @@ class QolPatcher final : public FlufModule
         void Render(bool saveRequested);
         void TogglePatches(bool state);
         void OnLogin(uint client, bool singlePlayer, FLPACKET_UNKNOWN*) override;
+        void OnCharacterSelect(uint client, FLPACKET_UNKNOWN*) override;
         void OnGameLoad() override;
 
         void RegisterHudPatches();

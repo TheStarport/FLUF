@@ -161,6 +161,13 @@ void QolPatcher::OnLogin(uint client, bool singlePlayer, FLPACKET_UNKNOWN* flpac
     TogglePatches(true);
 }
 
+void QolPatcher::OnCharacterSelect(uint client, FLPACKET_UNKNOWN* flpacket_unknown)
+{
+    // We do not have any hooks for detecting single player, so we hook on character select which also fires for loading saves
+    TogglePatches(false);
+    TogglePatches(true);
+}
+
 void QolPatcher::OnGameLoad()
 {
     const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
@@ -196,6 +203,7 @@ QolPatcher::QolPatcher()
 
     TogglePatches(true);
 };
+
 QolPatcher::~QolPatcher()
 {
     for (const auto& options : memoryPatches | std::views::values)
