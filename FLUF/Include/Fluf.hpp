@@ -76,7 +76,7 @@ class Fluf
 
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
-        void OnGameLoad() const;
+        void OnGameLoad();
         static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
 
         void HookIClient(char* client, bool unhook, bool local);

@@ -262,15 +262,26 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-void Fluf::OnGameLoad() const
+void Fluf::OnGameLoad()
 {
     InfocardOverrides::Initialise();
 
     Log(LogLevel::Info, "Data loaded, Freelancer ready.");
-    for (const auto& module : loadedModules)
+    for (auto module = loadedModules.begin(); module != loadedModules.end();)
     {
-        Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->GetModuleName()));
-        module->OnGameLoad();
+        Log(LogLevel::Trace, std::format("OnGameLoad - {}", module->get()->GetModuleName()));
+
+        try
+        {
+            module->get()->OnGameLoad();
+            ++module;
+        }
+        catch (std::exception& ex)
+        {
+            Log(LogLevel::Error, std::format("Exception thrown during OnGameLoad: {}", ex.what()));
+            Log(LogLevel::Info, "Unloading module");
+            module = loadedModules.erase(module);
+        }
     }
 }
 

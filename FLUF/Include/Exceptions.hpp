@@ -3,7 +3,7 @@
 #include <exception>
 #include <string>
 
-class ModuleLoadException : std::exception
+class ModuleLoadException : public std::exception
 {
         std::string reason;
 
