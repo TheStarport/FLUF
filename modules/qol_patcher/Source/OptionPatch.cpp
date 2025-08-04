@@ -2,39 +2,26 @@
 
 #include "QolPatcher.hpp"
 
-QolPatcher::OptionPatch::OptionPatch(const std::string& moduleName, const DWORD offset, int* optionIndex, std::initializer_list<PatchOption> patches)
-    : MemoryPatch(moduleName, offset, {}), patches(patches), selectedPatch(optionIndex)
+QolPatcher::OptionPatch::OptionPatch(const std::string& moduleName, const std::initializer_list<DWORD> offsets, const size_t patchSize, int* optionIndex,
+                                     const std::initializer_list<PatchOption> patches)
+    : MemoryPatch(moduleName, offsets, patchSize, {}), patches(patches), selectedPatch(optionIndex), patchSize(patchSize)
 {
-    patchSize = 0;
     for (const auto& [label, patch] : this->patches)
     {
-        if (patchSize == 0)
-        {
-            patchSize = patch.size();
-        }
-
         assert(patchSize == patch.size(), "Option Patch size must be the same among all options");
     }
 
-    const auto module = reinterpret_cast<DWORD>(GetModuleHandleA(moduleName.empty() ? nullptr : moduleName.c_str()));
-    if (!module)
-    {
-        return;
-    }
-
-    const auto address = module + patchOffset;
-    oldData.resize(patchSize);
-    patchedData.resize(patchSize);
-    MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
+    const auto& patch = this->patches[*selectedPatch];
+    memcpy(patchedData.data(), patch.data.data(), patch.data.size());
 }
 
 void QolPatcher::OptionPatch::RenderComponent()
 {
     int index = *selectedPatch;
 
-    auto currentPatch = this->patches[index];
+    const auto [label, data] = this->patches[index];
 
-    if (ImGui::BeginCombo("##new-opt", currentPatch.label.c_str()))
+    if (ImGui::BeginCombo("##new-opt", label.c_str()))
     {
         for (int i = 0; i < patches.size(); ++i)
         {

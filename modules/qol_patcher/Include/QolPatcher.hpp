@@ -12,8 +12,9 @@ class QolPatcher final : public FlufModule
         class MemoryPatch
         {
             protected:
+                DWORD moduleAddress;
                 std::string moduleName;
-                DWORD patchOffset;
+                std::vector<DWORD> patchOffsets;
                 std::vector<byte> oldData;
                 std::vector<byte> patchedData;
                 bool patched = false;
@@ -21,12 +22,14 @@ class QolPatcher final : public FlufModule
 
             public:
                 virtual ~MemoryPatch() = default;
-                MemoryPatch(const std::string& module, DWORD offset, const std::initializer_list<byte> newData);
-                void Patch();
+                MemoryPatch(const std::string& module, std::initializer_list<DWORD> offsets, size_t patchSize, const std::initializer_list<byte> newData);
+                virtual void Patch();
                 void Unpatch();
                 virtual void RenderComponent() {};
                 [[nodiscard]]
                 std::string GetPatchId() const;
+                size_t GetPatchSize() const;
+                byte* GetPatchData();
         };
 
         class ColorPatch final : public MemoryPatch
@@ -36,7 +39,7 @@ class QolPatcher final : public FlufModule
                 bool alpha = false;
 
             public:
-                ColorPatch(const std::string& moduleName, DWORD offset, DWORD* newColor, bool isBgr = true, bool includeAlpha = false);
+                ColorPatch(const std::string& moduleName, std::initializer_list<DWORD> offsets, DWORD* newColor, bool isBgr = true, bool includeAlpha = false);
                 void RenderComponent() override;
         };
 
@@ -55,8 +58,27 @@ class QolPatcher final : public FlufModule
                 size_t patchSize;
 
             public:
-                OptionPatch(const std::string& moduleName, DWORD offset, int* optionIndex, std::initializer_list<PatchOption> patches);
+                OptionPatch(const std::string& moduleName, std::initializer_list<DWORD> offsets, size_t patchSize, int* optionIndex,
+                            std::initializer_list<PatchOption> patches);
                 void RenderComponent() override;
+        };
+
+        class ReusablePatch final : public MemoryPatch
+        {
+                MemoryPatch* patch;
+
+            public:
+                ReusablePatch(const std::string& moduleName, std::initializer_list<DWORD> offsets, MemoryPatch* patch)
+                    : MemoryPatch(moduleName, offsets, patch->GetPatchSize(), {}), patch(patch)
+                {}
+
+                void Patch() override
+                {
+                    memcpy(patchedData.data(), patch->GetPatchData(), patch->GetPatchSize());
+                    MemoryPatch::Patch();
+                }
+
+                void RenderComponent() override { memcpy(patchedData.data(), patch->GetPatchData(), patch->GetPatchSize()); }
         };
 
         template <typename T>
@@ -68,19 +90,13 @@ class QolPatcher final : public FlufModule
                 T defaultValue;
 
             public:
-                ValuePatch(const std::string& moduleName, const DWORD offset, T* newValue, T min, T max)
-                    : MemoryPatch(moduleName, offset, {}), newValue(newValue), min(min), max(max)
+                ValuePatch(const std::string& moduleName, std::initializer_list<DWORD> offsets, T* newValue, T min, T max)
+                    : MemoryPatch(moduleName, offsets, sizeof(T), {}), newValue(newValue), min(min), max(max)
                 {
-                    const auto module = reinterpret_cast<DWORD>(GetModuleHandleA(moduleName.empty() ? nullptr : moduleName.c_str()));
-                    if (!module)
+                    if (oldData.empty())
                     {
                         return;
                     }
-
-                    const auto address = module + patchOffset;
-                    oldData.resize(sizeof(T));
-                    patchedData.resize(sizeof(T));
-                    MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
 
                     defaultValue = *reinterpret_cast<T*>(oldData.data());
 
@@ -130,6 +146,19 @@ class QolPatcher final : public FlufModule
                 }
         };
 
+        union RawValue {
+                float f;
+                int i;
+                uint u;
+                byte b[4];
+
+                explicit RawValue(float f) : f(f) {}
+                explicit RawValue(int i) : i(i) {}
+                explicit RawValue(uint u) : u(u) {}
+
+                std::initializer_list<byte> data() const { return std::initializer_list(b, b + sizeof(b)); }
+        };
+
         struct Option
         {
                 std::string name;
@@ -167,10 +196,10 @@ class QolPatcher final : public FlufModule
         std::string_view GetModuleName() override;
 };
 
-#define PATCH(module, offset, ...)                                  \
-    new MemoryPatch                                                 \
-    {                                                               \
-        module, offset, std::initializer_list<byte> { __VA_ARGS__ } \
+#define PATCH(module, offset, ...)                                                                                     \
+    new MemoryPatch                                                                                                    \
+    {                                                                                                                  \
+        module, offset, std::initializer_list<byte>{ __VA_ARGS__ }.size(), std::initializer_list<byte> { __VA_ARGS__ } \
     }
 #define OPTION(name, description, flag, restart, ...) \
     category.emplace_back(name, description, flag, restart, std::initializer_list<MemoryPatch*>{ __VA_ARGS__ })

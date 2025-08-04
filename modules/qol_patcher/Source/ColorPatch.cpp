@@ -2,19 +2,15 @@
 
 #include "QolPatcher.hpp"
 
-QolPatcher::ColorPatch::ColorPatch(const std::string& moduleName, const DWORD offset, DWORD* newColor, const bool isBgr, const bool includeAlpha)
-    : MemoryPatch(moduleName, offset, {}), newColor(newColor), bgr(isBgr), alpha(includeAlpha)
+QolPatcher::ColorPatch::ColorPatch(const std::string& moduleName, const std::initializer_list<DWORD> offsets, DWORD* newColor, const bool isBgr,
+                                   const bool includeAlpha)
+    : MemoryPatch(moduleName, offsets, sizeof(DWORD), {}), newColor(newColor), bgr(isBgr), alpha(includeAlpha)
 {
     const auto module = reinterpret_cast<DWORD>(GetModuleHandleA(moduleName.empty() ? nullptr : moduleName.c_str()));
     if (!module)
     {
         return;
     }
-
-    const auto address = module + patchOffset;
-    oldData.resize(sizeof(DWORD));
-    patchedData.resize(sizeof(DWORD));
-    MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
 
     // Default to the original color if none provided
     if (!*newColor)

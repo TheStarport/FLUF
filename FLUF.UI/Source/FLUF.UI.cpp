@@ -160,7 +160,7 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
 
 bool FlufUi::OpenOptionsMenu() const
 {
-    imguiInterface->customOptionsWindow->SetOpen();
+    imguiInterface->customOptionsWindow->ToggleOpenState();
     return true;
 }
 

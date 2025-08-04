@@ -14,6 +14,8 @@ struct PatcherConfig
         float customShipRenderDistance = 20000.f;
         bool customWindowRefreshRate = false;
         float windowRefreshRate = 3.0f;
+        bool customFramerateFlag;
+        int customFramerateIndex = 2;
 
         // HUD
 

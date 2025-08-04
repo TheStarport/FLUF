@@ -18,13 +18,34 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-QolPatcher::MemoryPatch::MemoryPatch(const std::string& module, DWORD offset, const std::initializer_list<byte> newData)
+QolPatcher::MemoryPatch::MemoryPatch(const std::string& module, std::initializer_list<DWORD> offsets, size_t patchSize,
+                                     const std::initializer_list<byte> newData)
 {
     moduleName = module;
-    patchOffset = offset;
+    patchOffsets = offsets;
     this->requiresRestart = requiresRestart;
     patchedData = newData;
-    oldData.resize(patchedData.size());
+    moduleAddress = reinterpret_cast<DWORD>(GetModuleHandleA(moduleName.empty() ? nullptr : moduleName.c_str()));
+
+    if (patchedData.empty())
+    {
+        if (!moduleAddress)
+        {
+            return;
+        }
+
+        for (const auto offset : patchOffsets)
+        {
+            const auto address = moduleAddress + offset;
+            oldData.resize(patchSize);
+            patchedData.resize(patchSize);
+            MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
+        }
+    }
+    else
+    {
+        oldData.resize(patchedData.size());
+    }
 }
 
 void QolPatcher::MemoryPatch::Patch()
@@ -40,9 +61,14 @@ void QolPatcher::MemoryPatch::Patch()
         return;
     }
 
-    const auto address = module + patchOffset;
-    MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
-    MemUtils::WriteProcMem(address, patchedData.data(), patchedData.size());
+    // We make the assumption that all offsets passed in have the same original value
+    for (const auto offset : patchOffsets)
+    {
+        const auto address = module + offset;
+        MemUtils::ReadProcMem(address, oldData.data(), oldData.size());
+        MemUtils::WriteProcMem(address, patchedData.data(), patchedData.size());
+    }
+
     patched = true;
 }
 
@@ -60,11 +86,16 @@ void QolPatcher::MemoryPatch::Unpatch()
         return;
     }
 
-    const auto address = module + patchOffset;
-    MemUtils::WriteProcMem(address, oldData.data(), oldData.size());
+    for (const auto offset : patchOffsets)
+    {
+        const auto address = module + offset;
+        MemUtils::WriteProcMem(address, oldData.data(), oldData.size());
+    }
 }
 
-std::string QolPatcher::MemoryPatch::GetPatchId() const { return std::to_string(patchOffset); }
+std::string QolPatcher::MemoryPatch::GetPatchId() const { return std::to_string(patchOffsets.front()); }
+size_t QolPatcher::MemoryPatch::GetPatchSize() const { return patchedData.size(); }
+byte* QolPatcher::MemoryPatch::GetPatchData() { return patchedData.data(); }
 
 void QolPatcher::Option::Patch() const
 {

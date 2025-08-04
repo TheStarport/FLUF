@@ -69,4 +69,4 @@ void CustomOptionsWindow::RenderWindowContents()
     ImGui::EndTabBar();
 }
 
-void CustomOptionsWindow::SetOpen() { this->isOpen = true; }
+void CustomOptionsWindow::ToggleOpenState() { isOpen = !isOpen; }
