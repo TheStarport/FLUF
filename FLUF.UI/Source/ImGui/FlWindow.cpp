@@ -151,7 +151,7 @@ void FlWindow::DrawWindowDecorations(const ImVec2 startingPos, const ImVec2 wind
         pos.x += invertX ? 20.f : -20.f;
         pos.y += invertY ? 20.f : -20.f;
 
-        ImDrawList* drawList = ImGui::GetForegroundDrawList();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
         std::array<ImVec2, 12> points;
         for (auto i = 0; i < 12; i++)
         {
@@ -170,10 +170,15 @@ void FlWindow::DrawWindowDecorations(const ImVec2 startingPos, const ImVec2 wind
         drawList->PathStroke(0xFFAF9019, 0, 5.f);
     };
 
+    const auto displaySize = ImGui::GetIO().DisplaySize;
+    ImGui::PushClipRect(ImVec2(), displaySize, false);
+
     drawCorner(startingPos, windowSize, false, false);
     drawCorner(ImVec2(startingPos.x + windowSize.x, startingPos.y), windowSize, true, false);
     drawCorner(ImVec2(startingPos.x, startingPos.y + windowSize.y), windowSize, false, true);
     drawCorner(startingPos + windowSize, windowSize, true, true);
+
+    ImGui::PopClipRect();
 }
 
 void FlWindow::SetTitle(const std::string& title) { this->title = title; }
