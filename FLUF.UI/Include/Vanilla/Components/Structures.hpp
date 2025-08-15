@@ -32,7 +32,7 @@ class FlControl
         virtual void u04();
         virtual void IO_streaminit();
         virtual void u0C();
-        virtual void u10();
+        virtual void HideMaybe();
         virtual void u14();
         virtual void u18();
         virtual void u1C();
@@ -42,12 +42,12 @@ class FlControl
         virtual void u2C();
         virtual void u30();
         virtual void Draw();
-        virtual void u38();
+        virtual void Hover();
         virtual void u3C();
         virtual void u40();
         virtual void u44();
-        virtual void u48();
-        virtual void u4C();
+        virtual void Click();
+        virtual bool Click2(void*);
         virtual void u50();
         virtual void u54();
         virtual void u58();
