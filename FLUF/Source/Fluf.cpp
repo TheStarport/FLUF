@@ -249,6 +249,11 @@ BOOL __stdcall Fluf::FreeLibraryDetour(const HMODULE unloadedDll)
         module->OnDllUnloaded(dllName, unloadedDll);
     }
 
+    if (dllName == "gundll.dll") // prevent unloading of gundll which just loves to hang the process on game exit.
+    {
+        return true;
+    }
+
     freeLibraryDetour.UnDetour();
     const auto res = FreeLibrary(unloadedDll);
     freeLibraryDetour.Detour(FreeLibraryDetour);
