@@ -118,7 +118,7 @@ void PatchNotes::RenderFullNotes()
     ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     ImGui::Begin("Patch Notes", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove);
 
-    for (const auto font = interface->GetImGuiFont("Saira", 46); auto& [date, content, preamble, version] : patches)
+    for (const auto font = interface->GetImGuiFont("Saira", FontSize::Big); auto& [date, content, preamble, version] : patches)
     {
         assert(font);
 
@@ -256,7 +256,7 @@ void PatchNotes::Render()
     ImGui::Begin("Patch Notes##1", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-    auto* font = interface->GetImGuiFont("Saira", 46);
+    auto* font = interface->GetImGuiFont("Saira", FontSize::Big);
     ImGui::PushFont(font);
     ImGui::Text(version.c_str());
     ImGui::SameLine();
