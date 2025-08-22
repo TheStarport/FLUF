@@ -20,7 +20,7 @@ static void MarkdownFormatCallback(const ImGui::MarkdownFormatInfo& markdownForm
 static void LinkCallback(ImGui::MarkdownLinkCallbackData data)
 {
     const std::string url(data.link, data.linkLength);
-    if (!url.starts_with("http://") || url.find(';') != std::string::npos || url.find("&&") != std::string::npos || url.find(' ') != std::string::npos)
+    if (!url.starts_with("https://") || url.find(';') != std::string::npos || url.find("&&") != std::string::npos || url.find(' ') != std::string::npos)
     {
         return;
     }
@@ -60,12 +60,17 @@ void PatchNoteWindow::RenderWindowContents()
         };
         // clang-format on
 
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.f, 1.f, 1.f, 1.f));
+
         Markdown(content.c_str(), content.size(), markdownConfig);
+
+        ImGui::PopStyleColor();
     }
 }
 
 PatchNoteWindow::PatchNoteWindow(ImGuiInterface* interface, std::vector<PatchNote>* patches, bool* openState)
-    : FlWindow("Patch Notes", ImGuiWindowFlags_NoResize), patches(patches), interface(interface), openState(openState)
+    : FlWindow("Patch Notes", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove), patches(patches), interface(interface),
+      openState(openState)
 {
     CenterWindow();
     SetSize(ImVec2(1024.f, 1024.f));
