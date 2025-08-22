@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FlufModule.hpp"
+#include "PatchNoteWindow.hpp"
 #include "ImGui/ImGuiModule.hpp"
 
 #include <memory>
@@ -17,10 +18,11 @@ class PatchNotes final : public FlufModule, public ImGuiModule
         bool gamePaused = false;
 
         void LoadPatchNotesFromCache(std::string_view path);
-        void RenderFullNotes();
 
         void OnGameLoad() override;
         void Render() override;
+
+        std::unique_ptr<PatchNoteWindow> patchNoteWindow;
 
     public:
         static constexpr std::string_view moduleName = "Patch Notes";

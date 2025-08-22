@@ -16,7 +16,6 @@
 #include "Utils/StringUtils.hpp"
 
 #include <curl/curl.h>
-#include <shellapi.h>
 
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
@@ -58,29 +57,6 @@ size_t DownloadCallback(const void* ptr, const size_t size, const size_t nmemb, 
     return totalSize;
 }
 
-static void MarkdownFormatCallback(const ImGui::MarkdownFormatInfo& markdownFormatInfo, bool start)
-{
-    // Call the default first so any settings can be overwritten by our implementation.
-    // Alternatively could be called or not called in a switch statement on a case by case basis.
-    // See defaultMarkdownFormatCallback definition for furhter examples of how to use it.
-    ImGui::defaultMarkdownFormatCallback(markdownFormatInfo, start);
-}
-
-// ReSharper disable once CppPassValueParameterByConstReference
-static void LinkCallback(ImGui::MarkdownLinkCallbackData data)
-{
-    const std::string url(data.link, data.linkLength);
-    if (!url.starts_with("http://") || url.find(';') != std::string::npos || url.find("&&") != std::string::npos || url.find(' ') != std::string::npos)
-    {
-        return;
-    }
-
-    if (!data.isImage)
-    {
-        ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
-    }
-}
-
 void PatchNotes::LoadPatchNotesFromCache(const std::string_view path)
 {
     if (!std::filesystem::exists(path))
@@ -109,51 +85,18 @@ void PatchNotes::LoadPatchNotesFromCache(const std::string_view path)
     Fluf::Log(LogLevel::Info, "Loaded patch notes from local cache.");
 }
 
-void PatchNotes::RenderFullNotes()
-{
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0f, 4.0f));
-    const auto interface = flufUi->GetImGuiInterface();
-    ImGui::SetNextWindowSize({ 1280.f, 1024.f }, ImGuiCond_Always);
-    const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::Begin("Patch Notes", &showFullNotes, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove);
-
-    for (const auto font = interface->GetImGuiFont("Saira", FontSize::Big); auto& [date, content, preamble, version] : patches)
-    {
-        assert(font);
-
-        ImGui::PushFont(font);
-        ImGui::SeparatorText(version.c_str());
-        ImGui::Text(date.str().c_str());
-        ImGui::PopFont();
-
-        // clang-format off
-        static constexpr ImGui::MarkdownConfig markdownConfig = ImGui::MarkdownConfig{
-            .linkCallback = LinkCallback,
-            .imageCallback = nullptr,
-            .linkIcon = nullptr,
-            .userData = nullptr,
-            .formatCallback = MarkdownFormatCallback
-        };
-        // clang-format on
-
-        Markdown(content.c_str(), content.size(), markdownConfig);
-    }
-
-    ImGui::End();
-
-    ImGui::PopStyleVar();
-}
-
 void PatchNotes::OnGameLoad()
 {
-    if (!flufUi->GetImGuiInterface())
+    auto interface = flufUi->GetImGuiInterface();
+    if (!interface)
     {
         Fluf::Log(LogLevel::Error, "PatchNotes cannot load, not in ImGui mode!");
         return;
     }
 
-    flufUi->GetImGuiInterface()->RegisterImGuiModule(this);
+    interface->RegisterImGuiModule(this);
+
+    patchNoteWindow = std::make_unique<PatchNoteWindow>(interface, &patches, &showFullNotes);
 
     std::array<char, MAX_PATH> totalPath{};
     GetUserDataPath(totalPath.data());
@@ -207,6 +150,7 @@ void PatchNotes::OnGameLoad()
     }
 
     patches = result.value();
+
     std::ofstream file(cachePath, std::ios::binary | std::ios::trunc);
     if (!file.is_open())
     {
@@ -228,7 +172,7 @@ void PatchNotes::Render()
             gamePaused = true;
         }
 
-        RenderFullNotes();
+        patchNoteWindow->Render();
     }
     else if (gamePaused)
     {
@@ -277,6 +221,7 @@ void PatchNotes::Render()
     if (ImGui::Button("Read More"))
     {
         showFullNotes = true;
+        patchNoteWindow->isOpen = true;
     }
 
     ImGui::End();

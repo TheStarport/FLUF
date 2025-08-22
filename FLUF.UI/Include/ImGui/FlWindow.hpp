@@ -5,7 +5,7 @@
 #include <imgui.h>
 #include <string>
 
-class FlWindow
+class FLUF_UI_API FlWindow
 {
         std::string title;
         ImVec2 pivot;
