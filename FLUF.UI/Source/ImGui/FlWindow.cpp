@@ -207,8 +207,8 @@ void FlWindow::Render()
     }
 
     ImGui::SetNextWindowSize(size, conditionFlag);
-    ImGui::PushStyleVarX(ImGuiStyleVar_WindowPadding, 35.f);
-    ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, 35.f);
+    ImGui::PushStyleVarX(ImGuiStyleVar_WindowPadding, 30.f);
+    ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, 30.f);
     ImGui::Begin(title.c_str(), &isOpen, windowFlags | ImGuiWindowFlags_NoTitleBar);
 
     const auto windowPos = ImGui::GetWindowPos();
