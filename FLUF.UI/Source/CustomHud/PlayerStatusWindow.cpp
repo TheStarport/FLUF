@@ -11,8 +11,6 @@
 #include "ImGui/ImGuiHelper.hpp"
 #include "Utils/StringUtils.hpp"
 
-#include <imgui_gradient/imgui_gradient.hpp>
-
 PlayerStatusWindow::PlayerStatusWindow(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>& statsMenus)
     : FlWindow("Player Status", ImGuiWindowFlags_NoResize), statsMenus(statsMenus)
 {}
