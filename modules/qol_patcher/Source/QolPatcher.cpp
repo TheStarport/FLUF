@@ -225,6 +225,14 @@ void QolPatcher::OnGameLoad()
     imgui->RegisterOptionsMenu(this, reinterpret_cast<RegisterOptionsFunc>(&QolPatcher::Render));
 }
 
+bool QolPatcher::BeforeLaunchComplete(uint baseId, uint shipId)
+{
+    TogglePatches(false);
+    TogglePatches(true);
+
+    return true;
+}
+
 QolPatcher::QolPatcher()
 {
     config = rfl::Box<PatcherConfig>::make(*ConfigHelper<PatcherConfig, PatcherConfig::path>::Load(true));

@@ -182,6 +182,7 @@ class QolPatcher final : public FlufModule
         void OnLogin(uint client, bool singlePlayer, FLPACKET_UNKNOWN*) override;
         void OnCharacterSelect(uint client, FLPACKET_UNKNOWN*) override;
         void OnGameLoad() override;
+        bool BeforeLaunchComplete(uint baseId, uint shipId) override;
 
         void RegisterHudPatches();
         void RegisterDisplayPatches();
