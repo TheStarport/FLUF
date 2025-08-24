@@ -40,22 +40,22 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void FlufUi::OnGameLoad()
 {
-    if (auto glContext = wglGetCurrentContext())
-    {
-        renderingBackend = RenderingBackend::OpenGL;
-        if (config->uiMode == UiMode::ImGui)
-        {
-            Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ OpenGL");
-            imguiInterface = std::make_shared<ImGuiInterface>(this, renderingBackend, glContext);
-        }
-    }
-    else if (d3d9)
+    if (d3d9)
     {
         renderingBackend = RenderingBackend::Dx9;
         if (config->uiMode == UiMode::ImGui)
         {
             Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ DX9");
             imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx9, d3d9device);
+        }
+    }
+    else if (auto glContext = wglGetCurrentContext())
+    {
+        renderingBackend = RenderingBackend::OpenGL;
+        if (config->uiMode == UiMode::ImGui)
+        {
+            Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ OpenGL");
+            imguiInterface = std::make_shared<ImGuiInterface>(this, renderingBackend, glContext);
         }
     }
     else if (config->uiMode == UiMode::ImGui)
