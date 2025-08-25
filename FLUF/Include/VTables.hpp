@@ -134,7 +134,6 @@ enum class IClientVTable
     unknown_123,
     unknown_124,
     unknown_125,
-    unknown_126,
     Count
 };
 

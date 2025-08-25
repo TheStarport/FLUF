@@ -61,6 +61,7 @@ class FlufUi final : public FlufModule
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
 
     public:
+        inline static FLUF_UI_API const HWND* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);
         static constexpr std::string_view moduleName = "FLUF UI";
 
         /**

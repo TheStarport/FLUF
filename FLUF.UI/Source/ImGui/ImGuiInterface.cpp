@@ -294,7 +294,6 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     iniPath = std::format("{}\\imgui.ini", path.data());
 
-    static const auto* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);
     const auto ctx = ImGui::CreateContext();
 
     GenerateDefaultStyle();
@@ -409,7 +408,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     }
 
     Fluf::Log(LogLevel::Debug, std::format("Creating ImGui interface with backend: {}", rfl::enum_to_string(backend)));
-    ImGui_ImplWin32_Init(*mainFreelancerWindow);
+    ImGui_ImplWin32_Init(*FlufUi::mainFreelancerWindow);
     switch (backend)
     {
         case RenderingBackend::Dx9:

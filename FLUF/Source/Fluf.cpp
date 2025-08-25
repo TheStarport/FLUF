@@ -193,7 +193,11 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
         if (_stricmp(dllName, "rpclocal.dll") == 0)
         {
             auto handle = GetModuleHandleA("rpclocal");
-            delayedRPCLocalDetour = std::make_unique<FunctionDetour<RPCLocalDetourType>>(reinterpret_cast<RPCLocalDetourType>(res + 0xEED0));
+            if (delayedRPCLocalDetour)
+            {
+                delayedRPCLocalDetour.reset();
+            }
+            delayedRPCLocalDetour = std::make_unique<FunctionDetour<RPCLocalDetourType>>(reinterpret_cast<RPCLocalDetourType>(DWORD(res) + 0xEED0));
             delayedRPCLocalDetour->Detour(DelayedRPCLocalDetour);
         }
         else if (_stricmp(dllName, "remoteserver.dll") == 0)
@@ -230,13 +234,13 @@ BOOL __stdcall Fluf::FreeLibraryDetour(const HMODULE unloadedDll)
 
     if (instance->runningOnClient)
     {
-        if (dllName == "rpclocal.dll")
+        if (_stricmp(dllName.data(), "rpclocal.dll") == 0)
         {
             instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(unloadedDll, "Client")), true, true);
             instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(unloadedDll, "Server")), true);
             instance->clientServerCommunicator->clientChatServer = nullptr;
         }
-        else if (dllName == "remoteserver.dll")
+        else if (_stricmp(dllName.data(), "remoteserver.dll") == 0)
         {
             instance->HookIClient(reinterpret_cast<char*>(GetProcAddress(GetModuleHandleA(nullptr), "Client")), true, false);
             instance->HookIServer(reinterpret_cast<char*>(GetProcAddress(unloadedDll, "Server")), true);
@@ -736,7 +740,6 @@ Fluf::Fluf(const HMODULE dll)
              NULL_CLIENT_PATCH(unknown_123),
              NULL_CLIENT_PATCH(unknown_124),
              NULL_CLIENT_PATCH(unknown_125),
-             NULL_CLIENT_PATCH(unknown_126),
              }
         };
 
