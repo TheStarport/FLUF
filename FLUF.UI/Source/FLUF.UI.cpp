@@ -76,6 +76,9 @@ void FlufUi::OnGameLoad()
     {
         imguiInterface->InitSubmenus();
     }
+
+    //Send a mouse click to initialize the window sizes on ImGui side of things.
+    ImGuiInterface::WndProc(module->config.get(), *mainFreelancerWindow, WM_MOUSEMOVE, 0, 0x00010001);
 }
 
 LRESULT __stdcall FlufUi::WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
