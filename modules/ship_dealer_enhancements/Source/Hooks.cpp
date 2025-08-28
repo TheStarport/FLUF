@@ -24,7 +24,6 @@ struct ShipList
 };
 
 static std::vector<uint*> shipsToShow;
-static FlMap<uint, MarketGoodInfo>* mappy;
 
 uint __fastcall GetShipListDetour(void* baseInfo, void* edx, ShipList* sf, int searchedType)
 {
@@ -55,11 +54,10 @@ void ReloadShipCount()
     currBaseShipCount = 0;
 
     BaseData* base_data = BaseDataList_get()->get_base_data(*currentBase);
-    mappy = reinterpret_cast<FlMap<uint, MarketGoodInfo>*>(&base_data->marketMap);
 
-    for (auto marketGood = mappy->begin(); marketGood != mappy->end() && marketGood.key() != 0; ++marketGood)
+    for (auto marketGood = base_data->marketMap.begin(); marketGood != base_data->marketMap.end() && marketGood->first != 0; ++marketGood)
     {
-        if (const auto type = GoodList::find_by_id(marketGood.value()->goodId)->type; type != GoodType::Ship || !marketGood.value()->stock)
+        if (const auto type = GoodList::find_by_id(marketGood->second.goodId)->type; type != GoodType::Ship || !marketGood->second.stock)
         {
             continue;
         }
@@ -150,25 +148,24 @@ bool __fastcall RenderShipList(void* ShipDealer, void* edx, const int a1, const 
         lastShipDealer = ShipDealer;
 
         BaseData* base_data = BaseDataList_get()->get_base_data(*currentBase);
-        mappy = reinterpret_cast<FlMap<uint, MarketGoodInfo>*>(&base_data->marketMap);
 
         shipsToShow.clear();
 
-        for (auto marketGood = mappy->begin(); marketGood != mappy->end() && marketGood.key() != 0; ++marketGood)
+        for (auto marketGood = base_data->marketMap.begin(); marketGood != base_data->marketMap.end(); ++marketGood)
         {
-            if (const auto type = GoodList::find_by_id(marketGood.value()->goodId)->type; type != GoodType::Ship || !marketGood.value()->stock)
+            if (const auto type = GoodList::find_by_id(marketGood->second.goodId)->type; type != GoodType::Ship || !marketGood->second.stock)
             {
                 continue;
             }
 
             if (counter < 3)
             {
-                firstThreeShips.push_back(&marketGood.value()->goodId);
+                firstThreeShips.push_back(&marketGood->second.goodId);
             }
 
             if (counter >= shipPage * 3 && counter <= (shipPage * 3) + 2)
             {
-                shipsToShow.push_back(&marketGood.value()->goodId);
+                shipsToShow.push_back(&marketGood->second.goodId);
             }
             counter++;
         }
