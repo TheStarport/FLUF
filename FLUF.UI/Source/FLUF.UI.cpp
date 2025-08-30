@@ -14,8 +14,6 @@
 #include <d3dx9.h>
 #include <imgui_impl_dx9.h>
 
-using ScriptLoadPtr = void* (*)(const char* fileName);
-using FrameUpdatePtr = void (*)(double delta);
 using Direct3DCreate9Ptr = IDirect3D9*(__stdcall*)(uint sdkVersion);
 using Direct3DCreateDevice9 = HRESULT(__stdcall*)(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                   D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
@@ -161,11 +159,7 @@ HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uin
     return result;
 }
 
-bool FlufUi::OpenOptionsMenu() const
-{
-    imguiInterface->customOptionsWindow->ToggleOpenState();
-    return true;
-}
+void FlufUi::OpenOptionsMenu() const { imguiInterface->customOptionsWindow->ToggleOpenState(); }
 
 FlufModule::ModuleProcessCode FlufUi::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
 {

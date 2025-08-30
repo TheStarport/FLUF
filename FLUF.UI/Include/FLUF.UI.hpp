@@ -56,9 +56,10 @@ class FlufUi final : public FlufModule
         static HRESULT __stdcall OnDirect3D9ResetDevice(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pPresentationParameters);
         static HRESULT __stdcall OnDirect3D9CreateDevice(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                          D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
-        bool OpenOptionsMenu() const;
+        void OpenOptionsMenu() const;
 
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
+
 
     public:
         inline static FLUF_UI_API const HWND* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);
@@ -83,6 +84,7 @@ class FlufUi final : public FlufModule
         /**
          * @brief Gets which rendering backend that is currently being used for UI modifications
          */
+        [[nodiscard]]
         FLUF_UI_API RenderingBackend GetRenderingBackend() const;
 
         FlufUi();

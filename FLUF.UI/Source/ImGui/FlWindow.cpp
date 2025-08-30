@@ -186,7 +186,23 @@ void FlWindow::SetTitle(const std::string& title) { this->title = title; }
 void FlWindow::CenterWindow(const bool center) { centered = center; }
 
 void FlWindow::SetSize(const ImVec2 size) { this->size = size; }
+
+void FlWindow::SetSizeWithAspectRatio(int width, ImVec2 aspectRatio, float shrinkPercentage)
+{
+    const auto displaySize = ImGui::GetIO().DisplaySize;
+    width = std::clamp(width, 1, 5120);
+    shrinkPercentage = std::clamp(shrinkPercentage, 0.2f, 0.8f);
+    while (displaySize.x < width)
+    {
+        width *= shrinkPercentage;
+    }
+
+    const auto height = std::clamp(width / aspectRatio.x * aspectRatio.y, 1.f, 5120.f);
+    SetSize(ImVec2(static_cast<float>(width), height));
+}
+
 void FlWindow::SetPosition(const ImVec2 position) { this->position = position; }
+
 void FlWindow::SetPivot(const ImVec2 pivot) { this->pivot = pivot; }
 
 void FlWindow::Render()
