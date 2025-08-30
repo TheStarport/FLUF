@@ -164,9 +164,10 @@ void ImGuiInterface::Render()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::SetShortcutRouting(ImGuiMod_Ctrl | ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteGlobal);
-    ImGui::SetShortcutRouting(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteGlobal);
-    ImGui::SetShortcutRouting(ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteGlobal);
+    ImGui::SetShortcutRouting(ImGuiMod_Ctrl | ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteFocused);
+    ImGui::SetShortcutRouting(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteFocused);
+    // TODO: Potentially re-enable this one when suppressing the tab key in the regular game
+    ImGui::SetShortcutRouting(ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteFocused);
 
     if (showDemoWindow)
     {
