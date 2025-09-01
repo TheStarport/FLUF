@@ -1,6 +1,9 @@
 #include "PCH.hpp"
 
 #include "ScreenControl.hpp"
+#include <chrono>
+#include "Utils/TimeUtils.hpp"
+#include "Fluf.hpp"
 
 void ScreenControl::SetBackGroundRunPatch(bool bInWindowedMode)
 {
@@ -22,10 +25,26 @@ void ScreenControl::SetBackGroundRunPatch(bool bInWindowedMode)
 
 int __stdcall ScreenControl::AltEnter(int a1)
 {
+    static int64 lastRunTime = 0;
+
+    if (lastRunTime + 500 > TimeUtils::UnixTime())
+    {
+        return 1;
+    }
+
+    lastRunTime = TimeUtils::UnixTime();
     BYTE buf[0x40];
     memcpy(buf, (DWORD*)(freelancerExe + 0x279BC0), 0x40);
     buf[37] ^= 1;
     SetBackGroundRunPatch(buf[37] ? false : true);
+    if (buf[37])
+    {
+        Fluf::Log(LogLevel::Trace, "Screen Control: Switching to Fullscreen");
+    }
+    else
+    {
+        Fluf::Log(LogLevel::Trace, "Screen Control: Switching to Windowed");
+    }
 
 
     using SetupScreenFunc = int(__cdecl*)(HWND hWnd, BYTE* buf, DWORD* dunno);
