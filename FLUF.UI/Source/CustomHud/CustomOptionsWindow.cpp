@@ -65,7 +65,11 @@ void CustomOptionsWindow::RenderWindowContents()
         ImGui::EndTabItem();
     }
 
-    ImGui::PopID();
+    for (int i = 0; i < counter; i++)
+    {
+        ImGui::PopID();
+    }
+
     ImGui::EndTabBar();
 }
 

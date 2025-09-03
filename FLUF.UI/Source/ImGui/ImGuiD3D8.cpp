@@ -5,23 +5,15 @@
 
 #include "vendor/DXSDK/include/d3d8.h"
 
-// DirectX data
-struct ImGui_ImplDX8_Data
-{
-        LPDIRECT3DDEVICE8 pd3dDevice;
-        LPDIRECT3DVERTEXBUFFER8 pVB;
-        LPDIRECT3DINDEXBUFFER8 pIB;
-        LPDIRECT3DTEXTURE8 FontTexture;
-        int VertexBufferSize;
-        int IndexBufferSize;
-
-        ImGui_ImplDX8_Data()
-        {
-            memset(this, 0, sizeof(*this));
-            VertexBufferSize = 5000;
-            IndexBufferSize = 10000;
-        }
-};
+static LPDIRECT3DDEVICE8 d3dDevice = nullptr;
+static LPDIRECT3DVERTEXBUFFER8 vertexBuffer = nullptr;
+static LPDIRECT3DINDEXBUFFER8 indexBuffer = nullptr;
+static LPDIRECT3DVERTEXBUFFER8 maskVertexBuffer = nullptr;
+static LPDIRECT3DINDEXBUFFER8 maskIndexBuffer = nullptr;
+static LPDIRECT3DTEXTURE8 fontTexture = nullptr;
+static int vertexBufferSize = 5000, indexBufferSize = 10000;
+static IDirect3DSurface8* depthBuffer = nullptr;
+IDirect3DSurface8* realDepthStencilBuffer;
 
 struct CUSTOMVERTEX
 {
@@ -31,340 +23,405 @@ struct CUSTOMVERTEX
 };
 #define D3DFVF_CUSTOMVERTEX (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1)
 
-#ifdef IMGUI_USE_BGRA_PACKED_COLOR
-    #define IMGUI_COL_TO_DX8_ARGB(_COL) (_COL)
-#else
-    #define IMGUI_COL_TO_DX8_ARGB(_COL) (((_COL) & 0xFF00FF00) | (((_COL) & 0xFF0000) >> 16) | (((_COL) & 0xFF) << 16))
-#endif
-
-// Backend data stored in io.BackendRendererUserData to allow support for multiple Dear ImGui contexts
-// It is STRONGLY preferred that you use docking branch with multi-viewports (== single Dear ImGui context + multiple windows) instead of multiple Dear ImGui contexts.
-static ImGui_ImplDX8_Data* ImGui_ImplDX8_GetBackendData()
-{
-    return ImGui::GetCurrentContext() ? (ImGui_ImplDX8_Data*)ImGui::GetIO().BackendRendererUserData : nullptr;
-}
-
-// Functions
 static void ImGui_ImplDX8_SetupRenderState(ImDrawData* draw_data)
 {
-    ImGui_ImplDX8_Data* bd = ImGui_ImplDX8_GetBackendData();
-
     // Setup viewport
     D3DVIEWPORT8 vp;
     vp.X = vp.Y = 0;
-    vp.Width = (DWORD)draw_data->DisplaySize.x;
-    vp.Height = (DWORD)draw_data->DisplaySize.y;
+    vp.Width = static_cast<DWORD>(draw_data->DisplaySize.x);
+    vp.Height = static_cast<DWORD>(draw_data->DisplaySize.y);
     vp.MinZ = 0.0f;
     vp.MaxZ = 1.0f;
-    bd->pd3dDevice->SetViewport(&vp);
+    d3dDevice->SetViewport(&vp);
 
     // Setup render state: fixed-pipeline, alpha-blending, no face culling, no depth testing, shade mode (for gradient)
-    bd->pd3dDevice->SetPixelShader(NULL);
-    bd->pd3dDevice->SetVertexShader(NULL);
-    bd->pd3dDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
-    bd->pd3dDevice->SetRenderState(D3DRS_SHADEMODE, D3DSHADE_GOURAUD);
-    bd->pd3dDevice->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-    bd->pd3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-    bd->pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-    bd->pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-    bd->pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-    bd->pd3dDevice->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
-    bd->pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-    bd->pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-    bd->pd3dDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
-    bd->pd3dDevice->SetRenderState(D3DRS_RANGEFOGENABLE, FALSE);
-    bd->pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE);
-    bd->pd3dDevice->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-    bd->pd3dDevice->SetRenderState(D3DRS_CLIPPING, TRUE);
-    bd->pd3dDevice->SetRenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0 | D3DCLIPPLANE1 | D3DCLIPPLANE2 | D3DCLIPPLANE3);
-    bd->pd3dDevice->SetRenderState(D3DRS_LIGHTING, FALSE);
-    bd->pd3dDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-    bd->pd3dDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-    bd->pd3dDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-    bd->pd3dDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-    bd->pd3dDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-    bd->pd3dDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-    bd->pd3dDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-    bd->pd3dDevice->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+    d3dDevice->GetDepthStencilSurface(&realDepthStencilBuffer);
+    d3dDevice->SetRenderTarget(nullptr, depthBuffer);
+    d3dDevice->SetPixelShader(NULL);
+    d3dDevice->SetVertexShader(D3DFVF_CUSTOMVERTEX);
+    d3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+    d3dDevice->SetRenderState(D3DRS_LIGHTING, false);
+    d3dDevice->SetRenderState(D3DRS_ZENABLE, false);
+    d3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
+    d3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, false);
+    d3dDevice->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+    d3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    d3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    //g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, true);
+    d3dDevice->SetRenderState(D3DRS_SHADEMODE, D3DSHADE_GOURAUD); //new
+    d3dDevice->SetRenderState(D3DRS_FOGENABLE, false);            //new
+    d3dDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+    d3dDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+    d3dDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+    d3dDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+    d3dDevice->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+    d3dDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+    d3dDevice->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+    d3dDevice->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+    //g_pd3dDevice->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+    //g_pd3dDevice->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 
     // Setup orthographic projection matrix
     // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
-    // Being agnostic of whether <d3dx8.h> or <DirectXMath.h> can be used, we aren't relying on D3DXMatrixIdentity()/D3DXMatrixOrthoOffCenterLH() or DirectX::XMMatrixIdentity()/DirectX::XMMatrixOrthographicOffCenterLH()
+    // Being agnostic of whether <d3DX8.h> or <DirectXMath.h> can be used, we aren't relying on D3DXMatrixIdentity()/D3DXMatrixOrthoOffCenterLH() or DirectX::XMMatrixIdentity()/DirectX::XMMatrixOrthographicOffCenterLH()
     {
-        float L = draw_data->DisplayPos.x + 0.5f;
-        float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x + 0.5f;
-        float T = draw_data->DisplayPos.y + 0.5f;
-        float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y + 0.5f;
-        D3DMATRIX mat_identity = { { { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f } } };
-        D3DMATRIX mat_projection = {
+        const float L = draw_data->DisplayPos.x + 0.5f;
+        const float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x + 0.5f;
+        const float T = draw_data->DisplayPos.y + 0.5f;
+        const float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y + 0.5f;
+        const D3DMATRIX matIdentity = { { { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f } } };
+        const D3DMATRIX matProjection = {
             { { 2.0f / (R - L), 0.0f, 0.0f, 0.0f, 0.0f, 2.0f / (T - B), 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, (L + R) / (L - R), (T + B) / (B - T), 0.5f, 1.0f } }
         };
-        bd->pd3dDevice->SetTransform(D3DTS_WORLD, &mat_identity);
-        bd->pd3dDevice->SetTransform(D3DTS_VIEW, &mat_identity);
-        bd->pd3dDevice->SetTransform(D3DTS_PROJECTION, &mat_projection);
+        d3dDevice->SetTransform(D3DTS_WORLD, &matIdentity);
+        d3dDevice->SetTransform(D3DTS_VIEW, &matIdentity);
+        d3dDevice->SetTransform(D3DTS_PROJECTION, &matProjection);
     }
 }
 
-// Render function.
-void ImGui_ImplDX8_RenderDrawData(ImDrawData* draw_data)
+static void build_mask_vbuffer(const RECT* rect)
 {
-    // Avoid rendering when minimized
-    if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
-    {
-        return;
-    }
+    CUSTOMVERTEX* vtx_dst;
+    maskVertexBuffer->Lock(0, (UINT)(6 * sizeof(CUSTOMVERTEX)), (BYTE**)&vtx_dst, 0);
+    vtx_dst[0].pos[0] = static_cast<float>(rect->left);
+    vtx_dst[0].pos[1] = static_cast<float>(rect->bottom);
+    vtx_dst[0].pos[2] = 0;
+    vtx_dst[1].pos[0] = static_cast<float>(rect->left);
+    vtx_dst[1].pos[1] = static_cast<float>(rect->top);
+    vtx_dst[1].pos[2] = 0;
+    vtx_dst[2].pos[0] = static_cast<float>(rect->right);
+    vtx_dst[2].pos[1] = static_cast<float>(rect->top);
+    vtx_dst[2].pos[2] = 0;
+    vtx_dst[3].pos[0] = static_cast<float>(rect->left);
+    vtx_dst[3].pos[1] = static_cast<float>(rect->bottom);
+    vtx_dst[3].pos[2] = 0;
+    vtx_dst[4].pos[0] = static_cast<float>(rect->right);
+    vtx_dst[4].pos[1] = static_cast<float>(rect->top);
+    vtx_dst[4].pos[2] = 0;
+    vtx_dst[5].pos[0] = static_cast<float>(rect->right);
+    vtx_dst[5].pos[1] = static_cast<float>(rect->bottom);
+    vtx_dst[5].pos[2] = 0;
+    vtx_dst[0].col = 0xFFFFFFFF;
+    vtx_dst[1].col = 0xFFFFFFFF;
+    vtx_dst[2].col = 0xFFFFFFFF;
+    vtx_dst[3].col = 0xFFFFFFFF;
+    vtx_dst[4].col = 0xFFFFFFFF;
+    vtx_dst[5].col = 0xFFFFFFFF;
+    vtx_dst[0].uv[0] = 0;
+    vtx_dst[0].uv[1] = 0;
+    vtx_dst[1].uv[0] = 0;
+    vtx_dst[1].uv[1] = 0;
+    vtx_dst[2].uv[0] = 0;
+    vtx_dst[2].uv[1] = 0;
+    vtx_dst[3].uv[0] = 0;
+    vtx_dst[3].uv[1] = 0;
+    vtx_dst[4].uv[0] = 0;
+    vtx_dst[4].uv[1] = 0;
+    vtx_dst[5].uv[0] = 0;
+    vtx_dst[5].uv[1] = 0;
+    maskVertexBuffer->Unlock();
+}
 
-    // Create and grow buffers if needed
-    ImGui_ImplDX8_Data* bd = ImGui_ImplDX8_GetBackendData();
-    if (!bd->pVB || bd->VertexBufferSize < draw_data->TotalVtxCount)
+void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
+{
+    try
     {
-        if (bd->pVB)
-        {
-            bd->pVB->Release();
-            bd->pVB = nullptr;
-        }
-        bd->VertexBufferSize = draw_data->TotalVtxCount + 5000;
-        //if (bd->pd3dDevice->CreateVertexBuffer(bd->VertexBufferSize * sizeof(CUSTOMVERTEX), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &bd->pVB, NULL) < 0)
-        if (bd->pd3dDevice->CreateVertexBuffer(
-                bd->VertexBufferSize * sizeof(CUSTOMVERTEX), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &bd->pVB) < 0)
+        // Avoid rendering when minimized
+        if (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f)
         {
             return;
         }
-    }
-    if (!bd->pIB || bd->IndexBufferSize < draw_data->TotalIdxCount)
-    {
-        if (bd->pIB)
+
+        // Create and grow buffers if needed
+        if (!vertexBuffer || vertexBufferSize < drawData->TotalVtxCount)
         {
-            bd->pIB->Release();
-            bd->pIB = nullptr;
+            if (vertexBuffer)
+            {
+                vertexBuffer->Release();
+                vertexBuffer = nullptr;
+            }
+            vertexBufferSize = drawData->TotalVtxCount + 5000;
+            if (d3dDevice->CreateVertexBuffer(
+                    vertexBufferSize * sizeof(CUSTOMVERTEX), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &vertexBuffer) < 0)
+            {
+                return;
+            }
         }
-        bd->IndexBufferSize = draw_data->TotalIdxCount + 10000;
-        //if (bd->pd3dDevice->CreateIndexBuffer(bd->IndexBufferSize * sizeof(ImDrawIdx), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, sizeof(ImDrawIdx) == 2 ? D3DFMT_INDEX16 : D3DFMT_INDEX32, D3DPOOL_DEFAULT, &bd->pIB, NULL) < 0)
-        if (bd->pd3dDevice->CreateIndexBuffer(bd->IndexBufferSize * sizeof(ImDrawIdx),
-                                              D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY,
-                                              sizeof(ImDrawIdx) == 2 ? D3DFMT_INDEX16 : D3DFMT_INDEX32,
-                                              D3DPOOL_DEFAULT,
-                                              &bd->pIB) < 0)
+
+        if (!indexBuffer || indexBufferSize < drawData->TotalIdxCount)
+        {
+            if (indexBuffer)
+            {
+                indexBuffer->Release();
+                indexBuffer = nullptr;
+            }
+
+            indexBufferSize = drawData->TotalIdxCount + 10000;
+            if (d3dDevice->CreateIndexBuffer(indexBufferSize * sizeof(ImDrawIdx),
+                                             D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY,
+                                             sizeof(ImDrawIdx) == 2 ? D3DFMT_INDEX16 : D3DFMT_INDEX32,
+                                             D3DPOOL_DEFAULT,
+                                             &indexBuffer) < 0)
+            {
+                return;
+            }
+        }
+
+        if (!maskVertexBuffer && !maskIndexBuffer)
+        {
+            if (d3dDevice->CreateVertexBuffer(
+                    6 * sizeof(CUSTOMVERTEX), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &maskVertexBuffer) < 0)
+            {
+                return;
+            }
+
+            if (d3dDevice->CreateIndexBuffer(
+                    6, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, sizeof(ImDrawIdx) == 2 ? D3DFMT_INDEX16 : D3DFMT_INDEX32, D3DPOOL_DEFAULT, &maskIndexBuffer) < 0)
+            {
+                return;
+            }
+
+            ImDrawIdx* indexDest;
+            maskIndexBuffer->Lock(0, 6 * sizeof(ImDrawIdx), (BYTE**)&indexDest, D3DLOCK_DISCARD);
+            indexDest[0] = 0;
+            indexDest[1] = 1;
+            indexDest[2] = 2;
+            indexDest[3] = 0;
+            indexDest[4] = 2;
+            indexDest[5] = 3;
+            maskIndexBuffer->Unlock();
+        }
+        // Backup the DX8 state
+        DWORD stateBlockToken = 0;
+        if (d3dDevice->CreateStateBlock(D3DSBT_ALL, &stateBlockToken) < 0)
         {
             return;
         }
-    }
 
-    // Backup the DX8 transform (DX8 documentation suggests that it is included in the StateBlock but it doesn't appear to)
-    D3DMATRIX last_world, last_view, last_projection;
-    bd->pd3dDevice->GetTransform(D3DTS_WORLD, &last_world);
-    bd->pd3dDevice->GetTransform(D3DTS_VIEW, &last_view);
-    bd->pd3dDevice->GetTransform(D3DTS_PROJECTION, &last_projection);
+        /* IDirect3DStateBlock9* d3d9_state_block = NULL;
+         if (g_pd3dDevice->CreateStateBlock(D3DSBT_ALL, &d3d9_state_block) < 0)
+             return;*/
 
-    // Setup desired DX state
-    ImGui_ImplDX8_SetupRenderState(draw_data);
+        // Backup the DX8 transform (DX8 documentation suggests that it is included in the StateBlock but it doesn't appear to)
+        D3DMATRIX last_world, last_view, last_projection;            //new
+        d3dDevice->GetTransform(D3DTS_WORLD, &last_world);           //new
+        d3dDevice->GetTransform(D3DTS_VIEW, &last_view);             //new
+        d3dDevice->GetTransform(D3DTS_PROJECTION, &last_projection); //new
 
-    // Render command lists
-    // (Because we merged all buffers into a single one, we maintain our own offset into them)
-    ImVec2 clip_off = draw_data->DisplayPos;
-    for (int n = 0; n < draw_data->CmdListsCount; n++)
-    {
-        const ImDrawList* cmd_list = draw_data->CmdLists[n];
-        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
+        // Copy and convert all vertices into a single contiguous buffer, convert colors to DX8 default format.
+        // FIXME-OPT: This is a waste of resource, the ideal is to use imconfig.h and
+        //  1) to avoid repacking colors:   #define IMGUI_USE_BGRA_PACKED_COLOR
+        //  2) to avoid repacking vertices: #define IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT struct ImDrawVert { ImVec2 pos; float z; ImU32 col; ImVec2 uv; }
+        CUSTOMVERTEX* vtx_dst;
+        ImDrawIdx* idx_dst;
+        if (vertexBuffer->Lock(0, (UINT)(drawData->TotalVtxCount * sizeof(CUSTOMVERTEX)), (BYTE**)&vtx_dst, D3DLOCK_DISCARD) < 0)
         {
-            const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-            ImDrawCmd* next_pcmd = nullptr;
-
-            if (cmd_i < cmd_list->CmdBuffer.Size - 1)
-            {
-                next_pcmd = const_cast<ImDrawCmd*>(&cmd_list->CmdBuffer[cmd_i + 1]);
-            }
-
-            if (pcmd->UserCallback != nullptr)
-            {
-                // User callback, registered via ImDrawList::AddCallback()
-                // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-                if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
-                {
-                    ImGui_ImplDX8_SetupRenderState(draw_data);
-                }
-                else
-                {
-                    pcmd->UserCallback(cmd_list, pcmd);
-                }
-            }
-            else
-            {
-                // Project scissor/clipping rectangles into framebuffer space
-                ImVec2 clip_min(pcmd->ClipRect.x - clip_off.x, pcmd->ClipRect.y - clip_off.y);
-                ImVec2 clip_max(pcmd->ClipRect.z - clip_off.x, pcmd->ClipRect.w - clip_off.y);
-                if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
-                {
-                    continue;
-                }
-
-                CUSTOMVERTEX* vtx_dst;
-                ImDrawIdx* idx_dst;
-                if (bd->pVB->Lock(0, (UINT)(draw_data->TotalVtxCount * sizeof(CUSTOMVERTEX)), (BYTE**)&vtx_dst, D3DLOCK_DISCARD) < 0)
-                {
-                    //d3d9_state_block->Release();
-                    return;
-                }
-                if (bd->pIB->Lock(0, (UINT)(draw_data->TotalIdxCount * sizeof(ImDrawIdx)), (BYTE**)&idx_dst, D3DLOCK_DISCARD) < 0)
-                {
-                    bd->pVB->Unlock();
-                    //d3d9_state_block->Release();
-                    return;
-                }
-
-                //we dont need to get it for vtx cause its always 0 ?!?!?!!?
-                UINT curr_draw_cmd_idx_count;
-
-                if (!next_pcmd)
-                {
-                    curr_draw_cmd_idx_count = UINT(cmd_list->IdxBuffer.Data + cmd_list->IdxBuffer.Size - (cmd_list->IdxBuffer.Data + pcmd->IdxOffset));
-                }
-                else
-                {
-                    curr_draw_cmd_idx_count = next_pcmd->IdxOffset;
-                }
-
-                const ImDrawVert* vtx_src = cmd_list->VtxBuffer.Data + pcmd->VtxOffset;
-                for (int i = 0; i < cmd_list->VtxBuffer.Size; i++)
-                {
-                    vtx_dst->pos[0] = vtx_src->pos.x;
-                    vtx_dst->pos[1] = vtx_src->pos.y;
-                    vtx_dst->pos[2] = 0.0f;
-                    vtx_dst->col = IMGUI_COL_TO_DX8_ARGB(vtx_src->col);
-                    vtx_dst->uv[0] = vtx_src->uv.x;
-                    vtx_dst->uv[1] = vtx_src->uv.y;
-                    vtx_dst++;
-                    vtx_src++;
-                }
-                memcpy(idx_dst, cmd_list->IdxBuffer.Data + pcmd->IdxOffset, curr_draw_cmd_idx_count * sizeof(ImDrawIdx));
-
-                bd->pVB->Unlock();
-                bd->pIB->Unlock();
-
-                // Apply Scissor/clipping rectangle, Bind texture, Draw
-                float leftPlane[4] = { 1.0f, 0.0f, 0.0f, clip_min.x };
-                float rightPlane[4] = { -1.0f, 0.0f, 0.0f, clip_max.x };
-                float topPlane[4] = { 0.0f, 1.0f, 0.0f, clip_min.y };
-                float bottomPlane[4] = { 0.0f, -1.0f, 0.0f, clip_max.y };
-
-                bd->pd3dDevice->SetClipPlane(0, leftPlane);
-                bd->pd3dDevice->SetClipPlane(1, rightPlane);
-                bd->pd3dDevice->SetClipPlane(2, topPlane);
-                bd->pd3dDevice->SetClipPlane(3, bottomPlane);
-
-                // Render the vertex buffer contents
-                const LPDIRECT3DTEXTURE8 texture = (LPDIRECT3DTEXTURE8)pcmd->GetTexID();
-                bd->pd3dDevice->SetTexture(0, texture);
-                bd->pd3dDevice->SetStreamSource(0, bd->pVB, sizeof(CUSTOMVERTEX));
-                bd->pd3dDevice->SetIndices(bd->pIB, 0); //
-                bd->pd3dDevice->SetVertexShader(D3DFVF_CUSTOMVERTEX);
-                bd->pd3dDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0U, cmd_list->VtxBuffer.Size, 0U, pcmd->ElemCount / 3);
-            }
+            return;
         }
-    }
+        if (indexBuffer->Lock(0, (UINT)(drawData->TotalIdxCount * sizeof(ImDrawIdx)), (BYTE**)&idx_dst, D3DLOCK_DISCARD) < 0)
+        {
+            return;
+        }
+        for (int n = 0; n < drawData->CmdListsCount; n++)
+        {
+            const ImDrawList* cmd_list = drawData->CmdLists[n];
+            const ImDrawVert* vtx_src = cmd_list->VtxBuffer.Data;
+            for (int i = 0; i < cmd_list->VtxBuffer.Size; i++)
+            {
+                vtx_dst->pos[0] = vtx_src->pos.x;
+                vtx_dst->pos[1] = vtx_src->pos.y;
+                vtx_dst->pos[2] = 0.0f;
+                vtx_dst->col = (vtx_src->col & 0xFF00FF00) | ((vtx_src->col & 0xFF0000) >> 16) | ((vtx_src->col & 0xFF) << 16); // RGBA --> ARGB for DirectX9
+                vtx_dst->uv[0] = vtx_src->uv.x;
+                vtx_dst->uv[1] = vtx_src->uv.y;
+                vtx_dst++;
+                vtx_src++;
+            }
+            memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+            idx_dst += cmd_list->IdxBuffer.Size;
+        }
+        vertexBuffer->Unlock();
+        indexBuffer->Unlock();
+        d3dDevice->SetStreamSource(0, vertexBuffer, sizeof(CUSTOMVERTEX));
+        d3dDevice->SetIndices(indexBuffer, 0);
+        d3dDevice->SetVertexShader(D3DFVF_CUSTOMVERTEX); //new
 
-    // Restore the DX8 transform
-    bd->pd3dDevice->SetTransform(D3DTS_WORLD, &last_world);
-    bd->pd3dDevice->SetTransform(D3DTS_VIEW, &last_view);
-    bd->pd3dDevice->SetTransform(D3DTS_PROJECTION, &last_projection);
+        // Setup desired DX state
+        ImGui_ImplDX8_SetupRenderState(drawData);
+
+        // Render command lists
+        // (Because we merged all buffers into a single one, we maintain our own offset into them)
+        int global_vtx_offset = 0;
+        int global_idx_offset = 0;
+        const ImVec2 clip_off = drawData->DisplayPos;
+        for (int n = 0; n < drawData->CmdListsCount; n++)
+        {
+            const ImDrawList* cmd_list = drawData->CmdLists[n];
+            for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
+            {
+                const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+                if (pcmd->UserCallback != nullptr)
+                {
+                    // User callback, registered via ImDrawList::AddCallback()
+                    // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
+                    if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+                    {
+                        ImGui_ImplDX8_SetupRenderState(drawData);
+                    }
+                    else
+                    {
+                        pcmd->UserCallback(cmd_list, pcmd);
+                    }
+                }
+                else
+                {
+                    const RECT r = { static_cast<LONG>(pcmd->ClipRect.x - clip_off.x),
+                                     static_cast<LONG>(pcmd->ClipRect.y - clip_off.y),
+                                     static_cast<LONG>(pcmd->ClipRect.z - clip_off.x),
+                                     static_cast<LONG>(pcmd->ClipRect.w - clip_off.y) };
+                    const LPDIRECT3DTEXTURE8 texture = (LPDIRECT3DTEXTURE8)pcmd->TexRef.GetTexID();
+                    d3dDevice->SetTexture(0, texture);
+                    build_mask_vbuffer(&r);
+                    d3dDevice->SetRenderState(D3DRS_COLORWRITEENABLE, 0);
+                    d3dDevice->SetRenderState(D3DRS_ZENABLE, true);
+                    d3dDevice->SetRenderState(D3DRS_STENCILENABLE, true);
+                    d3dDevice->SetRenderState(D3DRS_STENCILWRITEMASK, 0xFF);
+                    d3dDevice->SetRenderState(D3DRS_STENCILMASK, 0xFF);
+                    d3dDevice->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
+                    d3dDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
+                    d3dDevice->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_REPLACE);
+                    d3dDevice->SetRenderState(D3DRS_STENCILREF, 0xFF);
+                    d3dDevice->Clear(0, nullptr, D3DCLEAR_STENCIL, 0, 1.0f, 0);
+                    d3dDevice->SetStreamSource(0, maskVertexBuffer, sizeof(CUSTOMVERTEX));
+                    d3dDevice->SetIndices(maskIndexBuffer, 0);
+                    d3dDevice->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 4, 0, 2); //new
+                    d3dDevice->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 2);
+                    d3dDevice->SetStreamSource(0, vertexBuffer, sizeof(CUSTOMVERTEX));
+                    d3dDevice->SetIndices(indexBuffer, global_vtx_offset);
+                    d3dDevice->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
+                    d3dDevice->SetRenderState(D3DRS_ZENABLE, false);
+                    d3dDevice->SetRenderState(D3DRS_STENCILENABLE, true);
+                    d3dDevice->SetRenderState(D3DRS_STENCILWRITEMASK, 0);
+                    d3dDevice->SetRenderState(D3DRS_STENCILMASK, 0xFF);
+                    d3dDevice->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_EQUAL);
+                    d3dDevice->SetRenderState(D3DRS_STENCILFAIL, D3DSTENCILOP_KEEP);
+                    d3dDevice->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
+                    d3dDevice->SetRenderState(D3DRS_STENCILREF, 0xFF);
+                    //g_pd3dDevice->SetScissorRect(&r);
+                    d3dDevice->DrawIndexedPrimitive(
+                        D3DPT_TRIANGLELIST, 0, static_cast<UINT>(cmd_list->VtxBuffer.Size), pcmd->IdxOffset + global_idx_offset, pcmd->ElemCount / 3);
+                }
+            }
+            global_idx_offset += cmd_list->IdxBuffer.Size;
+            global_vtx_offset += cmd_list->VtxBuffer.Size;
+        }
+
+        // Restore the DX8 transform
+        d3dDevice->SetTransform(D3DTS_WORLD, &last_world);           //new
+        d3dDevice->SetTransform(D3DTS_VIEW, &last_view);             //new
+        d3dDevice->SetTransform(D3DTS_PROJECTION, &last_projection); //new
+
+        // Restore the DX8 state
+        // d3d9_state_block->Apply();
+        // d3d9_state_block->Release();
+        d3dDevice->SetRenderTarget(nullptr, realDepthStencilBuffer);
+        d3dDevice->ApplyStateBlock(stateBlockToken);
+        d3dDevice->DeleteStateBlock(stateBlockToken);
+    }
+    catch (...)
+    {}
 }
 
 bool ImGui_ImplDX8_Init(IDirect3DDevice8* device)
 {
+    // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
-    IM_ASSERT(io.BackendRendererUserData == NULL && "Already initialized a renderer backend!");
-
-    // Setup backend capabilities flags
-    ImGui_ImplDX8_Data* bd = IM_NEW(ImGui_ImplDX8_Data)();
-    io.BackendRendererUserData = (void*)bd;
-    io.BackendRendererName = "imgui_impl_dx8";
+    io.BackendRendererName = "fld3dx8";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
 
-    bd->pd3dDevice = device;
-    bd->pd3dDevice->AddRef();
-
+    d3dDevice = device;
+    d3dDevice->AddRef();
     return true;
 }
 
 void ImGui_ImplDX8_Shutdown()
 {
-    ImGui_ImplDX8_Data* bd = ImGui_ImplDX8_GetBackendData();
-    IM_ASSERT(bd != NULL && "No renderer backend to shutdown, or already shutdown?");
-    ImGuiIO& io = ImGui::GetIO();
-
     ImGui_ImplDX8_InvalidateDeviceObjects();
-    if (bd->pd3dDevice)
+    if (d3dDevice)
     {
-        bd->pd3dDevice->Release();
+        d3dDevice->Release();
+        d3dDevice = nullptr;
     }
-    io.BackendRendererName = nullptr;
-    io.BackendRendererUserData = nullptr;
-    IM_DELETE(bd);
 }
 
 static bool ImGui_ImplDX8_CreateFontsTexture()
 {
     // Build texture atlas
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui_ImplDX8_Data* bd = ImGui_ImplDX8_GetBackendData();
+    const ImGuiIO& io = ImGui::GetIO();
     unsigned char* pixels;
-    int width, height, bytes_per_pixel;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytes_per_pixel);
-
-    // Convert RGBA32 to BGRA32 (because RGBA32 is not well supported by DX8 devices)
-#ifndef IMGUI_USE_BGRA_PACKED_COLOR
-    if (io.Fonts->TexPixelsUseColors)
-    {
-        ImU32* dst_start = (ImU32*)ImGui::MemAlloc((size_t)width * height * bytes_per_pixel);
-        for (ImU32 *src = (ImU32*)pixels, *dst = dst_start, *dst_end = dst_start + (size_t)width * height; dst < dst_end; src++, dst++)
-        {
-            *dst = IMGUI_COL_TO_DX8_ARGB(*src);
-        }
-        pixels = (unsigned char*)dst_start;
-    }
-#endif
+    int width, height, BYTEs_per_pixel;
+    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &BYTEs_per_pixel);
 
     // Upload texture to graphics system
-    bd->FontTexture = nullptr;
-    //if (bd->pd3dDevice->CreateTexture(width, height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &bd->FontTexture, NULL) < 0)
-    if (bd->pd3dDevice->CreateTexture(width, height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &bd->FontTexture) < 0)
+    fontTexture = nullptr;
+    if (d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &fontTexture) < 0)
     {
         return false;
     }
     D3DLOCKED_RECT tex_locked_rect;
-    if (bd->FontTexture->LockRect(0, &tex_locked_rect, nullptr, 0) != D3D_OK)
+    if (fontTexture->LockRect(0, &tex_locked_rect, nullptr, 0) != D3D_OK)
     {
         return false;
     }
     for (int y = 0; y < height; y++)
     {
-        memcpy((unsigned char*)tex_locked_rect.pBits + (size_t)tex_locked_rect.Pitch * y,
-               pixels + (size_t)width * bytes_per_pixel * y,
-               (size_t)width * bytes_per_pixel);
+        memcpy(
+            static_cast<unsigned char*>(tex_locked_rect.pBits) + tex_locked_rect.Pitch * y, pixels + (width * BYTEs_per_pixel) * y, (width * BYTEs_per_pixel));
     }
-    bd->FontTexture->UnlockRect(0);
+    fontTexture->UnlockRect(0);
 
     // Store our identifier
-    io.Fonts->SetTexID((ImTextureID)bd->FontTexture);
+    io.Fonts->TexID = (ImTextureID)fontTexture;
 
-#ifndef IMGUI_USE_BGRA_PACKED_COLOR
-    if (io.Fonts->TexPixelsUseColors)
+    return true;
+}
+
+static bool ImGui_ImplD3D8_CreateDepthStencilBuffer()
+{
+    if (d3dDevice == nullptr)
     {
-        ImGui::MemFree(pixels);
+        return false;
     }
-#endif
+    if (depthBuffer == nullptr)
+    {
+        IDirect3DSurface8* realDepth;
+        D3DSURFACE_DESC sfcDesc;
+
+        d3dDevice->GetDepthStencilSurface(&realDepth);
+        if (realDepth->GetDesc(&sfcDesc))
+        {
+            return false;
+        }
+        if (d3dDevice->CreateDepthStencilSurface(sfcDesc.Width, sfcDesc.Height, D3DFMT_D24S8, D3DMULTISAMPLE_NONE, &depthBuffer))
+        {
+            return false;
+        }
+    }
 
     return true;
 }
 
 bool ImGui_ImplDX8_CreateDeviceObjects()
 {
-    ImGui_ImplDX8_Data* bd = ImGui_ImplDX8_GetBackendData();
-    if (!bd || !bd->pd3dDevice)
+    if (!d3dDevice)
     {
         return false;
     }
     if (!ImGui_ImplDX8_CreateFontsTexture())
+    {
+        return false;
+    }
+    if (!ImGui_ImplD3D8_CreateDepthStencilBuffer())
     {
         return false;
     }
@@ -373,35 +430,53 @@ bool ImGui_ImplDX8_CreateDeviceObjects()
 
 void ImGui_ImplDX8_InvalidateDeviceObjects()
 {
-    ImGui_ImplDX8_Data* bd = ImGui_ImplDX8_GetBackendData();
-    if (!bd || !bd->pd3dDevice)
+    if (!d3dDevice)
     {
         return;
     }
-    if (bd->pVB)
+    if (vertexBuffer)
     {
-        bd->pVB->Release();
-        bd->pVB = nullptr;
+        vertexBuffer->Release();
+        vertexBuffer = nullptr;
     }
-    if (bd->pIB)
+    if (indexBuffer)
     {
-        bd->pIB->Release();
-        bd->pIB = nullptr;
+        indexBuffer->Release();
+        indexBuffer = nullptr;
     }
-    if (bd->FontTexture)
+    if (maskVertexBuffer)
     {
-        bd->FontTexture->Release();
-        bd->FontTexture = nullptr;
-        ImGui::GetIO().Fonts->SetTexID(NULL);
-    } // We copied bd->pFontTextureView to io.Fonts->TexID so let's clear that as well.
+        maskVertexBuffer->Release();
+        maskVertexBuffer = nullptr;
+    }
+    if (maskIndexBuffer)
+    {
+        maskIndexBuffer->Release();
+        maskIndexBuffer = nullptr;
+    }
+    if (depthBuffer)
+    {
+        depthBuffer->Release();
+        depthBuffer = nullptr;
+    }
+    if (fontTexture)
+    {
+        fontTexture->Release();
+        fontTexture = nullptr;
+        ImGui::GetIO().Fonts->TexID._TexData = nullptr;
+        ImGui::GetIO().Fonts->TexID._TexID = 0;
+    }
+    //if (LPDIRECT3DTEXTURE8 tex = (LPDIRECT3DTEXTURE8)ImGui::GetIO().Fonts->TexID)
+    //{
+    //    tex->Release();
+    //    g_FontTexture = NULL;
+    //    ImGui::GetIO().Fonts->TexID = 0;
+    //}
 }
 
 void ImGui_ImplDX8_NewFrame()
 {
-    ImGui_ImplDX8_Data* bd = ImGui_ImplDX8_GetBackendData();
-    IM_ASSERT(bd != NULL && "Did you call ImGui_ImplDX8_Init()?");
-
-    if (!bd->FontTexture)
+    if (!fontTexture || !depthBuffer)
     {
         ImGui_ImplDX8_CreateDeviceObjects();
     }

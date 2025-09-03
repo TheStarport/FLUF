@@ -446,11 +446,34 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
 
     if (backend == RenderingBackend::Dx8)
     {
-        PDIRECT3DTEXTURE8 d3dTexture = nullptr;
-        //if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE8>(renderingContext), path.c_str(), &d3dTexture); hr != D3D_OK)
+        FILE* f = fopen(path.c_str(), "rb");
+        if (f == nullptr)
         {
             goto failed;
         }
+
+        auto imageHandle = stbi_load_from_file(f, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height), nullptr, 4);
+        if (!imageHandle)
+        {
+            fclose(f);
+            goto failed;
+        }
+
+        PDIRECT3DTEXTURE8 d3dTexture = nullptr;
+
+        // Create empty IDirect3DTexture9*
+        const auto dx = static_cast<LPDIRECT3DDEVICE8>(renderingContext);
+        dx->CreateTexture(width, height, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &d3dTexture);
+        if (!d3dTexture)
+        {
+            throw std::runtime_error("CreateTexture failed");
+        }
+
+        D3DLOCKED_RECT rect;
+        d3dTexture->LockRect(0, &rect, 0, D3DLOCK_DISCARD);
+        auto* dest = static_cast<unsigned char*>(rect.pBits);
+        memcpy(dest, imageHandle, sizeof(unsigned char) * width * height * 4);
+        d3dTexture->UnlockRect(0);
 
         D3DSURFACE_DESC surfaceDesc = {};
         if (const auto hr = d3dTexture->GetLevelDesc(0, &surfaceDesc); hr != D3D_OK)

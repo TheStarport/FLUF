@@ -39,11 +39,11 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void FlufUi::OnGameLoad()
 {
-    if (d3d8)
+    if (d3d8 && d3d8device)
     {
         if (config->uiMode == UiMode::ImGui)
         {
-            Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ DX9");
+            Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ DX8");
             imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx8, d3d8device);
         }
     }
@@ -55,6 +55,10 @@ void FlufUi::OnGameLoad()
             Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ OpenGL");
             imguiInterface = std::make_shared<ImGuiInterface>(this, renderingBackend, glContext);
         }
+    }
+    else
+    {
+        config->uiMode = UiMode::None;
     }
 
     Fluf::Log(LogLevel::Info, std::format("UI Mode: {}", rfl::enum_to_string(config->uiMode)));
@@ -223,10 +227,10 @@ FlufUi::FlufUi()
         config = std::make_shared<FlufUiConfig>(*conf);
     }
 
-    if (const HMODULE d3d9Handle = GetModuleHandleA("d3d9.dll"))
+    if (const HMODULE d3d8Handle = GetModuleHandleA("d3d8.dll"))
     {
         d3d8CreateDetour =
-            std::make_unique<FunctionDetour<Direct3DCreate8Ptr>>(reinterpret_cast<Direct3DCreate8Ptr>(GetProcAddress(d3d9Handle, "Direct3DCreate9")));
+            std::make_unique<FunctionDetour<Direct3DCreate8Ptr>>(reinterpret_cast<Direct3DCreate8Ptr>(GetProcAddress(d3d8Handle, "Direct3DCreate8")));
         d3d8CreateDetour->Detour(OnDirect3D8Create);
     }
 
