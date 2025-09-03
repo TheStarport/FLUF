@@ -6,28 +6,28 @@ from .utils import cli, download_file, log, run, raise_if_missing_exe
 
 
 @cli.command(short_help='Downloads and unpacks the DirectX9 SDK if needed')
-def d3d9():
+def d3d8():
     raise_if_missing_exe('7z')
 
     if os.path.isdir("./vendor/DXSDK"):
         log("DXSDK already exists. No need to download...")
         return
 
-    download_file('https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe',
-                  '_DX2010_.exe')
+    download_file('https://f003.backblazeb2.com/file/starport-attachments/dx8sdk.zip',
+                  'dx8sdk.zip')
 
-    log("Extracting contents from _DX2010_.exe ...")
-    run("7z x _DX2010_.exe DXSDK/Include -ovendor", no_log=True)
-    run("7z x _DX2010_.exe DXSDK/Lib/x86 -ovendor", no_log=True)
+    log("Extracting contents from dx8sdk.zip ...")
+    run("7z x dx8sdk.zip include -ovendor/DXSDK", no_log=True)
+    run("7z x dx8sdk.zip lib -ovendor/DXSDK", no_log=True)
 
     log("Extracted contents successfully. Cleaning up...")
-    os.remove("_DX2010_.exe")
+    os.remove("dx8sdk.zip")
 
 
 @cli.command(short_help='Downloads and unpacks libcurl if needed')
 def curl():
     raise_if_missing_exe('7z')
-    
+
     if os.path.isdir("./vendor/curl-8.10.1"):
         log("libcurl already exists. No need to download...")
         return
@@ -45,4 +45,4 @@ def curl():
 @click.pass_context
 def dependencies(ctx: click.Context):
     ctx.invoke(curl)
-    ctx.invoke(d3d9)
+    ctx.invoke(d3d8)

@@ -9,9 +9,7 @@
 
 #include "ImGui/FontAwesomeSolid.hpp"
 #include "ImGui/ImGuiNotify.hpp"
-#include <d3dx9.h>
 #include <imgui.h>
-#include <imgui_impl_dx9.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_win32.h>
 #include <imgui_internal.h>
@@ -22,6 +20,7 @@
 #include "UImGuiTextUtils.hpp"
 #include "Internal/CustomHud.hpp"
 #include "Internal/CustomOptionsWindow.hpp"
+#include "Internal/ImGuiD3D8.hpp"
 #include "Internal/PlayerStatusWindow.hpp"
 #include "Vanilla/HudManager.hpp"
 
@@ -160,7 +159,7 @@ void ImGuiInterface::Render()
 
     switch (backend)
     {
-        case RenderingBackend::Dx9: ImGui_ImplDX9_NewFrame(); break;
+        case RenderingBackend::Dx8: ImGui_ImplDX8_NewFrame(); break;
         case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_NewFrame(); break;
         default: throw std::runtime_error("Unknown backend");
     }
@@ -193,7 +192,7 @@ void ImGuiInterface::Render()
 
     switch (backend)
     {
-        case RenderingBackend::Dx9: ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData()); break;
+        case RenderingBackend::Dx8: ImGui_ImplDX8_RenderDrawData(ImGui::GetDrawData()); break;
         case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); break;
         default: throw std::runtime_error("Unknown backend");
     }
@@ -278,10 +277,10 @@ ImGuiInterface::~ImGuiInterface()
 {
     switch (backend)
     {
-        case RenderingBackend::Dx9:
+        case RenderingBackend::Dx8:
             // By the time this is unloaded, device is lost. Clear the flag to prevent an attempt from releasing a nonexistant resource.
-            *static_cast<LPDIRECT3DDEVICE9*>(ImGui::GetIO().BackendRendererUserData) = nullptr;
-            ImGui_ImplDX9_Shutdown();
+            *static_cast<LPDIRECT3DDEVICE8*>(ImGui::GetIO().BackendRendererUserData) = nullptr;
+            ImGui_ImplDX8_Shutdown();
             break;
         case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_Shutdown(); break;
         default: break;
@@ -416,10 +415,10 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     ImGui_ImplWin32_Init(*FlufUi::mainFreelancerWindow);
     switch (backend)
     {
-        case RenderingBackend::Dx9:
+        case RenderingBackend::Dx8:
             {
-                const auto dx9Device = static_cast<IDirect3DDevice9*>(context);
-                ImGui_ImplDX9_Init(dx9Device);
+                const auto dx9Device = static_cast<IDirect3DDevice8*>(context);
+                ImGui_ImplDX8_Init(dx9Device);
                 break;
             }
         case RenderingBackend::OpenGL:
@@ -427,7 +426,6 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
                 ImGui_ImplOpenGL3_Init();
                 break;
             }
-        case RenderingBackend::Dx8:
         default: throw std::runtime_error("Dx8 backend not supported.");
     }
 
@@ -439,17 +437,17 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     Fluf::GetKeyManager()->RegisterKey(flufUi, "FLUF_OPEN_EXTENDED_OPTIONS_MENU", Key::USER_NO_OVERRIDE, reinterpret_cast<KeyFunc>(&FlufUi::OpenOptionsMenu));
 }
 
-void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)
+ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)
 {
     if (const auto texture = loadedTextures.find(path); texture != loadedTextures.end())
     {
-        return texture->second;
+        return reinterpret_cast<ImTextureID>(texture->second);
     }
 
-    if (backend == RenderingBackend::Dx9)
+    if (backend == RenderingBackend::Dx8)
     {
-        PDIRECT3DTEXTURE9 d3dTexture = nullptr;
-        if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE9>(renderingContext), path.c_str(), &d3dTexture); hr != D3D_OK)
+        PDIRECT3DTEXTURE8 d3dTexture = nullptr;
+        //if (const auto hr = D3DXCreateTextureFromFileA(static_cast<LPDIRECT3DDEVICE8>(renderingContext), path.c_str(), &d3dTexture); hr != D3D_OK)
         {
             goto failed;
         }
@@ -465,7 +463,7 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
 
         width = surfaceDesc.Width;
         height = surfaceDesc.Height;
-        return d3dTexture;
+        return reinterpret_cast<ImTextureID>(d3dTexture);
     }
 
     if (backend == RenderingBackend::OpenGL)
@@ -499,7 +497,7 @@ void* ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& he
         fclose(f);
 
         loadedTextures[path] = reinterpret_cast<void*>(imageTexture);
-        return reinterpret_cast<void*>(imageTexture);
+        return imageTexture;
     }
 
 failed:
@@ -508,7 +506,7 @@ failed:
 
     Fluf::Log(LogLevel::Error, std::format("Failed to load texture: {}", path));
 
-    return nullptr;
+    return 0;
 }
 
 bool ImGuiInterface::RegisterImGuiModule(ImGuiModule* mod)

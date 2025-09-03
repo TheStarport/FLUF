@@ -7,11 +7,13 @@
 #include "FLUF.UI.hpp"
 #include "Fluf.hpp"
 #include "UImGuiTextUtils.hpp"
-#include "d3d9.h"
 #include "ImGui/ImGuiInterface.hpp"
 #include "Utils/StringUtils.hpp"
 
 #include <imgui_internal.h>
+
+#include <vendor/DXSDK/include/d3d8.h>
+#undef interface
 
 void FlWindow::DrawScrollbars() const
 {
@@ -233,17 +235,7 @@ void FlWindow::Render()
     if (backgroundTexture)
     {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        drawList->AddCallback(
-            [](const ImDrawList*, const ImDrawCmd*)
-            {
-                if (renderingBackend == RenderingBackend::Dx9)
-                {
-                    auto* dx = static_cast<IDirect3DDevice9*>(dxDevice);
-                    dx->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_MIRROR);
-                    dx->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_MIRROR);
-                }
-            },
-            nullptr);
+        drawList->AddCallback([](const ImDrawList*, const ImDrawCmd*) {}, nullptr);
         drawList->AddImage(backgroundTexture, windowPos, windowPos + windowSize, ImVec2(0.f, 0.f), windowSize / imageSize, 0x80FFFFFF);
         drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
     }
@@ -362,6 +354,6 @@ FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const I
 
     // TODO: Make this texture customizable
     uint width = 0, height = 0;
-    backgroundTexture = reinterpret_cast<ImTextureID>(imguiInterface->LoadTexture("backgroundpattern.bmp", width, height));
+    backgroundTexture = imguiInterface->LoadTexture("backgroundpattern.bmp", width, height);
     imageSize = { static_cast<float>(width), static_cast<float>(height) };
 }

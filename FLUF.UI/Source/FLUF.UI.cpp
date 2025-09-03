@@ -8,21 +8,22 @@
 #include "ImGui/ImGuiNotify.hpp"
 #include "Typedefs.hpp"
 #include "Internal/CustomOptionsWindow.hpp"
+#include "Internal/ImGuiD3D8.hpp"
 #include "Utils/Detour.hpp"
 #include "Vanilla/HudManager.hpp"
 
-#include <d3dx9.h>
-#include <imgui_impl_dx9.h>
+#include <vendor/DXSDK/include/d3d8.h>
 
-using Direct3DCreate9Ptr = IDirect3D9*(__stdcall*)(uint sdkVersion);
-using Direct3DCreateDevice9 = HRESULT(__stdcall*)(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
-                                                  D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
-using Direct3DDevice9Reset = HRESULT(__stdcall*)(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pPresentationParameters);
-using Direct3DDevice9EndScene = HRESULT(__stdcall*)(IDirect3DDevice9* device);
+#undef interface
 
-std::unique_ptr<FunctionDetour<Direct3DCreate9Ptr>> d3d8CreateDetour;
-std::unique_ptr<FunctionDetour<Direct3DCreateDevice9>> d3d9CreateDeviceDetour;
-std::unique_ptr<FunctionDetour<Direct3DDevice9Reset>> d3d9DeviceResetDetour;
+using Direct3DCreate8Ptr = IDirect3D8*(__stdcall*)(uint sdkVersion);
+using Direct3DCreateDevice8 = HRESULT(__stdcall*)(IDirect3D8* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
+                                                  D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice8** returnedDeviceInterface);
+using Direct3DDevice8Reset = HRESULT(__stdcall*)(IDirect3DDevice8* device, D3DPRESENT_PARAMETERS* pPresentationParameters);
+
+std::unique_ptr<FunctionDetour<Direct3DCreate8Ptr>> d3d8CreateDetour;
+std::unique_ptr<FunctionDetour<Direct3DCreateDevice8>> d3d8CreateDeviceDetour;
+std::unique_ptr<FunctionDetour<Direct3DDevice8Reset>> d3d8DeviceResetDetour;
 
 FlufUi* module;
 
@@ -38,13 +39,12 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void FlufUi::OnGameLoad()
 {
-    if (d3d9)
+    if (d3d8)
     {
-        renderingBackend = RenderingBackend::Dx9;
         if (config->uiMode == UiMode::ImGui)
         {
             Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ DX9");
-            imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx9, d3d9device);
+            imguiInterface = std::make_shared<ImGuiInterface>(this, RenderingBackend::Dx8, d3d8device);
         }
     }
     else if (auto glContext = wglGetCurrentContext())
@@ -54,15 +54,6 @@ void FlufUi::OnGameLoad()
         {
             Fluf::Log(LogLevel::Info, "Create ImGuiInterface w/ OpenGL");
             imguiInterface = std::make_shared<ImGuiInterface>(this, renderingBackend, glContext);
-        }
-    }
-    else if (config->uiMode == UiMode::ImGui)
-    {
-        config->uiMode = UiMode::None;
-        MessageBoxA(nullptr, "DirectX 9 not loaded. D3D8to9 must be present. Please disable ImGui interfaces, or use D3D8to9", "D3D8to9 not found", MB_OK);
-        if (config->enforceUiMode)
-        {
-            std::exit(0);
         }
     }
 
@@ -118,44 +109,44 @@ bool FlufUi::UiRenderDetour()
     return result;
 }
 
-IDirect3D9* __stdcall FlufUi::OnDirect3D8Create(const uint sdkVersion)
+IDirect3D8* __stdcall FlufUi::OnDirect3D8Create(const uint sdkVersion)
 {
     d3d8CreateDetour->UnDetour();
-    d3d9 = d3d8CreateDetour->GetOriginalFunc()(sdkVersion);
+    d3d8 = d3d8CreateDetour->GetOriginalFunc()(sdkVersion);
 
-    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9));
-    d3d9CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice9>>(reinterpret_cast<Direct3DCreateDevice9>(vtable[16]));
-    d3d9CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
+    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d8));
+    d3d8CreateDeviceDetour = std::make_unique<FunctionDetour<Direct3DCreateDevice8>>(reinterpret_cast<Direct3DCreateDevice8>(vtable[15]));
+    d3d8CreateDeviceDetour->Detour(OnDirect3D8CreateDevice);
 
-    return d3d9;
+    return d3d8;
 }
 
-HRESULT __stdcall FlufUi::OnDirect3D9ResetDevice(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pPresentationParameters)
+HRESULT __stdcall FlufUi::OnDirect3D8ResetDevice(IDirect3DDevice8* device, D3DPRESENT_PARAMETERS* pPresentationParameters)
 {
-    ImGui_ImplDX9_InvalidateDeviceObjects();
+    ImGui_ImplDX8_InvalidateDeviceObjects();
 
-    d3d9DeviceResetDetour->UnDetour();
-    const auto res = d3d9DeviceResetDetour->GetOriginalFunc()(device, pPresentationParameters);
-    d3d9DeviceResetDetour->Detour(OnDirect3D9ResetDevice);
+    d3d8DeviceResetDetour->UnDetour();
+    const auto res = d3d8DeviceResetDetour->GetOriginalFunc()(device, pPresentationParameters);
+    d3d8DeviceResetDetour->Detour(OnDirect3D8ResetDevice);
 
     return res;
 }
 
-HRESULT __stdcall FlufUi::OnDirect3D9CreateDevice(IDirect3D9* context, const uint adapter, const D3DDEVTYPE deviceType, const HWND focusWindow,
+HRESULT __stdcall FlufUi::OnDirect3D8CreateDevice(IDirect3D8* context, const uint adapter, const D3DDEVTYPE deviceType, const HWND focusWindow,
                                                   const DWORD behaviorFlags, D3DPRESENT_PARAMETERS* presentationParameters,
-                                                  IDirect3DDevice9** returnedDeviceInterface)
+                                                  IDirect3DDevice8** returnedDeviceInterface)
 {
-    d3d9CreateDeviceDetour->UnDetour();
+    d3d8CreateDeviceDetour->UnDetour();
     const auto result =
-        d3d9CreateDeviceDetour->GetOriginalFunc()(context, adapter, deviceType, focusWindow, behaviorFlags, presentationParameters, returnedDeviceInterface);
-    d3d9device = *returnedDeviceInterface;
-    assert(d3d9device);
+        d3d8CreateDeviceDetour->GetOriginalFunc()(context, adapter, deviceType, focusWindow, behaviorFlags, presentationParameters, returnedDeviceInterface);
+    d3d8device = *returnedDeviceInterface;
+    assert(d3d8device);
 
-    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d9device));
-    d3d9DeviceResetDetour = std::make_unique<FunctionDetour<Direct3DDevice9Reset>>(reinterpret_cast<Direct3DDevice9Reset>(vtable[16]));
-    d3d9DeviceResetDetour->Detour(OnDirect3D9ResetDevice);
+    const auto vtable = reinterpret_cast<DWORD*>(*reinterpret_cast<DWORD*>(d3d8device));
+    d3d8DeviceResetDetour = std::make_unique<FunctionDetour<Direct3DDevice8Reset>>(reinterpret_cast<Direct3DDevice8Reset>(vtable[14]));
+    d3d8DeviceResetDetour->Detour(OnDirect3D8ResetDevice);
 
-    d3d9CreateDeviceDetour->Detour(OnDirect3D9CreateDevice);
+    d3d8CreateDeviceDetour->Detour(OnDirect3D8CreateDevice);
     return result;
 }
 
@@ -235,7 +226,7 @@ FlufUi::FlufUi()
     if (const HMODULE d3d9Handle = GetModuleHandleA("d3d9.dll"))
     {
         d3d8CreateDetour =
-            std::make_unique<FunctionDetour<Direct3DCreate9Ptr>>(reinterpret_cast<Direct3DCreate9Ptr>(GetProcAddress(d3d9Handle, "Direct3DCreate9")));
+            std::make_unique<FunctionDetour<Direct3DCreate8Ptr>>(reinterpret_cast<Direct3DCreate8Ptr>(GetProcAddress(d3d9Handle, "Direct3DCreate9")));
         d3d8CreateDetour->Detour(OnDirect3D8Create);
     }
 

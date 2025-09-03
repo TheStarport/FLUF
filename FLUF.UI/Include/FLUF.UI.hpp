@@ -8,12 +8,11 @@
 
 #include "Utils/Detour.hpp"
 
-#include <d3d9types.h>
+#include <vendor/DXSDK/include/d3d8.h>
+#undef interface
 
 class ImGuiInterface;
 class HudManager;
-class IDirect3D9;
-class IDirect3DDevice9;
 
 /**
  * @author Laz
@@ -28,8 +27,8 @@ class IDirect3DDevice9;
 class FlufUi final : public FlufModule
 {
         friend ImGuiInterface;
-        inline static IDirect3D9* d3d9;
-        inline static IDirect3DDevice9* d3d9device;
+        inline static IDirect3D8* d3d8;
+        inline static IDirect3DDevice8* d3d8device;
         using OnUiRender = bool (*)();
 
         using WinKeyType = bool (*)(uint msg, WPARAM wParam, LPARAM lParam);
@@ -52,14 +51,13 @@ class FlufUi final : public FlufModule
         static LRESULT __stdcall WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam);
         static bool WinKeyDetour(uint msg, WPARAM wParam, LPARAM lParam);
         static bool UiRenderDetour();
-        static IDirect3D9* __stdcall OnDirect3D8Create(uint sdkVersion);
-        static HRESULT __stdcall OnDirect3D9ResetDevice(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pPresentationParameters);
-        static HRESULT __stdcall OnDirect3D9CreateDevice(IDirect3D9* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
-                                                         D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice9** returnedDeviceInterface);
+        static IDirect3D8* __stdcall OnDirect3D8Create(uint sdkVersion);
+        static HRESULT __stdcall OnDirect3D8ResetDevice(IDirect3DDevice8* device, D3DPRESENT_PARAMETERS* pPresentationParameters);
+        static HRESULT __stdcall OnDirect3D8CreateDevice(IDirect3D8* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
+                                                         D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice8** returnedDeviceInterface);
         void OpenOptionsMenu() const;
 
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
-
 
     public:
         inline static FLUF_UI_API const HWND* mainFreelancerWindow = reinterpret_cast<HWND*>(0x6679F4);

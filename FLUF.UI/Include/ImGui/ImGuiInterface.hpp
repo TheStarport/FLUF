@@ -80,7 +80,7 @@ class ImGuiInterface
          * @returns A void* of whose type will depend on the currently running render backend.\n
          * In the event it is DX9, it will be a PDIRECT3DTEXTURE9.
          */
-        FLUF_UI_API void* LoadTexture(const std::string& path, uint& width, uint& height);
+        FLUF_UI_API ImTextureID LoadTexture(const std::string& path, uint& width, uint& height);
         /**
          * @brief Register a plugin to receive the render event from ImGui.
          */

@@ -12,7 +12,6 @@ enum class UiMode
 enum class RenderingBackend
 {
     Dx8,
-    Dx9,
     OpenGL
 };
 

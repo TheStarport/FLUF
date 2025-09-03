@@ -61,7 +61,7 @@ void RaidUi::OnFixedUpdate(const double delta)
         {
             return;
         }
-        
+
         lastDebugState = true;
         auto shipClassIter = shipClassImageMap.shipClassImageMap.begin();
 
@@ -312,7 +312,7 @@ void RaidUi::Render()
 
         skip = false;
 
-        void* texture = nullptr;
+        ImTextureID texture = 0;
         if (auto cls = shipClassImageMap.shipClassImageMap.find(member.second.shipClass); cls != shipClassImageMap.shipClassImageMap.end())
         {
             uint height;
@@ -337,7 +337,7 @@ void RaidUi::Render()
 
         constexpr ImVec2 imageSize = { 40.f, 40.f };
         ImGui::Dummy({ 0.f, 20.f });
-        ImGui::Image(reinterpret_cast<ImTextureID>(texture), imageSize);
+        ImGui::Image(texture, imageSize);
 
         constexpr auto writeDistance = [imageSize](const char* text)
         {

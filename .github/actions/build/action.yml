@@ -23,12 +23,12 @@ runs:
         path: ~/.conan2
         key: dependency-conan
 
-    - name: "Restore DX9 SDK Cache"
-      id: dependency-dx9
+    - name: "Restore DX8 SDK Cache"
+      id: dependency-dx8
       uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/vendor/DXSDK
-        key: dependency-dx9
+        key: dependency-dx8
 
     - uses: ilammy/msvc-dev-cmd@v1.13.0
       with:

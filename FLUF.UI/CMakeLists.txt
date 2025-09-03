@@ -60,10 +60,10 @@ target_compile_definitions(FLUF.UI PRIVATE
 )
 add_dependencies(FLUF.UI FLUF)
 
-# DirectX9 SDK
+# DirectX8 SDK
 set(DXSDK "${PROJECT_SOURCE_DIR}/vendor/DXSDK")
-target_include_directories(FLUF.UI PRIVATE ${DXSDK}/Include)
-target_link_libraries(FLUF.UI PRIVATE ${DXSDK}/Lib/x86/d3dx9.lib)
+target_include_directories(FLUF.UI PRIVATE ${DXSDK}/include)
+target_link_libraries(FLUF.UI PRIVATE ${DXSDK}/lib/d3d8.lib)
 
 # ImGui
 target_compile_definitions(FLUF.UI PRIVATE
