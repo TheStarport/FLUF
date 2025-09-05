@@ -373,11 +373,13 @@ static bool ImGui_ImplDX8_CreateFontsTexture()
     {
         return false;
     }
+
     for (int y = 0; y < height; y++)
     {
         memcpy(
             static_cast<unsigned char*>(tex_locked_rect.pBits) + tex_locked_rect.Pitch * y, pixels + (width * BYTEs_per_pixel) * y, (width * BYTEs_per_pixel));
     }
+
     fontTexture->UnlockRect(0);
 
     // Store our identifier
@@ -434,31 +436,37 @@ void ImGui_ImplDX8_InvalidateDeviceObjects()
     {
         return;
     }
+
     if (vertexBuffer)
     {
         vertexBuffer->Release();
         vertexBuffer = nullptr;
     }
+
     if (indexBuffer)
     {
         indexBuffer->Release();
         indexBuffer = nullptr;
     }
+
     if (maskVertexBuffer)
     {
         maskVertexBuffer->Release();
         maskVertexBuffer = nullptr;
     }
+
     if (maskIndexBuffer)
     {
         maskIndexBuffer->Release();
         maskIndexBuffer = nullptr;
     }
+
     if (depthBuffer)
     {
         depthBuffer->Release();
         depthBuffer = nullptr;
     }
+
     if (fontTexture)
     {
         fontTexture->Release();
@@ -466,6 +474,7 @@ void ImGui_ImplDX8_InvalidateDeviceObjects()
         ImGui::GetIO().Fonts->TexID._TexData = nullptr;
         ImGui::GetIO().Fonts->TexID._TexID = 0;
     }
+
     //if (LPDIRECT3DTEXTURE8 tex = (LPDIRECT3DTEXTURE8)ImGui::GetIO().Fonts->TexID)
     //{
     //    tex->Release();

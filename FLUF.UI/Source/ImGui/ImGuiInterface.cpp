@@ -451,8 +451,8 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         {
             goto failed;
         }
-
-        auto imageHandle = stbi_load_from_file(f, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height), nullptr, 4);
+        int channels = 0;
+        auto imageHandle = stbi_load_from_file(f, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height), &channels, 4);
         if (!imageHandle)
         {
             fclose(f);
@@ -470,9 +470,18 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         }
 
         D3DLOCKED_RECT rect;
-        d3dTexture->LockRect(0, &rect, 0, D3DLOCK_DISCARD);
+        d3dTexture->LockRect(0, &rect, nullptr, D3DLOCK_DISCARD);
+
         auto* dest = static_cast<unsigned char*>(rect.pBits);
-        memcpy(dest, imageHandle, sizeof(unsigned char) * width * height * 4);
+        // Convert RGBA->ARGB
+        for (int i = 0; i < width * height; i++)
+        {
+            dest[i * 4 + 0] = imageHandle[i * 4 + 3]; // Alpha
+            dest[i * 4 + 1] = imageHandle[i * 4 + 0]; // Red
+            dest[i * 4 + 2] = imageHandle[i * 4 + 1]; // Green
+            dest[i * 4 + 3] = imageHandle[i * 4 + 2]; // Blue
+        }
+
         d3dTexture->UnlockRect(0);
 
         D3DSURFACE_DESC surfaceDesc = {};
