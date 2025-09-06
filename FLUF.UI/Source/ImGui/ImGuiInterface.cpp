@@ -476,10 +476,10 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         // Convert RGBA->ARGB
         for (int i = 0; i < width * height; i++)
         {
-            dest[i * 4 + 0] = imageHandle[i * 4 + 3]; // Alpha
-            dest[i * 4 + 1] = imageHandle[i * 4 + 0]; // Red
+            dest[i * 4] = imageHandle[i * 4 + 3];     // Alpha
+            dest[i * 4 + 1] = imageHandle[i * 4 + 2]; // Red
             dest[i * 4 + 2] = imageHandle[i * 4 + 1]; // Green
-            dest[i * 4 + 3] = imageHandle[i * 4 + 2]; // Blue
+            dest[i * 4 + 3] = imageHandle[i * 4];     // Blue
         }
 
         d3dTexture->UnlockRect(0);
