@@ -441,7 +441,9 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
 {
     if (const auto texture = loadedTextures.find(path); texture != loadedTextures.end())
     {
-        return reinterpret_cast<ImTextureID>(texture->second);
+        width = texture->second.width;
+        height = texture->second.height;
+        return reinterpret_cast<ImTextureID>(texture->second.texture);
     }
 
     if (backend == RenderingBackend::Dx8)
@@ -491,10 +493,10 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
             goto failed;
         }
 
-        loadedTextures[path] = d3dTexture;
-
         width = surfaceDesc.Width;
         height = surfaceDesc.Height;
+
+        loadedTextures[path] = { .texture = d3dTexture, .width = width, .height = height };
         return reinterpret_cast<ImTextureID>(d3dTexture);
     }
 
@@ -528,13 +530,13 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         stbi_image_free(imageHandle);
         fclose(f);
 
-        loadedTextures[path] = reinterpret_cast<void*>(imageTexture);
+        loadedTextures[path] = { .texture = reinterpret_cast<void*>(imageTexture), .width = width, .height = height };
         return imageTexture;
     }
 
 failed:
     // Cache the fact we did not find it to prevent duplicate logs
-    loadedTextures[path] = nullptr;
+    loadedTextures[path] = { nullptr, 0, 0 };
 
     Fluf::Log(LogLevel::Error, std::format("Failed to load texture: {}", path));
 

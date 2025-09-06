@@ -51,6 +51,7 @@ target_link_libraries(FLUF.UI PRIVATE
         "${SDK_PATH}/lib/FLCoreCommon.lib"
         FLUF
         opengl32.lib
+        md4c::md4c-html
 )
 
 target_compile_definitions(FLUF.UI PRIVATE

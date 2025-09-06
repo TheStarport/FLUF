@@ -31,7 +31,14 @@ class ImGuiInterface
 {
         inline static bool showDemoWindow = false;
         void* renderingContext;
-        std::unordered_map<std::string, void*> loadedTextures;
+        struct Tex
+        {
+                void* texture;
+                uint width;
+                uint height;
+        };
+
+        std::unordered_map<std::string, Tex> loadedTextures;
 
         std::unordered_set<ImGuiModule*> imguiModules;
         std::unordered_map<FlufModule*, RegisterOptionsFunc> registeredOptionMenus;

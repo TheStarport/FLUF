@@ -20,6 +20,9 @@ class CompressorRecipe(ConanFile):
     def requirements(self):
         self.requires("glm/cci.20230113")
         self.requires("magic_enum/0.9.6")
+        self.requires("md4c/0.5.2", options={
+            "md2html": False
+        })
         self.requires("msgpack-c/6.1.0")
         self.requires("spdlog/1.15.0", options={
             'use_std_fmt': True,
