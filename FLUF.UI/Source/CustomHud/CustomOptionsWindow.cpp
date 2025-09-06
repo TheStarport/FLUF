@@ -21,6 +21,14 @@ void CustomOptionsWindow::RenderWindowContents()
 {
     static std::string_view lastSavedModule;
 
+    std::string_view closeButton = ICON_FA_XMARK "##conf-close";
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(closeButton.data()).x);
+    if (ImGui::Button(closeButton.data()))
+    {
+        isOpen = false;
+        return;
+    }
+
     if (!ImGui::BeginTabBar("##option-tabs"))
     {
         return;
