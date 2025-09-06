@@ -6,6 +6,13 @@ void QolPatcher::RegisterControlPatches()
 {
     auto& category = memoryPatches["Control"];
 
+    OPTION("Background audio",
+           "Enables game audio to continue playing in the background",
+           &config->backgroundAudio,
+           false,
+           PATCH("soundmanager.dll", { 0x00A021 }, 0x80),
+           PATCH("soundstreamer.dll", { 0x0018A9 }, 0x80));
+
     OPTION("Hull Screen Shake",
            "Customise how much screen shake occurs when your hull is hit",
            &config->customiseHullScreenShake,
