@@ -45,4 +45,5 @@ struct PatcherConfig
         float hullScreenShakeValue = 0.02f;
         float shieldScreenShakeValue = 0.005f;
         bool disableDefaultAutoLevel = false;
+        bool backgroundAudio = false;
 };
