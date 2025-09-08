@@ -1,3 +1,4 @@
+#include "Fluf.hpp"
 #include "PCH.hpp"
 
 #include "FLCore/FLCoreRemoteClient.h"
@@ -174,7 +175,7 @@ bool __fastcall Fluf::DelayedRPCLocalDetour(void* _this, void* edx, void* dunno1
 
 FunctionDetour loadLibraryDetour(LoadLibraryA);
 
-HINSTANCE __stdcall Fluf::LoadLibraryDetour(const char* dllName)
+HINSTANCE __stdcall Fluf::LoadLibraryDetour(LPCSTR dllName)
 {
     loadLibraryDetour.UnDetour();
     const auto res = LoadLibraryA(dllName);
@@ -309,21 +310,9 @@ void Fluf::OnGameLoad()
     }
 }
 
-bool __thiscall Fluf::OnServerStart(IServerImpl* server, SStartupInfo& info)
-{
-    for (const auto& module : fluf->loadedModules)
-    {
-        module->OnServerStart();
-    }
-
-    using StartType = bool(__thiscall*)(IServerImpl * server, SStartupInfo & info);
-    const auto startup = reinterpret_cast<StartType>(oldServerStartupFunc);
-    return startup(server, info);
-}
-
 void Fluf::OnUpdateHook(const double delta)
 {
-    constexpr float SixtyFramesPerSecond = 1.0f / 60.0f;
+    constexpr double SixtyFramesPerSecond = 1.0 / 60.0;
     static double timeCounter = 0.0f;
 
     timeCounter += delta;
@@ -483,13 +472,25 @@ const Universe::ISystem* Fluf::GetPlayerSystem()
     return Universe::get_system(*id);
 }
 
+const Id Fluf::GetPlayerSystemId()
+{
+    const auto* id = reinterpret_cast<Id*>(0x273354);
+    return *id;
+}
+
 Archetype::Ship* Fluf::GetPlayerShipArch()
 {
     const auto* shipId = reinterpret_cast<uint*>(0x67337C);
     return Archetype::GetShip(*shipId);
 }
 
-EquipDesc* Fluf::GetPlayerEquipDesc() { return reinterpret_cast<EquipDesc*>(0x272960); }
+const Id Fluf::GetPlayerShipArchId()
+{
+    const auto* shipId = reinterpret_cast<Id*>(0x67337C);
+    return *shipId;
+}
+
+EquipDescList* Fluf::GetPlayerEquipDesc() { return reinterpret_cast<EquipDescList*>(0x672960); }
 
 bool Fluf::IsRunningOnClient() { return instance->runningOnClient; }
 
@@ -559,8 +560,7 @@ Fluf::Fluf(const HMODULE dll)
 {
     thisDll = dll;
     instance = this;
-    config = std::make_shared<FlufConfiguration>();
-    config->Load();
+    config = std::make_shared<FlufConfiguration>(*ConfigHelper<FlufConfiguration, FlufConfiguration::path>::Load());
 
     if (config->setSaveDirectoryRelativeToExecutable)
     {
@@ -754,9 +754,9 @@ Fluf::Fluf(const HMODULE dll)
              SERVER_PATCH(EnterTradeLane),
              SERVER_PATCH(LeaveTradeLane),
              SERVER_PATCH(JettisonCargo),
-             NULL_SERVER_PATCH(Startup),
+             SERVER_PATCH(Startup),
              NULL_SERVER_PATCH(Shutdown),
-             NULL_SERVER_PATCH(Update),
+             SERVER_PATCH(Update),
              NULL_SERVER_PATCH(ElapseTime),
              NULL_SERVER_PATCH(Nullopt1),
              NULL_SERVER_PATCH(SwapConnections),
@@ -859,7 +859,15 @@ Fluf::Fluf(const HMODULE dll)
 
     // Load all dlls as needed
     std::vector<std::string> preloadModules;
-    std::copy(config->modules.begin(), config->modules.end(), std::back_inserter(preloadModules));
+    if (Fluf::IsRunningOnClient())
+    {
+        std::copy(config->clientModules.begin(), config->clientModules.end(), std::back_inserter(preloadModules));
+    }
+    else
+    {
+        std::copy(config->serverModules.begin(), config->serverModules.end(), std::back_inserter(preloadModules));
+    }
+
     std::ranges::sort(preloadModules, [](const std::string& a, const std::string& b) { return a.starts_with("FLUF") && !b.starts_with("FLUF"); });
     for (const auto& modulePath : preloadModules)
     {
@@ -920,18 +928,12 @@ Fluf::Fluf(const HMODULE dll)
             reinterpret_cast<ScriptLoadPtr>(GetProcAddress(common, "?ThornScriptLoad@@YAPAUIScriptEngine@@PBD@Z"))); // NOLINT
 
         thornLoadDetour->Detour(OnScriptLoadHook);
-    }
-    else
-    {
-        const auto newServerStartup = reinterpret_cast<FARPROC>(OnServerStart);
-        const auto serverStartupAddr = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr)) + 0x1BABC;
-        MemUtils::ReadProcMem(serverStartupAddr, &oldServerStartupFunc, 4);
-        MemUtils::WriteProcMem(serverStartupAddr, &newServerStartup, 4);
+
+        const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
+        frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));
+        frameUpdateDetour->Detour(OnUpdateHook);
     }
 
-    const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
-    frameUpdateDetour = std::make_unique<FunctionDetour<FrameUpdatePtr>>(reinterpret_cast<FrameUpdatePtr>(fl + 0x1B2890));
-    frameUpdateDetour->Detour(OnUpdateHook);
     loadLibraryDetour.Detour(LoadLibraryDetour);
     freeLibraryDetour.Detour(FreeLibraryDetour);
 }

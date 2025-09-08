@@ -111,6 +111,8 @@ void ShipDealerEnhancements::OnGameLoad()
 
 ShipDealerEnhancements::ShipDealerEnhancements()
 {
+    AssertRunningOnClient;
+
     const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
     if (weakPtr.expired())
     {

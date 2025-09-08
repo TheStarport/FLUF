@@ -6,17 +6,13 @@
 #include <unordered_set>
 
 class Fluf;
-class FlufConfiguration
+struct FlufConfiguration
 {
-        friend Fluf;
-
-        bool Save();
-        void Load();
-
-    public:
+        static constexpr char path[] = "FLUF.yml";
         LogLevel logLevel = LogLevel::Info;
         std::unordered_set<LogSink> logSinks{ LogSink::File };
-        std::unordered_set<std::string> modules;
+        std::unordered_set<std::string> clientModules;
+        std::unordered_set<std::string> serverModules;
         bool setSaveDirectoryRelativeToExecutable = false;
         bool writeSpewToLogSinks = true;
 };

@@ -229,6 +229,8 @@ void PatchNotes::Render()
 
 PatchNotes::PatchNotes()
 {
+    AssertRunningOnClient;
+
     const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
     if (weakPtr.expired())
     {

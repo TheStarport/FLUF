@@ -118,6 +118,28 @@ void __thiscall ClientSend::Connect(IServerImpl* serverImpl, uint client)
     }
 }
 
+void __thiscall ClientSend::Startup(IServerImpl* serverImpl, const SStartupInfo& startInfo)
+{
+    Fluf::Log(LogLevel::Trace, __FUNCTION__);
+
+    using FuncType = void(__thiscall*)(IServerImpl*, const SStartupInfo&);
+
+    reinterpret_cast<FuncType>(Fluf::instance->serverPatches[static_cast<int>(IServerVTable::Startup)].oldFunc)(serverImpl, startInfo);
+
+    Fluf::instance->CallModuleEvent(&FlufModule::OnServerStart, startInfo);
+}
+
+int __thiscall ClientSend::Update(IServerImpl* serverImpl)
+{
+    using FuncType = int(__thiscall*)(IServerImpl*);
+
+    int retVal = reinterpret_cast<FuncType>(Fluf::instance->serverPatches[static_cast<int>(IServerVTable::Update)].oldFunc)(serverImpl);
+
+    Fluf::instance->CallModuleEvent(&FlufModule::OnFixedUpdate, 1 / 20);
+
+    return retVal;
+}
+
 void __thiscall ClientSend::Disconnect(IServerImpl* serverImpl, uint client, EFLConnection connection)
 {
     using FuncType = void(__thiscall*)(IServerImpl*, uint, EFLConnection);

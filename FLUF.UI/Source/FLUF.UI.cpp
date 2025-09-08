@@ -11,6 +11,7 @@
 #include "Internal/ImGuiD3D8.hpp"
 #include "Utils/Detour.hpp"
 #include "Vanilla/HudManager.hpp"
+#include "Exceptions.hpp"
 
 #include <vendor/DXSDK/include/d3d8.h>
 
@@ -213,6 +214,11 @@ RenderingBackend FlufUi::GetRenderingBackend() const { return renderingBackend; 
 
 FlufUi::FlufUi()
 {
+    if (!Fluf::IsRunningOnClient())
+    {
+        throw ModuleLoadException("FLUF UI does not run in server context.");
+    }
+
     module = this;
 
     hudManager = std::make_shared<HudManager>();

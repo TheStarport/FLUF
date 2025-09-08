@@ -6,6 +6,7 @@
 #include "FlufModule.hpp"
 
 #include <rfl/msgpack.hpp>
+#include <Exceptions.hpp>
 
 void __cdecl DelayDisplayFunc(ushort& sId, char* buffer, int unknown, int remainingAmmo)
 {
@@ -83,15 +84,15 @@ void Patch()
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
 {
     DisableThreadLibraryCalls(mod);
-
-    if (reason == DLL_PROCESS_ATTACH)
-    {
-        Patch();
-    }
     return TRUE;
 }
 
-DelayDisplay::DelayDisplay() = default;
+DelayDisplay::DelayDisplay()
+{
+    AssertRunningOnClient;
+
+    Patch();
+}
 
 std::string_view DelayDisplay::GetModuleName() { return moduleName; }
 
