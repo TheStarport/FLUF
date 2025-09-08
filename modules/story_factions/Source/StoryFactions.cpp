@@ -23,7 +23,7 @@ StoryFactions::StoryFactions()
     Fluf::Info("Story Factions module initialized");
 
     // Load configuration
-    config = std::make_shared<StoryFactionsConfig>(*ConfigHelper<StoryFactionsConfig, StoryFactionsConfig::path>::Load());
+    config = std::make_shared<StoryFactionsConfig>(*ConfigHelper<StoryFactionsConfig>::Load(StoryFactionsConfig::path));
 
     // If we have factions in the config, use them
     if (!config->factions.empty())

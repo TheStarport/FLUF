@@ -245,7 +245,7 @@ PatchNotes::PatchNotes()
         throw ModuleLoadException("Patch Notes was loaded, but FLUF.UI's ui mode was not set to ImGui.");
     }
 
-    config = std::make_shared<PatchNoteConfig>(*ConfigHelper<PatchNoteConfig, PatchNoteConfig::path>::Load());
+    config = std::make_shared<PatchNoteConfig>(*ConfigHelper<PatchNoteConfig>::Load(PatchNoteConfig::path));
 
     if (config->url.empty() || (!config->url.starts_with("https://") && !config->url.starts_with("http://")))
     {

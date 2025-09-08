@@ -45,7 +45,24 @@ void FlightManual::OnGameLoad()
         throw ModuleLoadException("FLUF UI mode not set to ImGui");
     }
 
-    config = rfl::make_ref<FlightManualConfig>(*ConfigHelper<FlightManualConfig, FlightManualConfig::path>::Load());
+    config = rfl::make_ref<FlightManualConfig>(*ConfigHelper<FlightManualConfig>::Load(FlightManualConfig::path));
+
+    constexpr std::string_view pathyPath = "modules/config/flight_manual/";
+    if (!std::filesystem::exists(pathyPath))
+    {
+        std::filesystem::create_directories(pathyPath);
+    }
+    for (auto& file : std::filesystem::recursive_directory_iterator(pathyPath))
+    {
+        if (!file.is_regular_file() || file.path().extension() != ".yml")
+        {
+            continue;
+        }
+
+        auto tempConfig = rfl::make_ref<std::vector<FlightManualPage>>(*ConfigHelper<std::vector<FlightManualPage>>::Load(file.path().string()));
+        config->pages.insert(std::end(config->pages), std::begin(*tempConfig), std::end(*tempConfig));
+    }
+
 
     flufUi = module;
     auto imgui = flufUi->GetImGuiInterface();
@@ -60,7 +77,6 @@ FlightManual::FlightManual() = default;
 FlightManual::~FlightManual()
 {
     flufUi->GetImGuiInterface()->UnregisterImGuiModule(this);
-    flufUi->GetHudManager().lock()->EraseHud(this);
 }
 
 std::string_view FlightManual::GetModuleName() { return moduleName; }

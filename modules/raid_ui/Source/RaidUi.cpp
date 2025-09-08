@@ -519,7 +519,7 @@ void RaidUi::RenderRaidUiOptions(const bool saveRequested)
     if (saveRequested)
     {
         customisationSettings = rfl::Box<CustomisationSettings>::make(*wipSettings);
-        ConfigHelper<CustomisationSettings, customisationFile>::Save(*customisationSettings);
+        ConfigHelper<CustomisationSettings>::Save(customisationFile, *customisationSettings);
     }
 }
 
@@ -542,7 +542,7 @@ RaidUi::RaidUi()
     }
 
     static constexpr char configFile[] = "modules/config/raid_ui.yml";
-    if (const auto classMap = ConfigHelper<ShipClassImageMap, configFile>::Load(); !classMap.has_value())
+    if (const auto classMap = ConfigHelper<ShipClassImageMap>::Load(configFile); !classMap.has_value())
     {
         if (MessageBoxA(nullptr,
                         std::format("There were issues processing the config file at {}.\n\nPress 'OK' to generate a new config or cancel to "
@@ -555,7 +555,7 @@ RaidUi::RaidUi()
             std::exit(1);
         }
 
-        ConfigHelper<ShipClassImageMap, configFile>::Save(shipClassImageMap);
+        ConfigHelper<ShipClassImageMap>::Save(configFile, shipClassImageMap);
     }
     else
     {
@@ -565,7 +565,7 @@ RaidUi::RaidUi()
     Fluf::GetKeyManager()->RegisterKey(
         this, "FLUF_TOGGLE_RAID_UI", Key::NN_TOGGLE_OPEN_OVERRIDE, static_cast<KeyFunc>(&RaidUi::OnTogglePanelKeyCommand), false);
 
-    auto customisations = ConfigHelper<CustomisationSettings, customisationFile>::Load(true, false);
+    auto customisations = ConfigHelper<CustomisationSettings>::Load(customisationFile, true, false);
     customisationSettings = customisations.has_value() ? rfl::Box<CustomisationSettings>::make(*customisations) : rfl::Box<CustomisationSettings>::make();
 }
 

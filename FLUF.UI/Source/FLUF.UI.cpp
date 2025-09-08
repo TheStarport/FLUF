@@ -225,11 +225,11 @@ FlufUi::FlufUi()
 
     hudManager = std::make_shared<HudManager>();
 
-    auto conf = ConfigHelper<FlufUiConfig, FlufUiConfig::configPath>::Load();
+    auto conf = ConfigHelper<FlufUiConfig>::Load(FlufUiConfig::configPath);
     assert(conf.has_value());
     config = std::make_shared<FlufUiConfig>(*conf);
 
-    conf = ConfigHelper<FlufUiConfig, FlufUiConfig::configPathOverrides>::Load(true, false);
+    conf = ConfigHelper<FlufUiConfig>::Load(FlufUiConfig::configPathOverrides, true, false);
     if (conf.has_value())
     {
         config = std::make_shared<FlufUiConfig>(*conf);

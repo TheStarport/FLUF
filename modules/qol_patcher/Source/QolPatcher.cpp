@@ -161,7 +161,7 @@ void QolPatcher::Render(bool saveRequested)
 
     if (saveRequested)
     {
-        ConfigHelper<PatcherConfig, PatcherConfig::path>::Save(*config, true);
+        ConfigHelper<PatcherConfig>::Save(PatcherConfig::path, *config, true);
         TogglePatches(false);
         TogglePatches(true);
     }
@@ -237,7 +237,7 @@ QolPatcher::QolPatcher()
 {
     AssertRunningOnClient;
 
-    config = rfl::Box<PatcherConfig>::make(*ConfigHelper<PatcherConfig, PatcherConfig::path>::Load(true));
+    config = rfl::Box<PatcherConfig>::make(*ConfigHelper<PatcherConfig>::Load(PatcherConfig::path, true));
 
     RegisterDisplayPatches();
     RegisterHudPatches();

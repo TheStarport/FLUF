@@ -253,7 +253,7 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
         {
             config->dpi = key == VK_OEM_PLUS ? std::max(config->dpi * 1.1f, 2.5f) : std::min(config->dpi / 1.1f, 0.5f);
             ImGui::GetCurrentContext()->CurrentDpiScale = config->dpi;
-            ConfigHelper<FlufUiConfig, FlufUiConfig::configPathOverrides>::Save(*config);
+            ConfigHelper<FlufUiConfig>::Save(FlufUiConfig::configPathOverrides, *config);
             return false;
         }
         else if (hasCtl && key == VK_F5)
@@ -316,8 +316,11 @@ ImGuiInterface::~ImGuiInterface()
     switch (backend)
     {
         case RenderingBackend::Dx8:
-            // By the time this is unloaded, device is lost. Clear the flag to prevent an attempt from releasing a nonexistant resource.
-            *static_cast<LPDIRECT3DDEVICE8*>(ImGui::GetIO().BackendRendererUserData) = nullptr;
+            if (ImGui::GetIO().BackendRendererUserData)
+            {
+                // By the time this is unloaded, device is lost. Clear the flag to prevent an attempt from releasing a nonexistant resource.
+                *static_cast<LPDIRECT3DDEVICE8*>(ImGui::GetIO().BackendRendererUserData) = nullptr;
+            }
             ImGui_ImplDX8_Shutdown();
             break;
         case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_Shutdown(); break;

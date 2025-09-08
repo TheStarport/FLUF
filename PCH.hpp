@@ -36,19 +36,19 @@ using u64 = unsigned long long;
 #include <rfl.hpp>
 #include <rfl/yaml.hpp>
 
-template <typename T, const char* path>
+template <typename T>
     requires std::is_default_constructible_v<T>
 struct ConfigHelper
 {
         ConfigHelper() = delete;
-        static std::optional<T> Load(const bool fromUserData = false, const bool saveIfNotFound = true)
+        static std::optional<T> Load(std::string_view path, const bool fromUserData = false, const bool saveIfNotFound = true)
         {
-            std::ifstream inFile(GetSaveLocation(fromUserData).data());
+            std::ifstream inFile(GetSaveLocation(path, fromUserData).data());
             if (!inFile.is_open())
             {
                 if (saveIfNotFound)
                 {
-                    Save(T(), fromUserData);
+                    Save(path, T(), fromUserData);
                     return { T() };
                 }
 
@@ -65,16 +65,16 @@ struct ConfigHelper
                     std::exit(1);
                 }
 
-                Save(T(), fromUserData);
+                Save(path, T(), fromUserData);
                 return { T() };
             }
 
             return newConfig.value();
         }
 
-        static bool Save(const T& data, const bool fromUserData = false)
+        static bool Save(std::string_view path, const T& data, const bool fromUserData = false)
         {
-            std::ofstream outFile(GetSaveLocation(fromUserData).data(), std::ios::trunc);
+            std::ofstream outFile(GetSaveLocation(path, fromUserData).data(), std::ios::trunc);
             if (!outFile.is_open())
             {
                 return false;
@@ -87,7 +87,7 @@ struct ConfigHelper
         }
 
     private:
-        static std::string_view GetSaveLocation(const bool fromUserData)
+        static std::string_view GetSaveLocation(std::string_view path, const bool fromUserData)
         {
             static std::string savePath;
             if (savePath.empty())

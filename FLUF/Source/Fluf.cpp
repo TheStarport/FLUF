@@ -560,7 +560,7 @@ Fluf::Fluf(const HMODULE dll)
 {
     thisDll = dll;
     instance = this;
-    config = std::make_shared<FlufConfiguration>(*ConfigHelper<FlufConfiguration, FlufConfiguration::path>::Load());
+    config = std::make_shared<FlufConfiguration>(*ConfigHelper<FlufConfiguration>::Load(FlufConfiguration::path));
 
     if (config->setSaveDirectoryRelativeToExecutable)
     {
