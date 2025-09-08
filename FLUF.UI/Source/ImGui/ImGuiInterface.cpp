@@ -271,6 +271,44 @@ bool ImGuiInterface::WndProc(FlufUiConfig* config, const HWND hWnd, const UINT m
     return true;
 }
 
+void ImGuiInterface::UnloadTextures()
+{
+    for (auto& val : loadedTextures | std::views::values)
+    {
+        if (!val.texture)
+        {
+            continue;
+        }
+
+        switch (backend)
+        {
+            case RenderingBackend::Dx8: static_cast<IDirect3DTexture8*>(val.texture)->Release(); break;
+            case RenderingBackend::OpenGL: glDeleteTextures(1, reinterpret_cast<const GLuint*>(&val.texture));
+            default: break;
+        }
+
+        val.texture = nullptr;
+    }
+
+    switch (backend)
+    {
+        case RenderingBackend::Dx8: ImGui_ImplDX8_InvalidateDeviceObjects(); break;
+        case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_DestroyDeviceObjects(); break;
+        default: break;
+    }
+}
+
+void ImGuiInterface::ResetTextures()
+{
+    auto texturesToReset = loadedTextures | std::views::keys;
+    loadedTextures.clear();
+    for (auto& val : texturesToReset)
+    {
+        uint width, height;
+        LoadTexture(val, width, height);
+    }
+}
+
 void* ImGuiInterface::GetRenderingContext() const { return renderingContext; }
 
 ImGuiInterface::~ImGuiInterface()

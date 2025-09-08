@@ -237,7 +237,6 @@ void FlWindow::Render()
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         drawList->AddCallback([](const ImDrawList*, const ImDrawCmd*) {}, nullptr);
         drawList->AddImage(backgroundTexture, windowPos, windowPos + windowSize, ImVec2(0.f, 0.f), windowSize / imageSize, 0x80FFFFFF);
-        drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
     }
 
     RenderWindowContents();

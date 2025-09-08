@@ -25,6 +25,11 @@ struct CUSTOMVERTEX
 
 static void ImGui_ImplDX8_SetupRenderState(ImDrawData* draw_data)
 {
+    if (realDepthStencilBuffer)
+    {
+        realDepthStencilBuffer->Release();
+    }
+
     // Setup viewport
     D3DVIEWPORT8 vp;
     vp.X = vp.Y = 0;
@@ -140,6 +145,7 @@ void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
                 vertexBuffer->Release();
                 vertexBuffer = nullptr;
             }
+
             vertexBufferSize = drawData->TotalVtxCount + 5000;
             if (d3dDevice->CreateVertexBuffer(
                     vertexBufferSize * sizeof(CUSTOMVERTEX), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFVF_CUSTOMVERTEX, D3DPOOL_DEFAULT, &vertexBuffer) < 0)
@@ -191,16 +197,13 @@ void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
             indexDest[5] = 3;
             maskIndexBuffer->Unlock();
         }
+
         // Backup the DX8 state
         DWORD stateBlockToken = 0;
         if (d3dDevice->CreateStateBlock(D3DSBT_ALL, &stateBlockToken) < 0)
         {
             return;
         }
-
-        /* IDirect3DStateBlock9* d3d9_state_block = NULL;
-         if (g_pd3dDevice->CreateStateBlock(D3DSBT_ALL, &d3d9_state_block) < 0)
-             return;*/
 
         // Backup the DX8 transform (DX8 documentation suggests that it is included in the StateBlock but it doesn't appear to)
         D3DMATRIX last_world, last_view, last_projection;            //new
@@ -216,12 +219,17 @@ void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
         ImDrawIdx* idx_dst;
         if (vertexBuffer->Lock(0, (UINT)(drawData->TotalVtxCount * sizeof(CUSTOMVERTEX)), (BYTE**)&vtx_dst, D3DLOCK_DISCARD) < 0)
         {
+            d3dDevice->DeleteStateBlock(stateBlockToken);
             return;
         }
+
         if (indexBuffer->Lock(0, (UINT)(drawData->TotalIdxCount * sizeof(ImDrawIdx)), (BYTE**)&idx_dst, D3DLOCK_DISCARD) < 0)
         {
+            d3dDevice->DeleteStateBlock(stateBlockToken);
+            vertexBuffer->Unlock();
             return;
         }
+
         for (int n = 0; n < drawData->CmdListsCount; n++)
         {
             const ImDrawList* cmd_list = drawData->CmdLists[n];
@@ -240,6 +248,7 @@ void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
             memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
             idx_dst += cmd_list->IdxBuffer.Size;
         }
+
         vertexBuffer->Unlock();
         indexBuffer->Unlock();
         d3dDevice->SetStreamSource(0, vertexBuffer, sizeof(CUSTOMVERTEX));
@@ -322,8 +331,6 @@ void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
         d3dDevice->SetTransform(D3DTS_PROJECTION, &last_projection); //new
 
         // Restore the DX8 state
-        // d3d9_state_block->Apply();
-        // d3d9_state_block->Release();
         d3dDevice->SetRenderTarget(nullptr, realDepthStencilBuffer);
         d3dDevice->ApplyStateBlock(stateBlockToken);
         d3dDevice->DeleteStateBlock(stateBlockToken);
@@ -368,6 +375,7 @@ static bool ImGui_ImplDX8_CreateFontsTexture()
     {
         return false;
     }
+
     D3DLOCKED_RECT tex_locked_rect;
     if (fontTexture->LockRect(0, &tex_locked_rect, nullptr, 0) != D3D_OK)
     {
@@ -394,6 +402,7 @@ static bool ImGui_ImplD3D8_CreateDepthStencilBuffer()
     {
         return false;
     }
+
     if (depthBuffer == nullptr)
     {
         IDirect3DSurface8* realDepth;
@@ -402,12 +411,17 @@ static bool ImGui_ImplD3D8_CreateDepthStencilBuffer()
         d3dDevice->GetDepthStencilSurface(&realDepth);
         if (realDepth->GetDesc(&sfcDesc))
         {
+            realDepth->Release();
             return false;
         }
+
         if (d3dDevice->CreateDepthStencilSurface(sfcDesc.Width, sfcDesc.Height, D3DFMT_D24S8, D3DMULTISAMPLE_NONE, &depthBuffer))
         {
+            realDepth->Release();
             return false;
         }
+
+        realDepth->Release();
     }
 
     return true;
@@ -419,14 +433,17 @@ bool ImGui_ImplDX8_CreateDeviceObjects()
     {
         return false;
     }
+
     if (!ImGui_ImplDX8_CreateFontsTexture())
     {
         return false;
     }
+
     if (!ImGui_ImplD3D8_CreateDepthStencilBuffer())
     {
         return false;
     }
+
     return true;
 }
 
@@ -467,6 +484,12 @@ void ImGui_ImplDX8_InvalidateDeviceObjects()
         depthBuffer = nullptr;
     }
 
+    if (realDepthStencilBuffer)
+    {
+        realDepthStencilBuffer->Release();
+        realDepthStencilBuffer = nullptr;
+    }
+
     if (fontTexture)
     {
         fontTexture->Release();
@@ -474,13 +497,6 @@ void ImGui_ImplDX8_InvalidateDeviceObjects()
         ImGui::GetIO().Fonts->TexID._TexData = nullptr;
         ImGui::GetIO().Fonts->TexID._TexID = 0;
     }
-
-    //if (LPDIRECT3DTEXTURE8 tex = (LPDIRECT3DTEXTURE8)ImGui::GetIO().Fonts->TexID)
-    //{
-    //    tex->Release();
-    //    g_FontTexture = NULL;
-    //    ImGui::GetIO().Fonts->TexID = 0;
-    //}
 }
 
 void ImGui_ImplDX8_NewFrame()

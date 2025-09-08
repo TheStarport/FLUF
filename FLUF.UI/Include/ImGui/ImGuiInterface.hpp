@@ -71,6 +71,8 @@ class ImGuiInterface
         static void PollInput();
         static MouseState ConvertState(DWORD state);
         static bool WndProc(FlufUiConfig* config, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+        void UnloadTextures();
+        void ResetTextures();
 
     public:
         void* GetRenderingContext() const;
@@ -88,6 +90,7 @@ class ImGuiInterface
          * In the event it is DX9, it will be a PDIRECT3DTEXTURE9.
          */
         FLUF_UI_API ImTextureID LoadTexture(const std::string& path, uint& width, uint& height);
+
         /**
          * @brief Register a plugin to receive the render event from ImGui.
          */

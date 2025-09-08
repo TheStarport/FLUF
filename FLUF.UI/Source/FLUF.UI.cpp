@@ -128,11 +128,13 @@ IDirect3D8* __stdcall FlufUi::OnDirect3D8Create(const uint sdkVersion)
 
 HRESULT __stdcall FlufUi::OnDirect3D8ResetDevice(IDirect3DDevice8* device, D3DPRESENT_PARAMETERS* pPresentationParameters)
 {
-    ImGui_ImplDX8_InvalidateDeviceObjects();
+    module->imguiInterface->UnloadTextures();
 
     d3d8DeviceResetDetour->UnDetour();
     const auto res = d3d8DeviceResetDetour->GetOriginalFunc()(device, pPresentationParameters);
     d3d8DeviceResetDetour->Detour(OnDirect3D8ResetDevice);
+
+    module->imguiInterface->ResetTextures();
 
     return res;
 }
