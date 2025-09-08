@@ -20,7 +20,20 @@ def d3d8():
     run("7z x dx8sdk.zip include -ovendor/DXSDK", no_log=True)
     run("7z x dx8sdk.zip lib -ovendor/DXSDK", no_log=True)
 
-    log("Extracted contents successfully. Cleaning up...")
+    log("Extracted DX8 successfully, patching bad header file...")
+    # DX8 didn't ship with 64bit support which breaks it on modern compilers as it is missing a needed definition
+    path = './vendor/DXSDK/include/basetsd.h'
+    with open(path, 'r') as file:
+        # read a list of lines into data
+        lines = file.readlines()
+
+    lines[39] = '#define POINTER_64 __ptr64\n'
+
+    # and write everything back
+    with open(path, 'w') as file:
+        file.writelines(lines)
+
+    log('Cleaning up...')
     os.remove("dx8sdk.zip")
 
 
