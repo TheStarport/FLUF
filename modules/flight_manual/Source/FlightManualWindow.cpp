@@ -6,6 +6,7 @@
 #include "ImGui/ImGuiInterface.hpp"
 #include "Breadcrumb.hpp"
 #include "Utils/StringUtils.hpp"
+#include "ImGui/IconFontAwesome6.hpp"
 
 #include <imgui_internal.h>
 
@@ -74,6 +75,16 @@ bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVe
 void FlightManualWindow::RenderWindowContents()
 {
     breadcrumb->Render();
+
+    ImGui::Spacing();
+
+    std::string_view closeButton = ICON_FA_XMARK "##conf-close";
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(closeButton.data()).x);
+    if (ImGui::Button(closeButton.data()))
+    {
+        isOpen = false;
+        return;
+    }
 
     ImGui::Separator();
     ImGui::Spacing();
