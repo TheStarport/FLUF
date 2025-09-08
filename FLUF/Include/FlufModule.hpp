@@ -4,6 +4,7 @@
 #include "FLCore/Common/EquipDesc.hpp"
 #include "FLCore/st6.h"
 #include "ImportFluf.hpp"
+#include "Exceptions.hpp"
 
 #include <FLCore/Common/Packets.hpp>
 #include <FLCore/FLCoreRemoteClient.h>
@@ -51,7 +52,7 @@ class FLUF_API FlufModule
         virtual void OnUpdate(const double delta) {}
         virtual void OnFixedUpdate(const double delta) {};
         virtual void OnGameLoad() {}
-        virtual void OnServerStart() {}
+        virtual void OnServerStart(const SStartupInfo&) {}
         virtual void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) {}
         virtual void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) {}
 
@@ -171,12 +172,12 @@ class FLUF_API FlufModule
     if (!Fluf::IsRunningOnClient())                                                                                                               \
     {                                                                                                                                             \
         MessageBoxA(nullptr, std::format("{} should only be running on the client!", GetModuleName()).c_str(), "Wrong Execution Context", MB_OK); \
-        std::exit(1);                                                                                                                             \
+        throw ModuleLoadException(std::format("{} does not run in server context.", moduleName));                                                                                                                   \
     }
 
 #define AssertRunningOnServer                                                                                                                     \
     if (Fluf::IsRunningOnClient())                                                                                                                \
     {                                                                                                                                             \
         MessageBoxA(nullptr, std::format("{} should only be running on the server!", GetModuleName()).c_str(), "Wrong Execution Context", MB_OK); \
-        std::exit(1);                                                                                                                             \
+        throw ModuleLoadException(std::format("{} does not run in server context.", moduleName));                                                                                                                       \
     }

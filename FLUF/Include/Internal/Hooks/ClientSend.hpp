@@ -20,6 +20,8 @@ class ClientSend
         static void __thiscall JettisonCargo(IServerImpl*, uint client, XJettisonCargo& jc);
         static void __thiscall Disconnect(IServerImpl*, uint client, EFLConnection connection);
         static void __thiscall Connect(IServerImpl*, uint client);
+        static void __thiscall Startup(IServerImpl*, const SStartupInfo&);
+        static int  __thiscall Update(IServerImpl*);
         static void __thiscall Login(IServerImpl*, SLoginInfo& li, uint client);
         static void __thiscall CharacterInfoRequest(IServerImpl*, uint client, bool);
         static void __thiscall CharacterSelect(IServerImpl*, CHARACTER_ID& cid, uint client);

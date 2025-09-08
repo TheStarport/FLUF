@@ -10,6 +10,7 @@
 #include "Internal/CustomOptionsWindow.hpp"
 #include "Utils/Detour.hpp"
 #include "Vanilla/HudManager.hpp"
+#include "Exceptions.hpp"
 
 #include <d3dx9.h>
 #include <imgui_impl_dx9.h>
@@ -218,6 +219,11 @@ RenderingBackend FlufUi::GetRenderingBackend() const { return renderingBackend; 
 
 FlufUi::FlufUi()
 {
+    if (!Fluf::IsRunningOnClient())
+    {
+        throw ModuleLoadException("FLUF UI does not run in server context.");
+    }
+
     module = this;
 
     hudManager = std::make_shared<HudManager>();

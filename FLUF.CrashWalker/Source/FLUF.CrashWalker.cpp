@@ -182,8 +182,6 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 {
     DisableThreadLibraryCalls(mod);
 
-    // Add a global try/catch to the application
-    MemUtils::PatchCallAddr(GetModuleHandle(nullptr), 0x1B3378, FlufCrashWalker::TryCatchDetour);
     return TRUE;
 }
 
@@ -327,6 +325,11 @@ void FlufCrashWalker::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
 
 FlufCrashWalker::FlufCrashWalker()
 {
+    AssertRunningOnClient;
+
+    // Add a global try/catch to the application
+    MemUtils::PatchCallAddr(GetModuleHandle(nullptr), 0x1B3378, FlufCrashWalker::TryCatchDetour);
+
     module = this;
     config = std::make_unique<Config>();
     config->Load();

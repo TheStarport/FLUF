@@ -235,6 +235,8 @@ bool QolPatcher::BeforeLaunchComplete(uint baseId, uint shipId)
 
 QolPatcher::QolPatcher()
 {
+    AssertRunningOnClient;
+
     config = rfl::Box<PatcherConfig>::make(*ConfigHelper<PatcherConfig, PatcherConfig::path>::Load(true));
 
     RegisterDisplayPatches();

@@ -170,8 +170,10 @@ class Fluf
         FLUF_API static IObjRW* GetPlayerIObjRW();
         FLUF_API static unsigned int GetPlayerClientId();
         FLUF_API static const Universe::ISystem* GetPlayerSystem();
+        FLUF_API static const Id GetPlayerSystemId();
         FLUF_API static Archetype::Ship* GetPlayerShipArch();
-        FLUF_API static EquipDesc* GetPlayerEquipDesc();
+        FLUF_API static const Id GetPlayerShipArchId();
+        FLUF_API static EquipDescList* GetPlayerEquipDesc();
         FLUF_API static bool IsRunningOnClient();
         FLUF_API static std::wstring GetInfocardName(uint ids);
         FLUF_API static bool GetInfocard(uint ids, RenderDisplayList* rdl);

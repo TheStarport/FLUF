@@ -18,6 +18,8 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 StoryFactions::StoryFactions()
 {
+    AssertRunningOnClient;
+
     Fluf::Info("Story Factions module initialized");
 
     // Load configuration

@@ -85,15 +85,15 @@ void ScreenControl::Patch()
 BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[maybe_unused]] LPVOID reserved)
 {
     DisableThreadLibraryCalls(mod);
-
-    if (reason == DLL_PROCESS_ATTACH)
-    {
-        ScreenControl::Patch();
-    }
     return TRUE;
 }
 
-ScreenControl::ScreenControl() {};
+ScreenControl::ScreenControl()
+{
+    AssertRunningOnClient;
+
+    ScreenControl::Patch();
+};
 
 std::string_view ScreenControl::GetModuleName() { return moduleName; }
 
