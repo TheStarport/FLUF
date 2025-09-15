@@ -9,6 +9,7 @@ class CustomOptionsWindow final : public FlWindow
         void RenderWindowContents() override;
 
     public:
+        void Render() override;
         void ToggleOpenState();
         explicit CustomOptionsWindow(std::unordered_map<FlufModule*, RegisterOptionsFunc>& menus);
 };

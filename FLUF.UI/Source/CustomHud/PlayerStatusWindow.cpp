@@ -12,7 +12,7 @@
 #include "Utils/StringUtils.hpp"
 
 PlayerStatusWindow::PlayerStatusWindow(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>& statsMenus)
-    : FlWindow("Player Status", ImGuiWindowFlags_NoResize), statsMenus(statsMenus)
+    : FlWindow("Player Status", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove), statsMenus(statsMenus)
 {}
 
 void PlayerStatusWindow::RegisterNewMenu(FlufModule* module, const RegisterMenuFunc func)

@@ -5,6 +5,7 @@
 
 #include "Fluf.hpp"
 #include "Random.hpp"
+#include "MemoryHelper.hpp"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "ImGui/IconFontAwesome6.hpp"
@@ -79,6 +80,34 @@ void CustomOptionsWindow::RenderWindowContents()
     }
 
     ImGui::EndTabBar();
+}
+
+void CustomOptionsWindow::Render()
+{
+    if (MemoryHelper::IsInMainMenu())
+    {
+        auto viewport = ImGui::GetMainViewport();
+        auto padding = 10.f;
+
+        ImGui::SetNextWindowPos({ (viewport->WorkPos.x + viewport->WorkSize.x - padding), (viewport->WorkPos.y + viewport->WorkSize.y - padding - 350.f) },
+                                ImGuiCond_Always,
+                                ImVec2{ 1.0f, 1.0f });
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, {});
+        ImGui::Begin("Custom Options##MenuButton",
+                     nullptr,
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration |
+                         ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysAutoResize);
+
+        if (ImGui::Button("Open FLUF Config"))
+        {
+            isOpen = true;
+        }
+
+        ImGui::PopStyleVar();
+        ImGui::End();
+    }
+
+    FlWindow::Render();
 }
 
 void CustomOptionsWindow::ToggleOpenState() { isOpen = !isOpen; }
