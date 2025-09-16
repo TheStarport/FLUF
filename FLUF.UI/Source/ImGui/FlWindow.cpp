@@ -232,11 +232,16 @@ void FlWindow::Render()
     const auto windowPos = ImGui::GetWindowPos();
     const auto windowSize = ImGui::GetWindowSize();
 
+    // TODO: Make this texture customizable
+    uint width = 0, height = 0;
+    auto backgroundTexture = imguiInterface->LoadTexture("backgroundpattern.png", width, height);
+
     if (backgroundTexture)
     {
+        ImVec2 imageSize = ImVec2{ static_cast<float>(width), static_cast<float>(height) } * 0.5f;
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         drawList->AddCallback([](const ImDrawList*, const ImDrawCmd*) {}, nullptr);
-        drawList->AddImage(backgroundTexture, windowPos, windowPos + windowSize, ImVec2(0.f, 0.f), windowSize / imageSize, 0x80FFFFFF);
+        drawList->AddImage(backgroundTexture, windowPos, windowPos + windowSize, ImVec2(0.f, 0.f), windowSize / imageSize, 0xFFFFFFFF);
     }
 
     RenderWindowContents();
@@ -340,19 +345,9 @@ FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const I
     drawScrollbars = (flags & ImGuiWindowFlags_NoScrollbar) == 0;
     windowFlags |= ImGuiWindowFlags_NoScrollbar;
 
-    if (backgroundTexture)
-    {
-        return;
-    }
-
     const auto flufUi = std::static_pointer_cast<FlufUi>(Fluf::GetModule(FlufUi::moduleName).lock());
     renderingBackend = flufUi->GetRenderingBackend();
 
     imguiInterface = flufUi->GetImGuiInterface();
     dxDevice = imguiInterface->GetRenderingContext();
-
-    // TODO: Make this texture customizable
-    uint width = 0, height = 0;
-    backgroundTexture = imguiInterface->LoadTexture("backgroundpattern.bmp", width, height);
-    imageSize = { static_cast<float>(width), static_cast<float>(height) };
 }

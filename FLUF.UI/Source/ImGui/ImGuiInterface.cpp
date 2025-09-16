@@ -31,8 +31,8 @@
 
 ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
 {
-    constexpr auto bgColor = ImVec4(0.0784f, 0.0431f, 0.2235f, 0.7f);      // #140B39
-    constexpr auto bgColorChild = ImVec4(0.0784f, 0.0431f, 0.2235f, 0.0f); // #140B39
+    constexpr auto bgColor = ImVec4(0.07f, 0.03f, 0.16f, 0.80f);           // #140B39
+    constexpr auto bgColorChild = ImVec4(0.07f, 0.03f, 0.16f, 0.0f); // #140B39
 
     constexpr auto titleBgColor = ImVec4(0.00784314, 0.105882, 0.188235, 1); // #021B30
     constexpr auto borderColor = ImVec4(0.50f, 0.72f, 0.83f, 1.0f);
@@ -296,6 +296,8 @@ void ImGuiInterface::UnloadTextures()
         case RenderingBackend::OpenGL: ImGui_ImplOpenGL3_DestroyDeviceObjects(); break;
         default: break;
     }
+
+    Fluf::Log(LogLevel::Trace, "UnloadTextures");
 }
 
 void ImGuiInterface::ResetTextures()
@@ -307,6 +309,7 @@ void ImGuiInterface::ResetTextures()
         uint width, height;
         LoadTexture(val, width, height);
     }
+    Fluf::Log(LogLevel::Trace, "ResetTextures");
 }
 
 void* ImGuiInterface::GetRenderingContext() const { return renderingContext; }

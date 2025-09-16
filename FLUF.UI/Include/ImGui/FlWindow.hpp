@@ -15,10 +15,8 @@ class FLUF_UI_API FlWindow
         ImGuiWindowFlags windowFlags;
         ImGuiCond conditionFlag;
         bool drawScrollbars;
-        inline static RenderingBackend renderingBackend;
-        inline static void* dxDevice;
-        inline static ImTextureID backgroundTexture;
-        inline static ImVec2 imageSize;
+        RenderingBackend renderingBackend;
+        void* dxDevice;
 
         void DrawScrollbars() const;
         static void DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize);
