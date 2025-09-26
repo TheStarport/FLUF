@@ -65,6 +65,7 @@ void QolPatcher::RegisterDisplayPatches()
           { "30 FPS", RawValue(30.f).data() },
           { "45 FPS", RawValue(45.f).data() },
           { "60 FPS", RawValue(60.f).data() },
+          { "75 FPS", RawValue(75.f).data() },
           { "90 FPS", RawValue(90.f).data() },
           { "120 FPS", RawValue(120.f).data() },
           { "144 FPS", RawValue(144.f).data() },
