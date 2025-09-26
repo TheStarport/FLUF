@@ -14,7 +14,10 @@ configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.r
 add_library(screen_control SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
 
 # Dependencies
-target_include_directories(screen_control PRIVATE ${FLUF_UI_PATH}/Include)
+target_include_directories(screen_control PRIVATE
+        ${INCLUDE_PATH}
+        ${FLUF_UI_PATH}/Include
+)
 add_dependencies(screen_control FLUF FLUF.UI)
 target_link_libraries(screen_control PRIVATE FLUF FLUF.UI)
 

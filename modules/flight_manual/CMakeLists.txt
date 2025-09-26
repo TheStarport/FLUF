@@ -15,9 +15,9 @@ add_library(${CUR_PROJECT} SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR
 
 # Dependencies
 target_include_directories(${CUR_PROJECT} PRIVATE
+        ${INCLUDE_PATH}
         ${FLUF_UI_PATH}/Include
         ${CURL_PATH}/include
-        ${RML_PATH}/Include
         ${VENDOR_PATH}/imgui-markdown
 )
 add_dependencies(${CUR_PROJECT} FLUF FLUF.UI)

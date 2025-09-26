@@ -13,7 +13,9 @@ configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.r
 add_library(expanded_hardpoints SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc "Source/GameDataReading.cpp")
 
 # Dependencies
-target_include_directories(expanded_hardpoints PRIVATE ${RML_PATH}/Include)
+target_include_directories(expanded_hardpoints PRIVATE
+        ${INCLUDE_PATH}
+)
 add_dependencies(expanded_hardpoints FLUF)
 target_link_libraries(expanded_hardpoints PRIVATE FLUF)
 

@@ -106,14 +106,14 @@ function(set_general_targets)
         message(FATAL_ERROR "set_general_targets called without specifying a project name")
     endif ()
 
-    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${ROOT_DIR} ${ROOT_DIR}/FLUF/Include)
-    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${INCLUDE_PATH})
-    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${SDK_PATH}/include)
-    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${SDK_PATH}/vendor)
-    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${REFLECT_PATH}/include)
-    target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE ${REFLECT_PATH}/include/rfl/thirdparty)
-
     target_include_directories(${PARSED_ARGS_PROJECT_NAME} PRIVATE
+            ${ROOT_DIR}
+            ${ROOT_DIR}/FLUF/Include
+            ${ROOT_DIR}/modules
+            ${SDK_PATH}/include
+            ${SDK_PATH}/vendor
+            ${REFLECT_PATH}/include
+            ${REFLECT_PATH}/include/rfl/thirdparty
             ${IMGUI_PATH}
             ${IMGUI_PATH}/misc/cpp
             ${IMGUI_PATH}/freetype
@@ -186,6 +186,21 @@ function(reset_glob)
     unset(SOURCE_FILES PARENT_SCOPE)
 endfunction()
 
+# Add target for post building
+if (NOT DEFINED NO_POST_BUILD)
+    add_custom_target(post_build)
+    if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        set(RELEASE_FLAG "--release")
+    endif ()
+    if (DEFINED BINARY_COPY_DESTINATION)
+        set(DEST_FLAG --dest=\"${BINARY_COPY_DESTINATION}\")
+    endif ()
+
+    add_custom_command(TARGET post_build POST_BUILD
+            COMMAND ${Python_EXECUTABLE} ${ROOT_DIR}/cli.py post-build ${RELEASE_FLAG} ${DEST_FLAG} WORKING_DIRECTORY ${ROOT_DIR}
+    )
+endif ()
+
 function(create_post_build)
     cmake_parse_arguments(
             PARSED_ARGS # prefix of output variables
@@ -196,16 +211,7 @@ function(create_post_build)
     )
 
     if (NOT DEFINED NO_POST_BUILD)
-        if (CMAKE_BUILD_TYPE STREQUAL "Release")
-            set(RELEASE_FLAG "--release")
-        endif ()
-        if (DEFINED BINARY_COPY_DESTINATION)
-            set(DEST_FLAG --dest=\"${BINARY_COPY_DESTINATION}\")
-        endif ()
-
-        add_custom_command(TARGET ${PARSED_ARGS_TARGET_NAME} POST_BUILD
-                COMMAND ${Python_EXECUTABLE} ${ROOT_DIR}/cli.py post-build ${RELEASE_FLAG} ${DEST_FLAG} WORKING_DIRECTORY ${ROOT_DIR}
-        )
+        add_dependencies(post_build ${PARSED_ARGS_TARGET_NAME})
     endif ()
 endfunction()
 
@@ -214,14 +220,13 @@ add_definitions(-DMLS_EXPORT_LIBRARY=1)
 
 # Now we add our sub-projects
 
+set(FLUF_UI_PATH "${ROOT_DIR}/modules/FLUF.UI")
 add_subdirectory(FLUF) # FLUF Core
-add_subdirectory(FLUF.UI) # FLUF user interface module
-add_subdirectory(FLUF.CrashWalker) # FLUF anti-crash protections
 
 if (BUILD_SAMPLES)
     file(GLOB V_GLOB LIST_DIRECTORIES true "modules/*")
     foreach (ENTRY ${V_GLOB})
-        get_filename_component(DIR ${ENTRY} NAME_WLE)
+        get_filename_component(DIR ${ENTRY} NAME)
         if (IS_DIRECTORY ${ENTRY} AND NOT ${DIR} STREQUAL "shared_assets")
             message(STATUS "Configuring Module: ${DIR}")
             add_subdirectory(${ENTRY})

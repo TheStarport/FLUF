@@ -3,10 +3,25 @@ import shutil
 from pathlib import Path
 from glob import glob
 from shutil import ignore_patterns
+import traceback
 
 import click
 
 from .utils import cli, log
+
+
+def _copy_all_files_of_type(src: str, dst: str, extensions: list[str], in_build: bool, release: bool):
+    if in_build:
+        src = os.path.join('build', 'RelWithDebInfo' if release else 'Debug', src)
+
+    files = [
+        [item for lst in [glob(os.path.join(src, '**', '*.' + e), recursive=True) for e in extensions] for item in
+         lst]][0]
+    for file in files:
+        destination = './dist/' + dst
+        os.makedirs(destination, exist_ok=True)
+        shutil.copy2(file, destination)
+        log(f'copied {file} to {destination}')
 
 
 @cli.command(short_help='Package up completed binaries')
@@ -22,58 +37,31 @@ def post_build(release: bool, dest: str):
         if os.path.isdir('./dist'):
             shutil.rmtree('./dist')
 
-        os.makedirs('./dist/DATA/INTERFACE/IMAGES/SYMBOLS', exist_ok=True)
-        os.makedirs('./dist/modules', exist_ok=True)
-        os.makedirs('./dist/lib', exist_ok=True)
-        os.makedirs('./dist/include', exist_ok=True)
+        build_path = os.path.join('build', 'RelWithDebInfo' if release else 'Debug')
 
-        shutil.copy2('./vendor/freetype.dll', 'dist/modules/')
-
-        # Dll Files
-        result = [y for x in os.walk('./build') for y in glob(os.path.join(x[0], '*.dll'))]
-        for dll in result:
-            if (release and 'Debug' in dll) or (not release and 'Release' in dll):
-                continue
-
-            dist = './dist/' if dll.endswith('FLUF.dll') else './dist/modules/'
-            shutil.copy2(dll, dist)
-            log(f'copied {dll} to {dist}')
-
-        # Lib Files
-        result = [y for x in os.walk('./build') for y in glob(os.path.join(x[0], '*.lib'))]
-        for lib in result:
-            if (release and 'Debug' in lib) or (not release and 'Release' in lib):
-                continue
-            shutil.copy2(lib, './dist/lib/')
-            log(f'copied {lib}')
-
-        # DLL files inside vendor folder
-        result = [y for x in os.walk('./vendor') for y in glob(os.path.join(x[0], '*.dll'))]
-        for dll in result:
-            if (release and 'Debug' in dll) or (not release and 'Release' in dll):
-                continue
-
-            shutil.copy2(dll, './dist/modules/')
-            log(f'copied {dll}')
+        # Binary Files
+        _copy_all_files_of_type(src='modules', dst='EXE/modules', extensions=['dll'], in_build=True, release=release)
+        _copy_all_files_of_type(src='modules', dst='lib', extensions=['pdb', 'lib'], in_build=True, release=release)
+        _copy_all_files_of_type(src='vendor', dst='EXE/modules', extensions=['dll'], in_build=False, release=release)
+        shutil.copy2(build_path + '/FLUF/FLUF.dll', 'dist/EXE/')
+        shutil.copy2(build_path + '/FLUF/FLUF.pdb', 'dist/lib/')
 
         # Include Files
-        shutil.copytree('./FLUF.UI/Include', 'dist/include/FLUF.UI', ignore=ignore_patterns('Internal'))
+        os.makedirs('./dist/include', exist_ok=True)
         shutil.copytree('./FLUF/Include', 'dist/include/FLUF', ignore=ignore_patterns('Internal'))
+
+        # Module Includes
         shutil.copytree('./vendor/imgui', 'dist/include/imgui')
+        shutil.copytree('./modules/FLUF.UI/Include', 'dist/include/FLUF.UI', ignore=ignore_patterns('Internal'))
         shutil.copy2('./vendor/imgui-markdown/imgui_markdown.h', 'dist/include/imgui_markdown.h')
         shutil.copy2('./vendor/ImGuiColorTextEdit/TextEditor.h', 'dist/include/TextEditor.h')
 
-        shutil.copy2('./vendor/curl-ca-bundle.crt', './dist/')
-        log(f'copied ./vendor/curl-ca-bundle.crt')
+        # Assets
+        log('Copying assets to dist')
+        os.makedirs('./dist/DATA', exist_ok=True)
+        shutil.copytree('./assets', 'dist', dirs_exist_ok=True)
 
-        # Fonts
-        result = [y for x in os.walk('./fonts') for y in glob(os.path.join(x[0], '*.ttf'))]
-        result = result + [y for x in os.walk('./fonts') for y in glob(os.path.join(x[0], '*.otf'))]
-        os.makedirs('./dist/DATA/FONTS/', exist_ok=True)
-        for font in result:
-            shutil.copy2(font, './dist/DATA/FONTS/')
-            log(f'copied {font}')
-
+        # Create ZIP
         log('Zipping up dist folder to build.zip')
         shutil.make_archive('build', 'zip', './dist')
 
@@ -84,9 +72,9 @@ def post_build(release: bool, dest: str):
 
             module_path = f'{dest}{os.path.sep}modules'
             os.makedirs(module_path, exist_ok=True)
-            shutil.copytree('./dist/modules', module_path, dirs_exist_ok=True)
+            shutil.copytree('./dist/EXE/modules', module_path, dirs_exist_ok=True)
             shutil.copytree('./dist/DATA', f'{dest}..{os.path.sep}DATA{os.path.sep}', dirs_exist_ok=True)
-            shutil.copy2(f'dist/FLUF.dll', dest)
-            shutil.copy2(f'dist/curl-ca-bundle.crt', dest)
-    except Exception as e:
-        print(e)
+            shutil.copy2(f'dist/EXE/FLUF.dll', dest)
+            shutil.copy2(f'dist/EXE/curl-ca-bundle.crt', dest)
+    except Exception:
+        print(traceback.format_exc())

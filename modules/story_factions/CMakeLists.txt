@@ -13,7 +13,9 @@ configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.r
 add_library(story_factions SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
 
 # Dependencies
-target_include_directories(story_factions PRIVATE ${RML_PATH}/Include)
+target_include_directories(story_factions PRIVATE
+        ${INCLUDE_PATH}
+)
 add_dependencies(story_factions FLUF)
 target_link_libraries(story_factions PRIVATE FLUF)
 

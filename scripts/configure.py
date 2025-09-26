@@ -1,6 +1,4 @@
 import click
-import os
-import shutil
 
 from .dependencies import dependencies
 from .utils import cli, run, is_windows
@@ -14,7 +12,7 @@ def configure():
 
     host = 'windows' if is_windows() else 'linux'
     run(f"conan install . -s build_type=Debug --build missing -pr:b=default -pr:h=./profiles/{host}")
-    run(f"conan install . -s build_type=Release --build missing -pr:b=default -pr:h=./profiles/{host}")
+    run(f"conan install . -s build_type=RelWithDebInfo --build missing -pr:b=default -pr:h=./profiles/{host}")
 
 
 # noinspection PyShadowingBuiltins
@@ -33,4 +31,4 @@ def build(ctx: click.Context, release: bool, no_post_build: bool, no_hooks: bool
     ctx.invoke(configure)
 
     run(f"cmake --preset={preset} {'-DNO_POST_BUILD=TRUE' if no_post_build else ''} {'-DNO_HOOKS=TRUE' if no_hooks else ''}")
-    run(f"cmake --build build/{preset.title()}", allow_error=True)
+    run(f"cmake --build build/{'RelWithDebInfo' if release else 'Debug'}", allow_error=True)

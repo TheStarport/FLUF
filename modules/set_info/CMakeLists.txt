@@ -16,6 +16,7 @@ add_library(${CUR_PROJECT} SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR
 
 # Dependencies
 target_include_directories(${CUR_PROJECT} PRIVATE
+        ${INCLUDE_PATH}
         ${FLUF_UI_PATH}/Include
         ${VENDOR_PATH}/imgui-markdown
         ${VENDOR_PATH}/ImGuiColorTextEdit

@@ -5,7 +5,7 @@ set(VER_MINOR 0)
 set(VER_PATCH 0)
 set(NAME "FLUF Crash Walker")
 set(DESCRIPTION "FLUF Crash Walker is a utility for detecting and preventing crashes, or providing information on why.")
-set(FLUF_CRASH_WALKER_PATH ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+set(FLUF_CRASH_WALKER_PATH . PARENT_SCOPE)
 
 configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
 add_library(FLUF.CrashWalker SHARED
@@ -16,6 +16,7 @@ add_library(FLUF.CrashWalker SHARED
 )
 
 target_include_directories(FLUF.CrashWalker PRIVATE
+        ${INCLUDE_PATH}
         ${CURL_PATH}/include
 )
 

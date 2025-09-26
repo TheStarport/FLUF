@@ -20,6 +20,7 @@ add_library(${CUR_PROJ} SHARED
 
 # Dependencies
 target_include_directories(${CUR_PROJ} PRIVATE
+        ${INCLUDE_PATH}
         ${FLUF_UI_PATH}/Include
 )
 
