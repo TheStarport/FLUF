@@ -35,12 +35,12 @@ void PatchNoteWindow::RenderWindowContents()
 {
     if (ImGui::Button(ICON_FA_ARROW_LEFT "##fo-go-back"))
     {
-        isOpen = false;
+        SetOpenState(false);
         *openState = false;
         return;
     }
 
-    isOpen = *openState;
+    SetOpenState(*openState);
     for (const auto font = interface->GetImGuiFont("Saira", FontSize::Big); auto& [date, content, preamble, version] : *patches)
     {
         assert(font);

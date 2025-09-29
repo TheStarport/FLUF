@@ -100,16 +100,7 @@ class QolPatcher final : public FlufModule
 
                     defaultValue = *reinterpret_cast<T*>(oldData.data());
 
-                    // Default to the original color if none provided
-                    if (!*newValue)
-                    {
-                        *newValue = defaultValue;
-                        patchedData = oldData;
-                    }
-                    else
-                    {
-                        memcpy(patchedData.data(), newValue, sizeof(T));
-                    }
+                    memcpy(patchedData.data(), newValue, sizeof(T));
                 }
 
                 void RenderComponent() override

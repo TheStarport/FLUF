@@ -157,7 +157,21 @@ HRESULT __stdcall FlufUi::OnDirect3D8CreateDevice(IDirect3D8* context, const uin
     return result;
 }
 
-void FlufUi::OpenOptionsMenu() const { imguiInterface->customOptionsWindow->ToggleOpenState(); }
+void FlufUi::OpenOptionsMenu() const { imguiInterface->customOptionsWindow->SetOpenState(!imguiInterface->customOptionsWindow->IsOpen()); }
+bool FlufUi::ProcessEscapeKey() const
+{
+    for (auto windowIter = imguiInterface->flWindowStack.rbegin(); windowIter != imguiInterface->flWindowStack.rend(); windowIter++)
+    {
+        auto window = *windowIter;
+        if (window->IsEscapeCloseable())
+        {
+            window->SetOpenState(false);
+            return true;
+        }
+    }
+
+    return false;
+}
 
 FlufModule::ModuleProcessCode FlufUi::OnPayloadReceived(uint sourceClientId, const FlufPayload& payload)
 {

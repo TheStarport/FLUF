@@ -82,7 +82,7 @@ void FlightManualWindow::RenderWindowContents()
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(closeButton.data()).x);
     if (ImGui::Button(closeButton.data()))
     {
-        isOpen = false;
+        SetOpenState(false);
         return;
     }
 
@@ -200,7 +200,7 @@ void FlightManualWindow::ChangePage(const std::string_view fullPath)
 FlightManualWindow::FlightManualWindow(ImGuiInterface* imguiInterface, rfl::Ref<FlightManualConfig> config)
     : FlWindow("Flight Manual", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)
 {
-    isOpen = true;
+    SetOpenState(true);
     FlightManualWindow::imguiInterface = imguiInterface;
     breadcrumb = std::make_unique<Breadcrumb>(this, static_cast<OnBreadcrumbItemClicked>(&FlightManualWindow::ChangePage), "Flight Manual");
     rootPageContent = config->rootPageContent;

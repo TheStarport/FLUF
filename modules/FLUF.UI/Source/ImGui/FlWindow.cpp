@@ -183,6 +183,25 @@ void FlWindow::DrawWindowDecorations(const ImVec2 startingPos, const ImVec2 wind
     ImGui::PopClipRect();
 }
 
+void FlWindow::SetOpenState(bool newState)
+{
+    if (isOpen == newState)
+    {
+        return;
+    }
+
+    isOpen = newState;
+
+    if (newState)
+    {
+        imguiInterface->PushNewWindow(this);
+    }
+    else
+    {
+        imguiInterface->RemoveWindow(this);
+    }
+}
+
 void FlWindow::SetTitle(const std::string& title) { this->title = title; }
 
 void FlWindow::CenterWindow(const bool center) { centered = center; }
@@ -228,6 +247,11 @@ void FlWindow::Render()
     ImGui::PushStyleVarX(ImGuiStyleVar_WindowPadding, 30.f);
     ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, 30.f);
     ImGui::Begin(title.c_str(), &isOpen, windowFlags | ImGuiWindowFlags_NoTitleBar);
+
+    if (ImGui::IsWindowFocused() && isEscapeCloseable)
+    {
+        imguiInterface->MoveWindowToEnd(this);
+    }
 
     const auto windowPos = ImGui::GetWindowPos();
     const auto windowSize = ImGui::GetWindowSize();
@@ -339,8 +363,8 @@ void FlWindow::RenderImguiFromDisplayList(RenderDisplayList* rdl)
     }
 }
 
-FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const ImGuiCond condition)
-    : title(std::move(windowName)), windowFlags(flags), conditionFlag(condition)
+FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const ImGuiCond condition, bool isEscapeCloseable)
+    : title(std::move(windowName)), windowFlags(flags), conditionFlag(condition), isEscapeCloseable(isEscapeCloseable)
 {
     drawScrollbars = (flags & ImGuiWindowFlags_NoScrollbar) == 0;
     windowFlags |= ImGuiWindowFlags_NoScrollbar;
@@ -350,4 +374,11 @@ FlWindow::FlWindow(std::string windowName, const ImGuiWindowFlags flags, const I
 
     imguiInterface = flufUi->GetImGuiInterface();
     dxDevice = imguiInterface->GetRenderingContext();
+
+    if (isOpen)
+    {
+        imguiInterface->PushNewWindow(this);
+    }
 }
+
+FlWindow::~FlWindow() { imguiInterface->RemoveWindow(this); }

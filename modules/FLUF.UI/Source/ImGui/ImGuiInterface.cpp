@@ -479,6 +479,22 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     }
 
     Fluf::GetKeyManager()->RegisterKey(flufUi, "FLUF_OPEN_EXTENDED_OPTIONS_MENU", Key::USER_NO_OVERRIDE, reinterpret_cast<KeyFunc>(&FlufUi::OpenOptionsMenu));
+    Fluf::GetKeyManager()->RegisterKey(flufUi, "USER_CANCEL", Key::USER_CANCEL, reinterpret_cast<KeyFunc>(&FlufUi::ProcessEscapeKey));
+}
+
+void ImGuiInterface::PushNewWindow(FlWindow* newWindow) { flWindowStack.push_back(newWindow); }
+
+void ImGuiInterface::RemoveWindow(FlWindow* window) { flWindowStack.remove(window); }
+
+void ImGuiInterface::MoveWindowToEnd(FlWindow* window)
+{
+    if (flWindowStack.empty() || window == flWindowStack.back())
+    {
+        return;
+    }
+    
+    flWindowStack.remove(window);
+    flWindowStack.push_back(window);
 }
 
 ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)

@@ -221,7 +221,7 @@ void PatchNotes::Render()
     if (ImGui::Button("Read More"))
     {
         showFullNotes = true;
-        patchNoteWindow->isOpen = true;
+        patchNoteWindow->SetOpenState(true);
     }
 
     ImGui::End();

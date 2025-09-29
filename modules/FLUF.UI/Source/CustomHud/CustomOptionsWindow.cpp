@@ -26,7 +26,7 @@ void CustomOptionsWindow::RenderWindowContents()
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(closeButton.data()).x);
     if (ImGui::Button(closeButton.data()))
     {
-        isOpen = false;
+        SetOpenState(false);
         return;
     }
 
@@ -100,7 +100,7 @@ void CustomOptionsWindow::Render()
 
         if (ImGui::Button("Open FLUF Config"))
         {
-            isOpen = true;
+            SetOpenState(true);
         }
 
         ImGui::PopStyleVar();
@@ -109,5 +109,3 @@ void CustomOptionsWindow::Render()
 
     FlWindow::Render();
 }
-
-void CustomOptionsWindow::ToggleOpenState() { isOpen = !isOpen; }

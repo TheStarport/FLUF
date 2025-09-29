@@ -17,17 +17,21 @@ class FLUF_UI_API FlWindow
         bool drawScrollbars;
         RenderingBackend renderingBackend;
         void* dxDevice;
+        bool isEscapeCloseable;
+        bool isOpen = false;
 
         void DrawScrollbars() const;
         static void DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize);
 
     protected:
-        bool isOpen = false;
         inline static ImGuiInterface* imguiInterface;
-        ~FlWindow() = default;
+        ~FlWindow();
         virtual void RenderWindowContents() = 0;
 
     public:
+        void SetOpenState(bool newState);
+        bool IsOpen() { return isOpen; }
+        bool IsEscapeCloseable() { return isEscapeCloseable; }
         void SetTitle(const std::string& title);
         void CenterWindow(bool center = true);
         void SetSize(ImVec2 size);
@@ -52,5 +56,5 @@ class FLUF_UI_API FlWindow
          */
         virtual void Render();
         static void RenderImguiFromDisplayList(RenderDisplayList* rdl);
-        explicit FlWindow(std::string windowName, ImGuiWindowFlags flags = ImGuiWindowFlags_None, ImGuiCond condition = ImGuiCond_Appearing);
+        explicit FlWindow(std::string windowName, ImGuiWindowFlags flags = ImGuiWindowFlags_None, ImGuiCond condition = ImGuiCond_Appearing, bool isEscapeCloseable = true);
 };

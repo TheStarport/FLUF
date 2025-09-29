@@ -40,7 +40,6 @@ class PlayerStatusWindow final : public FlWindow
         void RenderWindowContents() override;
 
     public:
-        void SetOpen();
         explicit PlayerStatusWindow(const std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>>&);
         void RegisterNewMenu(FlufModule* module, RegisterMenuFunc func);
 };

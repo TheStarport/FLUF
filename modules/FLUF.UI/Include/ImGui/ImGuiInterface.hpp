@@ -7,6 +7,7 @@
 
 class FlufModule;
 class FlufUi;
+class FlWindow;
 using ModuleCall = void (FlufModule::*)();
 using OnRenderStatsMenu = ModuleCall;
 using RegisterMenuFunc = ModuleCall;
@@ -44,6 +45,7 @@ class ImGuiInterface
         std::unordered_map<FlufModule*, RegisterOptionsFunc> registeredOptionMenus;
         std::unordered_map<std::string, std::unordered_map<FlufModule*, OnRenderStatsMenu>> statMenus;
         std::string iniPath;
+        std::list<FlWindow*> flWindowStack;
 
         struct MouseState
         {
@@ -78,6 +80,9 @@ class ImGuiInterface
         void* GetRenderingContext() const;
         ~ImGuiInterface();
         explicit ImGuiInterface(FlufUi* flufUi, RenderingBackend backend, void* context);
+        void PushNewWindow(FlWindow*);
+        void RemoveWindow(FlWindow*);
+        void MoveWindowToEnd(FlWindow*);
 
         /**
          * @brief Loads an image from the specified path using the currently running render backend.\n

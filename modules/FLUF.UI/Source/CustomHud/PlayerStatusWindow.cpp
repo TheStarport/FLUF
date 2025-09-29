@@ -260,5 +260,3 @@ void PlayerStatusWindow::RenderWindowContents()
 
     ImGui::EndTabBar();
 }
-
-void PlayerStatusWindow::SetOpen() { this->isOpen = true; }
