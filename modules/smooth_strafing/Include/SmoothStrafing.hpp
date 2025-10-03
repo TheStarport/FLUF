@@ -11,11 +11,13 @@ class SmoothStrafing final : public FlufModule
 {
         inline static std::unordered_map<uint, float> shipStrafeForces;
         inline static float totalTimeBeenStrafing = 0.f;
-        inline static float currentStrafePercentage = 0.f;
         inline static float deltaTime = 0.f;
+        inline static float currentStrafeForce = 0.f;
 
         static float* __fastcall GetStrafeForce(const CShip* ship);
         static void OnStrafeForceApply();
+        static float* __fastcall GetThrusterForce(const Archetype::Thruster* archetype, const CEqObj* owner);
+        static void OnThrusterForceApply();
 
         void BeforePhysicsUpdate(uint system, float delta) override;
         void ReadIniFile(INI_Reader& ini);
