@@ -2,6 +2,13 @@
 #include "ImportFluf.hpp"
 
 class Fluf;
+
+enum class KeyState
+{
+    Pressed,
+    Released
+};
+
 enum class Key
 {
     USER_NONE,
@@ -211,7 +218,7 @@ enum class Key
 };
 
 class FlufModule;
-using KeyFunc = bool (FlufModule::*)();
+using KeyFunc = bool (FlufModule::*)(KeyState state);
 class KeyManager
 {
         struct OverriddenKey

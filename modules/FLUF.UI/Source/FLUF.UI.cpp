@@ -13,6 +13,7 @@
 #include "Vanilla/HudManager.hpp"
 #include "Exceptions.hpp"
 
+#include <KeyManager.hpp>
 #include <vendor/DXSDK/include/d3d8.h>
 
 #undef interface
@@ -157,7 +158,12 @@ HRESULT __stdcall FlufUi::OnDirect3D8CreateDevice(IDirect3D8* context, const uin
     return result;
 }
 
-void FlufUi::OpenOptionsMenu() const { imguiInterface->customOptionsWindow->SetOpenState(!imguiInterface->customOptionsWindow->IsOpen()); }
+bool FlufUi::OpenOptionsMenu(KeyState state) const
+{
+    imguiInterface->customOptionsWindow->SetOpenState(!imguiInterface->customOptionsWindow->IsOpen());
+    return true;
+}
+
 bool FlufUi::ProcessEscapeKey() const
 {
     for (auto windowIter = imguiInterface->flWindowStack.rbegin(); windowIter != imguiInterface->flWindowStack.rend(); windowIter++)

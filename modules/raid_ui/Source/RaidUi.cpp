@@ -470,7 +470,7 @@ void RaidUi::Render()
     ImGui::End();
 }
 
-bool RaidUi::OnTogglePanelKeyCommand()
+bool RaidUi::OnTogglePanelKeyCommand(KeyState state)
 {
     customisationSettings->enable = !customisationSettings->enable;
     return true;

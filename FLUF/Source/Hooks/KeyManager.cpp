@@ -8,6 +8,8 @@
 
 #include <magic_enum.hpp>
 
+static KeyState currentKeyState;
+
 bool KeyManager::HandleKey(const Key key)
 {
     if (const auto overriddenKey = overriddenKeys.find(key); overriddenKey != overriddenKeys.end())
@@ -18,7 +20,7 @@ bool KeyManager::HandleKey(const Key key)
             return false;
         }
 
-        return (module.lock().get()->*overriddenKey->second.function)();
+        return (module.lock().get()->*overriddenKey->second.function)(currentKeyState);
     }
 
     return false;
@@ -46,6 +48,19 @@ void __declspec(naked) KeyManager::HandleKeyNaked()
     }
 }
 
+using MessagePumpKeyHandler = bool (*)(int a1, int keyState, int a3);
+FunctionDetour messagePumpKeyHandlerDetour{ reinterpret_cast<MessagePumpKeyHandler>(0x577850) };
+bool MessagePumpKeyHandlerDetour(int a1, const int keyState, int a3)
+{
+    currentKeyState = keyState == 0x100 ? KeyState::Pressed : KeyState::Released;
+
+    messagePumpKeyHandlerDetour.UnDetour();
+    const auto res = messagePumpKeyHandlerDetour.GetOriginalFunc()(a1, keyState, a3);
+    messagePumpKeyHandlerDetour.Detour(MessagePumpKeyHandlerDetour);
+
+    return res;
+}
+
 KeyManager::KeyManager()
 {
     Fluf::Log(LogLevel::Debug, "Setting up KeyManager hooks");
@@ -55,6 +70,8 @@ KeyManager::KeyManager()
     const auto address = reinterpret_cast<PDWORD>(reinterpret_cast<char*>(&patch) + 1);
     *address = reinterpret_cast<DWORD>(HandleKeyNaked);
     MemUtils::WriteProcMem(0x576410, patch.data(), patch.size());
+
+    messagePumpKeyHandlerDetour.Detour(MessagePumpKeyHandlerDetour);
 }
 
 KeyManager::~KeyManager() = default;

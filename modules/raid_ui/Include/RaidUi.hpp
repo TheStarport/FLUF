@@ -3,6 +3,7 @@
 #include "FlufModule.hpp"
 #include "ImGui/ImGuiModule.hpp"
 
+#include <KeyManager.hpp>
 #include <memory>
 
 class FlufUi;
@@ -67,7 +68,7 @@ class RaidUi final : public FlufModule, public ImGuiModule
         void OnGameLoad() override;
         void Render() override;
 
-        bool OnTogglePanelKeyCommand();
+        bool OnTogglePanelKeyCommand(KeyState state);
         void RenderRaidUiOptions(bool saveRequested);
 
     public:
