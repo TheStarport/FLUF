@@ -85,6 +85,7 @@ class Fluf
 
         static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
         static bool __fastcall DelayedRPCLocalDetour(void* _this, void* edx, void* dunno1, void* dunno2);
+        static void OnPhysicsUpdateDetour(uint system, float delta);
         using RPCLocalDetourType = bool(__fastcall*)(void* _this, void* edx, void* dunno1, void* dunno2);
         inline static std::unique_ptr<FunctionDetour<RPCLocalDetourType>> delayedRPCLocalDetour;
         static BOOL __stdcall FreeLibraryDetour(HMODULE module);

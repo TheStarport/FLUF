@@ -120,6 +120,7 @@ class FLUF_API FlufModule
         virtual bool BeforeRequestDifficultyScale(float scale, uint unk2) { return true; }
         virtual bool BeforeDock(uint& unk1, uint& unk2) { return true; }
         virtual bool BeforeSubmitChat(uint from, ulong size, const void* rdlReader, uint to, int) { return true; }
+        virtual void BeforePhysicsUpdate(uint system, float delta) {}
 
         // After Hooks
 
@@ -156,6 +157,7 @@ class FLUF_API FlufModule
         virtual void OnPlayerLeavingServer(uint onlineClient, uint leavingClient) {}
         virtual void OnFormationUpdate(uint client, uint shipId, Vector& formationOffset) {}
         virtual ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) { return ModuleProcessCode::ContinueUnhandled; }
+        virtual void OnPhysicsUpdate(uint system, float delta) {}
 
     public:
         virtual std::string_view GetModuleName() = 0;
@@ -172,12 +174,12 @@ class FLUF_API FlufModule
     if (!Fluf::IsRunningOnClient())                                                                                                               \
     {                                                                                                                                             \
         MessageBoxA(nullptr, std::format("{} should only be running on the client!", GetModuleName()).c_str(), "Wrong Execution Context", MB_OK); \
-        throw ModuleLoadException(std::format("{} does not run in server context.", moduleName));                                                                                                                   \
+        throw ModuleLoadException(std::format("{} does not run in server context.", moduleName));                                                 \
     }
 
 #define AssertRunningOnServer                                                                                                                     \
     if (Fluf::IsRunningOnClient())                                                                                                                \
     {                                                                                                                                             \
         MessageBoxA(nullptr, std::format("{} should only be running on the server!", GetModuleName()).c_str(), "Wrong Execution Context", MB_OK); \
-        throw ModuleLoadException(std::format("{} does not run in server context.", moduleName));                                                                                                                       \
+        throw ModuleLoadException(std::format("{} does not run in server context.", moduleName));                                                 \
     }

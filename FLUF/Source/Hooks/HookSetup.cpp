@@ -8,6 +8,9 @@
 #include <Utils/MemUtils.hpp>
 #include <spdlog/sinks/rotating_file_sink.h>
 
+using OnPhysicsUpdate = void (*)(uint system, float delta);
+FunctionDetour physicsUpdateDetour{ reinterpret_cast<OnPhysicsUpdate>(GetProcAddress(GetModuleHandleA("common.dll"), "?Update@PhySys@@YAXIM@Z")) };
+
 void Fluf::HookIClient(char* client, const bool unhook, const bool local)
 {
     if (!client)
@@ -100,8 +103,21 @@ bool __fastcall Fluf::DelayedRPCLocalDetour(void* _this, void* edx, void* dunno1
     return retVal;
 }
 
+void Fluf::OnPhysicsUpdateDetour(uint system, float delta)
+{
+    instance->CallModuleEvent(&FlufModule::BeforePhysicsUpdate, system, delta);
+
+    physicsUpdateDetour.UnDetour();
+    physicsUpdateDetour.GetOriginalFunc()(system, delta);
+    physicsUpdateDetour.Detour(OnPhysicsUpdateDetour);
+
+    instance->CallModuleEvent(&FlufModule::OnPhysicsUpdate, system, delta);
+}
+
 void Fluf::SetupHooks()
 {
+    physicsUpdateDetour.Detour(OnPhysicsUpdateDetour);
+
     if (!runningOnClient)
     {
         return;
