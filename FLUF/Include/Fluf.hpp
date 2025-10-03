@@ -81,9 +81,11 @@ class Fluf
 
         void HookIClient(char* client, bool unhook, bool local);
         void HookIServer(char* server, bool unhook);
+        void SetupHooks();
+
         static HINSTANCE __stdcall LoadLibraryDetour(LPCSTR libName);
         static bool __fastcall DelayedRPCLocalDetour(void* _this, void* edx, void* dunno1, void* dunno2);
-        using RPCLocalDetourType = bool (__fastcall*) (void* _this, void* edx, void* dunno1, void* dunno2);
+        using RPCLocalDetourType = bool(__fastcall*)(void* _this, void* edx, void* dunno1, void* dunno2);
         inline static std::unique_ptr<FunctionDetour<RPCLocalDetourType>> delayedRPCLocalDetour;
         static BOOL __stdcall FreeLibraryDetour(HMODULE module);
         static bool GetUserDataPathDetour(char* path);
@@ -164,15 +166,16 @@ class Fluf
         FLUF_API static void Info(std::string_view message);
         FLUF_API static void Warn(std::string_view message);
         FLUF_API static void Error(std::string_view message);
+        void SetupLogging() const;
 
         FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string_view identifier);
         FLUF_API static CShip* GetPlayerCShip();
         FLUF_API static IObjRW* GetPlayerIObjRW();
         FLUF_API static unsigned int GetPlayerClientId();
         FLUF_API static const Universe::ISystem* GetPlayerSystem();
-        FLUF_API static const Id GetPlayerSystemId();
+        FLUF_API static Id GetPlayerSystemId();
         FLUF_API static Archetype::Ship* GetPlayerShipArch();
-        FLUF_API static const Id GetPlayerShipArchId();
+        FLUF_API static Id GetPlayerShipArchId();
         FLUF_API static EquipDescList* GetPlayerEquipDesc();
         FLUF_API static bool IsRunningOnClient();
         FLUF_API static std::wstring GetInfocardName(uint ids);
