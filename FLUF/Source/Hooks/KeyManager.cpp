@@ -48,14 +48,14 @@ void __declspec(naked) KeyManager::HandleKeyNaked()
     }
 }
 
-using MessagePumpKeyHandler = bool (*)(int a1, int keyState, int a3);
+using MessagePumpKeyHandler = bool (*)(int keyState, int a2, int a3);
 FunctionDetour messagePumpKeyHandlerDetour{ reinterpret_cast<MessagePumpKeyHandler>(0x577850) };
-bool MessagePumpKeyHandlerDetour(int a1, const int keyState, int a3)
+bool MessagePumpKeyHandlerDetour(const int keyState, const int a2, const int a3)
 {
     currentKeyState = keyState == 0x100 ? KeyState::Pressed : KeyState::Released;
 
     messagePumpKeyHandlerDetour.UnDetour();
-    const auto res = messagePumpKeyHandlerDetour.GetOriginalFunc()(a1, keyState, a3);
+    const auto res = messagePumpKeyHandlerDetour.GetOriginalFunc()(keyState, a2, a3);
     messagePumpKeyHandlerDetour.Detour(MessagePumpKeyHandlerDetour);
 
     return res;

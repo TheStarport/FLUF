@@ -164,7 +164,7 @@ bool FlufUi::OpenOptionsMenu(KeyState state) const
     return true;
 }
 
-bool FlufUi::ProcessEscapeKey() const
+bool FlufUi::ProcessEscapeKey(KeyState state) const
 {
     for (auto windowIter = imguiInterface->flWindowStack.rbegin(); windowIter != imguiInterface->flWindowStack.rend(); windowIter++)
     {

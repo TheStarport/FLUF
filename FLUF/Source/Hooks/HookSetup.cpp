@@ -116,7 +116,7 @@ void Fluf::OnPhysicsUpdateDetour(uint system, float delta)
 
 void Fluf::SetupHooks()
 {
-    //physicsUpdateDetour.Detour(OnPhysicsUpdateDetour);
+    physicsUpdateDetour.Detour(OnPhysicsUpdateDetour);
 
     if (!runningOnClient)
     {

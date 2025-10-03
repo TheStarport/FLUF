@@ -57,7 +57,7 @@ class FlufUi final : public FlufModule
         static HRESULT __stdcall OnDirect3D8CreateDevice(IDirect3D8* context, uint adapter, D3DDEVTYPE deviceType, HWND focusWindow, DWORD behaviorFlags,
                                                          D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice8** returnedDeviceInterface);
         bool OpenOptionsMenu(KeyState state) const;
-        bool ProcessEscapeKey() const;
+        bool ProcessEscapeKey(KeyState state) const;
 
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
 

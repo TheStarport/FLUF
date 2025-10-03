@@ -66,7 +66,7 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
             {
                 nickname = ini.get_value_string();
             }
-            else if (ini.is_value("strafe_force_max"))
+            else if (ini.is_value("strafe_force"))
             {
                 maxStrafeForce = ini.get_value_float(0);
             }
@@ -112,9 +112,9 @@ void SmoothStrafing::OnGameLoad()
 
     ini.close();
 
-    for (auto file : files)
+    for (const auto& file : files)
     {
-        if (!ini.open(file.c_str(), false))
+        if (!ini.open((std::string("../DATA/") + file).c_str(), false))
         {
             continue;
         }
@@ -140,11 +140,6 @@ void SmoothStrafing::OnPhysicsUpdate(uint system, float delta)
         return;
     }
 
-    if (currentStrafeDir == StrafeDir::None)
-    {
-        return;
-    }
-
     const auto strafe = shipStrafeForces.find(player->archetype->archId);
     if (strafe == shipStrafeForces.end())
     {
@@ -156,17 +151,31 @@ void SmoothStrafing::OnPhysicsUpdate(uint system, float delta)
     if (currentStrafeDir == StrafeDir::Left)
     {
         currentStrafeForce -= strafe->second.second;
-        dir = { orientation[0][1], orientation[1][1], orientation[2][1] };
     }
     else if (currentStrafeDir == StrafeDir::Right)
     {
         currentStrafeForce += strafe->second.second;
-        dir = { orientation[0][2], orientation[1][2], orientation[2][2] };
+    }
+    else
+    {
+        if (currentStrafeForce > 0.f)
+        {
+            currentStrafeForce = std::clamp(currentStrafeForce - strafe->second.second, 0.f, strafe->second.first);
+        }
+        else if (currentStrafeForce < 0.f)
+        {
+            currentStrafeForce = std::clamp(currentStrafeForce + strafe->second.second, -strafe->second.first, 0.0f);
+        }
+        else
+        {
+            return;
+        }
     }
 
+    dir = { orientation[0][0], orientation[1][0], orientation[2][0] };
     currentStrafeForce = std::clamp(currentStrafeForce, -strafe->second.first, strafe->second.first);
 
-    dir *= currentStrafeForce;
+    dir *= currentStrafeForce * delta;
 
     const Vector newVelocity = ShipManipulator::GetVelocity(player) + dir;
     ShipManipulator::SetVelocity(player, newVelocity);
