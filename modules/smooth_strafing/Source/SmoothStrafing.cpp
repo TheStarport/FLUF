@@ -7,6 +7,7 @@
 
 #include <KeyManager.hpp>
 #include <ShipManipulator.hpp>
+#include <Utils/MemUtils.hpp>
 
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
@@ -18,16 +19,52 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-bool SmoothStrafing::OnStrafeLeftKey(KeyState keyState)
+/*
+std::pair<bool, float> GetEngineStateAndDrag(CShip* ship)
 {
-    if (keyState == KeyState::Pressed && currentStrafeDir == StrafeDir::None)
+    auto& eqm = ship->equipManager;
+    CEquipTraverser traverser{ static_cast<int>(EquipmentClass::Engine) };
+    auto eq = static_cast<CEEngine*>(eqm.Traverse(traverser));
+    float linearDrag = ship->shiparch()->linearDrag;
+    bool inEngineKill = false;
+    while (eq)
     {
-        currentStrafeDir = StrafeDir::Left;
+        if (!eq->IsFunctioning())
+        {
+            inEngineKill = true;
+        }
+
+        linearDrag += eq->EngineArch()->linearDrag;
+        eq = static_cast<CEEngine*>(eqm.Traverse(traverser));
     }
 
-    if (keyState == KeyState::Released)
+    return { inEngineKill, linearDrag };
+}
+*/
+
+/*
+bool SmoothStrafing::OnStrafeLeftKey(KeyState keyState)
+{
+    auto ship = Fluf::GetPlayerCShip();
+    if (!ship)
+    {
+        return false;
+    }
+
+    if (keyState == KeyState::Pressed)
+    {
+        auto [inEngineKill, linearDrag] = GetEngineStateAndDrag(ship);
+        wasInEngineKill = inEngineKill;
+        currentStrafeDir = StrafeDir::Left;
+    }
+    else if (keyState == KeyState::Released && currentStrafeDir == StrafeDir::Left)
     {
         currentStrafeDir = StrafeDir::None;
+
+        if (wasInEngineKill)
+        {
+            ship->get_behavior_interface()->update_current_behavior_engage_engine(false);
+        }
     }
 
     return true;
@@ -35,18 +72,31 @@ bool SmoothStrafing::OnStrafeLeftKey(KeyState keyState)
 
 bool SmoothStrafing::OnStrafeRightKey(KeyState keyState)
 {
-    if (keyState == KeyState::Pressed && currentStrafeDir == StrafeDir::None)
+    auto ship = Fluf::GetPlayerCShip();
+    if (!ship)
     {
-        currentStrafeDir = StrafeDir::Right;
+        return false;
     }
 
-    if (keyState == KeyState::Released)
+    if (keyState == KeyState::Pressed)
+    {
+        auto [inEngineKill, linearDrag] = GetEngineStateAndDrag(ship);
+        wasInEngineKill = inEngineKill;
+        currentStrafeDir = StrafeDir::Right;
+    }
+    else if (keyState == KeyState::Released && currentStrafeDir == StrafeDir::Right)
     {
         currentStrafeDir = StrafeDir::None;
+
+        if (wasInEngineKill)
+        {
+            ship->get_behavior_interface()->update_current_behavior_engage_engine(false);
+        }
     }
 
     return true;
 }
+*/
 
 void SmoothStrafing::ReadIniFile(INI_Reader& ini)
 {
@@ -66,34 +116,69 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
             {
                 nickname = ini.get_value_string();
             }
-            else if (ini.is_value("strafe_force"))
-            {
-                maxStrafeForce = ini.get_value_float(0);
-            }
             else if (ini.is_value("strafe_force_acceleration"))
             {
-                // Divide force by 60 to create a per second value
-                strafeAcceleration = ini.get_value_float(0) / 60;
+                strafeAcceleration = ini.get_value_float(0);
             }
         }
 
-        if (nickname.empty() || !maxStrafeForce || !strafeAcceleration)
+        if (nickname.empty() || !strafeAcceleration)
         {
             continue;
         }
 
-        shipStrafeForces[CreateID(nickname.c_str())] = { maxStrafeForce, strafeAcceleration };
+        shipStrafeForces[CreateID(nickname.c_str())] = strafeAcceleration;
     }
 }
 
+float* __fastcall SmoothStrafing::GetStrafeForce(const CShip* ship)
+{
+    static float retValue;
+    auto strafeForceAcceleration = shipStrafeForces.find(ship->shiparch()->archId);
+    if (const auto player = Fluf::GetPlayerCShip(); player != ship || strafeForceAcceleration == shipStrafeForces.end())
+    {
+        retValue = ship->shiparch()->strafeForce;
+        return &retValue;
+    }
+
+    static StrafeDir lastStrafeDirection = StrafeDir::None;
+    if (const auto dir = ship->strafeDir; dir != lastStrafeDirection)
+    {
+        lastStrafeDirection = dir;
+        totalTimeBeenStrafing = 0.f;
+    }
+
+    totalTimeBeenStrafing += deltaTime;
+
+    retValue = std::clamp(strafeForceAcceleration->second * totalTimeBeenStrafing, 0.f, ship->shiparch()->strafeForce);
+    return &retValue;
+}
+
+void __declspec(naked) SmoothStrafing::OnStrafeForceApply()
+{
+    static constexpr DWORD retAddress = 0x62BBA6E;
+    __asm
+    {
+        push eax
+        call GetStrafeForce
+        fld [eax]
+        pop eax
+        jmp retAddress
+    }
+}
+
+void SmoothStrafing::BeforePhysicsUpdate(uint system, float delta) { deltaTime = delta; }
+
 void SmoothStrafing::OnGameLoad()
 {
-    auto manager = Fluf::GetKeyManager();
+    MemUtils::PatchAssembly(0x62BBA62, OnStrafeForceApply);
+
+    /*auto manager = Fluf::GetKeyManager();
 
     manager->RegisterKey(
         this, "USER_MANEUVER_SLIDE_EVADE_LEFT", Key::USER_MANEUVER_SLIDE_EVADE_LEFT, static_cast<KeyFunc>(&SmoothStrafing::OnStrafeLeftKey), true);
     manager->RegisterKey(
-        this, "USER_MANEUVER_SLIDE_EVADE_RIGHT", Key::USER_MANEUVER_SLIDE_EVADE_RIGHT, static_cast<KeyFunc>(&SmoothStrafing::OnStrafeRightKey), true);
+        this, "USER_MANEUVER_SLIDE_EVADE_RIGHT", Key::USER_MANEUVER_SLIDE_EVADE_RIGHT, static_cast<KeyFunc>(&SmoothStrafing::OnStrafeRightKey), true);*/
 
     INI_Reader ini;
     if (!ini.open("freelancer.ini", false) || !ini.find_header("Data"))
@@ -124,19 +209,15 @@ void SmoothStrafing::OnGameLoad()
     }
 }
 
-void SmoothStrafing::OnLaunch(uint client, struct FLPACKET_LAUNCH& launch)
-{
-    currentStrafeForce = 0.f;
-    currentStrafeDir = StrafeDir::None;
-}
+void SmoothStrafing::OnLaunch(uint client, struct FLPACKET_LAUNCH& launch) { currentStrafePercentage = 0.f; }
 
-void SmoothStrafing::OnPhysicsUpdate(uint system, float delta)
+/*void SmoothStrafing::OnPhysicsUpdate(uint system, float delta)
 {
     const auto player = Fluf::GetPlayerCShip();
 
     if (!player)
     {
-        currentStrafeForce = 0.f;
+        currentStrafePercentage = 0.f;
         return;
     }
 
@@ -146,25 +227,50 @@ void SmoothStrafing::OnPhysicsUpdate(uint system, float delta)
         return;
     }
 
-    Vector dir{};
     auto orientation = player->get_orientation();
-    if (currentStrafeDir == StrafeDir::Left)
+    auto [inEngineKill, linearDrag] = GetEngineStateAndDrag(player);
+    if (const float strafeForce = strafe->second.second * delta; currentStrafeDir == StrafeDir::Left)
     {
-        currentStrafeForce -= strafe->second.second;
+        if (inEngineKill)
+        {
+            player->get_behavior_interface()->update_current_behavior_engage_engine(true);
+        }
+
+        if (currentStrafeForce > 0.f)
+        {
+            currentStrafeForce -= strafeForce;
+        }
+
+        currentStrafeForce -= strafeForce;
     }
     else if (currentStrafeDir == StrafeDir::Right)
     {
-        currentStrafeForce += strafe->second.second;
+        if (inEngineKill)
+        {
+            player->get_behavior_interface()->update_current_behavior_engage_engine(true);
+        }
+
+        if (currentStrafeForce < 0.f)
+        {
+            currentStrafeForce += strafeForce;
+        }
+
+        currentStrafeForce += strafeForce;
     }
     else
     {
+        if (inEngineKill)
+        {
+            return;
+        }
+
         if (currentStrafeForce > 0.f)
         {
-            currentStrafeForce = std::clamp(currentStrafeForce - strafe->second.second, 0.f, strafe->second.first);
+            currentStrafeForce -= strafe->second.second * delta;
         }
         else if (currentStrafeForce < 0.f)
         {
-            currentStrafeForce = std::clamp(currentStrafeForce + strafe->second.second, -strafe->second.first, 0.0f);
+            currentStrafeForce += strafe->second.second * delta;
         }
         else
         {
@@ -172,14 +278,15 @@ void SmoothStrafing::OnPhysicsUpdate(uint system, float delta)
         }
     }
 
-    dir = { orientation[0][0], orientation[1][0], orientation[2][0] };
+    Vector dir = { orientation[0][0], orientation[1][0], orientation[2][0] };
     currentStrafeForce = std::clamp(currentStrafeForce, -strafe->second.first, strafe->second.first);
 
-    dir *= currentStrafeForce * delta;
+    printf("Applying Force: %f\n", currentStrafeForce / linearDrag);
+    dir *= currentStrafeForce / linearDrag * delta;
 
     const Vector newVelocity = ShipManipulator::GetVelocity(player) + dir;
     ShipManipulator::SetVelocity(player, newVelocity);
-}
+}*/
 
 SmoothStrafing::SmoothStrafing() { AssertRunningOnClient; }
 
