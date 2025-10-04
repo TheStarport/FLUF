@@ -3,8 +3,13 @@
 
 #include <xbyak/xbyak.h>
 
+class Fluf;
+
 class IEngineHook
 {
+        friend Fluf;
+
+        protected:
         using SendCommType = int (*)(uint sender, uint receiver, uint voiceId, const Costume* costume, uint infocardId, uint* lines, int lineCount,
                                      uint infocardId2, float radioSilenceTimerAfter, bool global);
 
@@ -69,21 +74,14 @@ class IEngineHook
                 std::unordered_map<uint, std::pair<uint, uint>> numberHashes; // number said in the middle and in the end
         };
 
-        inline static SendCommData sendCommData;
-
-        static void Init();
-
-        inline static FARPROC oldLaunchPosition;
-        inline static FARPROC oldDisconnectPacketSent;
-        inline static uint lastTicks;
-
-        static int FreeReputationVibe(const int& p1);
-        static void UpdateTime(double interval);
-        static void __stdcall ElapseTime(float interval);
-        static int DockCall(const uint& shipId, const uint& spaceId, int dockPortIndex, DOCK_HOST_RESPONSE response);
-        static bool __stdcall LaunchPosition(uint spaceId, CEqObj& obj, Vector& position, Matrix& orientation, int dock);
 
 #define VTablePtr(x) static_cast<DWORD>(x)
+
+        inline static VTableHook<VTablePtr(CShipVTable::Start), VTablePtr(CShipVTable::End)> cShipVTable{ "common" };
+        inline static VTableHook<VTablePtr(CLootVTable::Start), VTablePtr(CLootVTable::End)> cLootVTable{ "common" };
+        inline static VTableHook<VTablePtr(CSolarVTable::Start), VTablePtr(CSolarVTable::End)> cSolarVTable{ "common" };
+        inline static VTableHook<VTablePtr(CGuidedVTable::Start), VTablePtr(CGuidedVTable::End)> cGuidedVTable{ "common" };
+        inline static VTableHook<VTablePtr(CELauncherVTable::Start), VTablePtr(CELauncherVTable::End)> ceLauncherVTable{ "common" };
 
         inline static VTableHook<VTablePtr(IShipInspectVTable::Start), VTablePtr(IShipInspectVTable::End)> iShipVTable{ "server" };
         inline static VTableHook<VTablePtr(ISolarInspectVTable::Start), VTablePtr(ISolarInspectVTable::End)> iSolarVTable{ "server" };
@@ -130,53 +128,4 @@ class IEngineHook
         static void __fastcall CGuidedInit(CGuided* guided, void* edx, CGuided::CreateParms* creationParams);
 
         static void __fastcall ShipFuse(Ship* ship, void* edx, uint fuseCause, uint& fuseId, ushort sId, float radius, float lifetime);
-
-        static int __fastcall GetAmmoCapacityDetourHash(CShip* cship, void* edx, Id ammoArch);
-        static int __fastcall GetAmmoCapacityDetourEq(CShip* cship, void* edx, Archetype::Equipment* ammoType);
-        static float __fastcall GetCargoRemaining(CShip* cship);
-        static int __fastcall GetSpaceForCargoType(CShip* cship, void* edx, Archetype::Equipment* archEquip);
-
-        static TractorFailureCode __fastcall CETractorVerifyTarget(CETractor* tractor, void* edx, CLoot* target);
-
-        static FireResult __fastcall CELauncherFireAfter(CELauncher* launcher, void* edx, const Vector& pos);
-
-        struct CallAndRet final : Xbyak::CodeGenerator
-        {
-                CallAndRet(void* toCall, void* ret);
-        };
-
-        struct DisconnectPacketSentAssembly final : Xbyak::CodeGenerator
-        {
-                DisconnectPacketSentAssembly();
-        };
-
-        struct LaunchPositionAssembly final : Xbyak::CodeGenerator
-        {
-                LaunchPositionAssembly();
-        };
-
-        struct LoadReputationFromCharacterFileAssembly final : Xbyak::CodeGenerator
-        {
-                LoadReputationFromCharacterFileAssembly();
-        };
-
-        inline static DisconnectPacketSentAssembly* disconnectPacketSentAssembly;
-        inline static LoadReputationFromCharacterFileAssembly* loadReputationFromCharacterFileAssembly;
-        inline static LaunchPositionAssembly launchPositionAssembly;
-
-        static bool AllowPlayerDamage(ClientId client, ClientId clientTarget);
-
-        static bool __stdcall LoadReputationFromCharacterFile(const RepDataList* savedReps, const LoadRepData* repToSave);
-        static int SendCommDetour(uint sender, uint receiver, uint voiceId, const Costume* costume, uint infocardId, uint* lines, int lineCount,
-                                  uint infocardId2, float radioSilenceTimerAfter, bool global);
-        static bool __stdcall DisconnectPacketSent(ClientId client);
-        static void SendDeathMessage(const std::wstring& msg, SystemId systemId, ClientId clientVictim, ClientId clientKiller);
-
-        using CGunWrapperShutdownFunc = void(__fastcall*)(void*);
-        inline static std::unique_ptr<FunctionDetour<CGunWrapperShutdownFunc>> disconnectPacketDetour = nullptr;
-        inline static std::unique_ptr<FunctionDetour<SendCommType>> sendCommDetour;
-
-    public:
-        static void OnPlayerLaunch(ClientId client);
-        static void OnCharacterSelectAfter(ClientId client);
 };

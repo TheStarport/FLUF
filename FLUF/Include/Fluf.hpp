@@ -1,7 +1,6 @@
 #pragma once
 
 #include "FlufModule.hpp"
-#include "DamageDeathInterface.hpp"
 
 #include <Utils/Detour.hpp>
 
@@ -79,6 +78,8 @@ class Fluf
 
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
+        static void LoadCommonHooks();
+        static void LoadServerHooks();
         void OnGameLoad();
         static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
 
