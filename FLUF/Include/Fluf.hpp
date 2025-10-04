@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FlufModule.hpp"
+#include "DamageDeathInterface.hpp"
 
 #include <Utils/Detour.hpp>
 
@@ -12,6 +13,7 @@
 #include <memory>
 
 class ClientServerCommunicator;
+class IEngineHook;
 enum class LogLevel
 {
     Trace,
@@ -56,6 +58,7 @@ class Fluf
         friend ClientSend;
         friend ClientReceive;
         friend ClientServerCommunicator;
+        friend IEngineHook;
         friend FlufModule;
         inline static HMODULE thisDll;
         inline static Fluf* instance;
