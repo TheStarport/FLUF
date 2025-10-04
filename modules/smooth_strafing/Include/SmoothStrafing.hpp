@@ -20,7 +20,7 @@ class SmoothStrafing final : public FlufModule
         static void OnThrusterForceApply();
 
         void BeforePhysicsUpdate(uint system, float delta) override;
-        void ReadIniFile(INI_Reader& ini);
+        static void ReadIniFile(INI_Reader& ini);
         void OnGameLoad() override;
         void OnLaunch(uint client, struct FLPACKET_LAUNCH& launch) override;
 

@@ -55,7 +55,7 @@ float* __fastcall SmoothStrafing::GetStrafeForce(const CShip* ship)
 {
     static float retValue;
 
-    auto strafeForceAcceleration = shipStrafeForces.find(ship->shiparch()->archId);
+    const auto strafeForceAcceleration = shipStrafeForces.find(ship->shiparch()->archId);
     if (const auto player = Fluf::GetPlayerCShip(); player != ship || strafeForceAcceleration == shipStrafeForces.end())
     {
         retValue = ship->shiparch()->strafeForce;
@@ -118,7 +118,23 @@ void __declspec(naked) SmoothStrafing::OnThrusterForceApply()
     }
 }
 
-void SmoothStrafing::BeforePhysicsUpdate(uint system, float delta) { deltaTime = delta; }
+void SmoothStrafing::BeforePhysicsUpdate(uint system, const float delta)
+{
+    deltaTime = delta;
+
+    auto player = Fluf::GetPlayerCShip();
+    if (!player)
+    {
+        return;
+    }
+
+    const auto dir = player->strafeDir;
+    if (dir == StrafeDir::None)
+    {
+        // If no longer strafing, slowly reduce to 0
+        currentStrafeForce *= 0.96f;
+    }
+}
 
 void SmoothStrafing::OnGameLoad()
 {
