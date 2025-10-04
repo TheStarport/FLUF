@@ -8,8 +8,8 @@ set(CUR_PROJECT "fixes")
 # Glob our source files and header files
 begin_glob()
 
-configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
-add_library(${CUR_PROJECT} SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resources.rc.in ${CMAKE_CURRENT_BINARY_DIR}/resources.rc @ONLY)
+add_library(${CUR_PROJECT} SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/resources.rc)
 
 # Dependencies
 target_include_directories(${CUR_PROJECT} PRIVATE
