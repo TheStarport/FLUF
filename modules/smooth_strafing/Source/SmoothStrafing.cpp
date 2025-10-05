@@ -30,6 +30,8 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
 
         std::string nickname;
         float strafeAcceleration = 0.f;
+        uint leftFuse = 0;
+        uint rightFuse = 0;
         while (ini.read_value())
         {
             if (ini.is_value("nickname"))
@@ -40,14 +42,43 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
             {
                 strafeAcceleration = ini.get_value_float(0);
             }
+            else if (ini.is_value("strafe_fuse"))
+            {
+                leftFuse = CreateID(ini.get_value_string(0));
+                rightFuse = CreateID(ini.get_value_string(1));
+            }
         }
 
-        if (nickname.empty() || !strafeAcceleration)
+        if (nickname.empty() || strafeAcceleration == 0.f)
         {
             continue;
         }
 
-        shipStrafeForces[CreateID(nickname.c_str())] = strafeAcceleration;
+        shipStrafeForces[CreateID(nickname.c_str())] = { .acceleration = strafeAcceleration, .leftFuse = leftFuse, .rightFuse = rightFuse };
+    }
+}
+
+void ToggleShipFuse(const CShip* ship, const uint id, const bool on)
+{
+    const auto srv = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll"));
+
+    if (!srv || !id)
+    {
+        return;
+    }
+
+    const auto inspect = reinterpret_cast<bool (*)(const uint&, Ship*&, StarSystem*& starSystem)>(srv + 0x206C0);
+    Ship* iObj;
+    StarSystem* starSystem;
+    inspect(ship->id, iObj, starSystem);
+
+    if (on)
+    {
+        iObj->light_fuse(0, id, 0, 0.f, 0.f);
+    }
+    else
+    {
+        iObj->unlight_fuse(id, 0, 0.f);
     }
 }
 
@@ -55,8 +86,8 @@ float* __fastcall SmoothStrafing::GetStrafeForce(const CShip* ship)
 {
     static float retValue;
 
-    const auto strafeForceAcceleration = shipStrafeForces.find(ship->shiparch()->archId);
-    if (const auto player = Fluf::GetPlayerCShip(); player != ship || strafeForceAcceleration == shipStrafeForces.end())
+    const auto strafeData = shipStrafeForces.find(ship->shiparch()->archId);
+    if (const auto player = Fluf::GetPlayerCShip(); player != ship || strafeData == shipStrafeForces.end())
     {
         retValue = ship->shiparch()->strafeForce;
         return &retValue;
@@ -65,13 +96,34 @@ float* __fastcall SmoothStrafing::GetStrafeForce(const CShip* ship)
     static StrafeDir lastStrafeDirection = StrafeDir::None;
     if (const auto dir = ship->strafeDir; dir != lastStrafeDirection)
     {
+        if (fuseIsLit)
+        {
+            if (lastStrafeDirection == StrafeDir::Right)
+            {
+                ToggleShipFuse(ship, strafeData->second.rightFuse, false);
+            }
+            else if (lastStrafeDirection == StrafeDir::Left)
+            {
+                ToggleShipFuse(ship, strafeData->second.leftFuse, false);
+            }
+
+            fuseIsLit = false;
+        }
+
         lastStrafeDirection = dir;
         totalTimeBeenStrafing = 0.f;
     }
 
+    if (!fuseIsLit)
+    {
+        fuseIsLit = true;
+        lastFuse = ship->strafeDir == StrafeDir::Right ? strafeData->second.rightFuse : strafeData->second.leftFuse;
+        ToggleShipFuse(ship, lastFuse, true);
+    }
+
     totalTimeBeenStrafing += deltaTime;
 
-    retValue = std::clamp(strafeForceAcceleration->second * totalTimeBeenStrafing, 0.f, ship->shiparch()->strafeForce);
+    retValue = std::clamp(strafeData->second.acceleration * totalTimeBeenStrafing, 0.f, ship->shiparch()->strafeForce);
     currentStrafeForce = retValue;
     return &retValue;
 }
@@ -133,6 +185,12 @@ void SmoothStrafing::BeforePhysicsUpdate(uint system, const float delta)
     {
         // If no longer strafing, slowly reduce to 0
         currentStrafeForce *= 0.96f;
+
+        if (fuseIsLit)
+        {
+            ToggleShipFuse(player, lastFuse, false);
+            fuseIsLit = false;
+        }
     }
 }
 

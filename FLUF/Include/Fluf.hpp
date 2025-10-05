@@ -171,7 +171,7 @@ class Fluf
 
         FLUF_API static std::weak_ptr<FlufModule> GetModule(std::string_view identifier);
         FLUF_API static CShip* GetPlayerCShip();
-        FLUF_API static IObjRW* GetPlayerIObjRW();
+        FLUF_API static Ship* GetPlayerIObj();
         FLUF_API static unsigned int GetPlayerClientId();
         FLUF_API static const Universe::ISystem* GetPlayerSystem();
         FLUF_API static Id GetPlayerSystemId();

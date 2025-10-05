@@ -246,7 +246,7 @@ void RaidUi::Render()
         windowFlags |= ImGuiWindowFlags_NoMove;
     }
 
-    Fluf::GetPlayerIObjRW();
+    Fluf::GetPlayerIObj();
 
     ImGui::PushStyleColor(ImGuiCol_TableRowBg, ImVec4());
     ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImVec4());
@@ -414,7 +414,7 @@ void RaidUi::Render()
                 foundObject->Release();
             }
 
-            if (auto* playerShip = Fluf::GetPlayerIObjRW(); playerShip && foundObject)
+            if (auto* playerShip = Fluf::GetPlayerIObj(); playerShip && foundObject)
             {
                 struct SetTargetData
                 {
@@ -425,7 +425,7 @@ void RaidUi::Render()
                         uint targetId = 0;
                         uint subId = 0;
                 };
-                using SetPlayerTarget = bool(__thiscall*)(IObjRW * player, SetTargetData * data);
+                using SetPlayerTarget = bool(__thiscall*)(Ship * player, SetTargetData * data);
                 static auto setPlayerTarget = reinterpret_cast<SetPlayerTarget>(0x544D70);
 
                 // Has Shift

@@ -230,7 +230,7 @@ std::weak_ptr<FlufModule> Fluf::GetModule(const std::string_view identifier)
 
 CShip* Fluf::GetPlayerCShip()
 {
-    const auto* obj = GetPlayerIObjRW();
+    const auto* obj = GetPlayerIObj();
     if (!obj)
     {
         return nullptr;
@@ -239,9 +239,9 @@ CShip* Fluf::GetPlayerCShip()
     return dynamic_cast<CShip*>(obj->cobject());
 }
 
-IObjRW* Fluf::GetPlayerIObjRW()
+Ship* Fluf::GetPlayerIObj()
 {
-    using objFunc = IObjRW* (*)();
+    using objFunc = Ship* (*)();
     static auto getIObjRW = reinterpret_cast<objFunc>(0x54BAF0);
     return getIObjRW();
 }
