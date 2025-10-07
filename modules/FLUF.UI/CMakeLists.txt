@@ -52,6 +52,7 @@ target_link_libraries(FLUF.UI PRIVATE
         FLUF
         opengl32.lib
         md4c::md4c-html
+        libwebp::libwebp
 )
 
 target_compile_definitions(FLUF.UI PRIVATE

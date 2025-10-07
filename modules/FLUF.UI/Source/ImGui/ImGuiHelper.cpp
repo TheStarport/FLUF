@@ -36,3 +36,10 @@ void ImGuiHelper::CenteredText(const char* text, std::optional<float> widthOverr
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (widthOverride.value_or(ImGui::GetWindowWidth()) - ImGui::CalcTextSize(text).x) * 0.5f);
     ImGui::Text(text);
 }
+
+void ImGuiHelper::RightAlignedText(const char* text, std::optional<float> widthOverride)
+{
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + widthOverride.value_or(ImGui::GetWindowWidth()) - ImGui::CalcTextSize(text).x - ImGui::GetScrollX() -
+                         2 * ImGui::GetStyle().ItemSpacing.x);
+    ImGui::Text(text);
+}

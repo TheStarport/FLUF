@@ -65,6 +65,7 @@ set(FREETYPE_INCLUDE_DIRS "${VENDOR_PATH}/freetype/include")
 
 # Import Conan Packages
 find_package(glm REQUIRED)
+find_package(WebP REQUIRED)
 find_package(magic_enum REQUIRED)
 find_package(md4c REQUIRED)
 find_package(msgpack REQUIRED)

@@ -49,6 +49,15 @@ class FLUF_UI_API FlWindow
          * is still open (if shifted to another monitor, or switching between windowed and fullscreen mode)
          */
         void SetSizeWithAspectRatio(int width, ImVec2 aspectRatio, float shrinkPercentage = 0.2f);
+
+        /**
+         * @brief
+         * Set position using relative coordinates rather than absolute ones.
+         * Providing a value between 0 and 1 will correlate to 'percent of dimension',
+         * so an x value of 0.5 when the width of the screen is 1000, will set x at 500
+         * @param pos A vector where X and Y are values between 0 and 1
+         */
+        void SetPositionRelative(ImVec2 pos);
         void SetPosition(ImVec2 position);
         void SetPivot(ImVec2 pivot);
         /**
@@ -56,5 +65,6 @@ class FLUF_UI_API FlWindow
          */
         virtual void Render();
         static void RenderImguiFromDisplayList(RenderDisplayList* rdl);
-        explicit FlWindow(std::string windowName, ImGuiWindowFlags flags = ImGuiWindowFlags_None, ImGuiCond condition = ImGuiCond_Appearing, bool isEscapeCloseable = true);
+        explicit FlWindow(std::string windowName, ImGuiWindowFlags flags = ImGuiWindowFlags_None, ImGuiCond condition = ImGuiCond_Appearing,
+                          bool isEscapeCloseable = true);
 };

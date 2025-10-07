@@ -8,6 +8,7 @@ struct FlightManualPage
         std::string icon;
         std::string path;
         std::string content;
+        std::optional<int> order;
         rfl::Skip<std::vector<FlightManualPage*>> children;
 };
 

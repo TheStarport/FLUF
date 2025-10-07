@@ -19,6 +19,11 @@ class CompressorRecipe(ConanFile):
 
     def requirements(self):
         self.requires("glm/cci.20230113")
+        self.requires("libwebp/1.5.0", options={
+            'shared': False,
+            'with_simd': True,
+            'near_lossless': True
+        })
         self.requires("magic_enum/0.9.6")
         self.requires("md4c/0.5.2", options={
             "md2html": False

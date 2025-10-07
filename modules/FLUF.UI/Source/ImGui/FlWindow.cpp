@@ -222,6 +222,12 @@ void FlWindow::SetSizeWithAspectRatio(int width, ImVec2 aspectRatio, float shrin
     SetSize(ImVec2(static_cast<float>(width), height));
 }
 
+void FlWindow::SetPositionRelative(ImVec2 pos)
+{
+    const auto displaySize = ImGui::GetIO().DisplaySize;
+    position = displaySize * pos;
+}
+
 void FlWindow::SetPosition(const ImVec2 position) { this->position = position; }
 
 void FlWindow::SetPivot(const ImVec2 pivot) { this->pivot = pivot; }

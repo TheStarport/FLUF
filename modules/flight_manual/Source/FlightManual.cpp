@@ -63,7 +63,6 @@ void FlightManual::OnGameLoad()
         config->pages.insert(std::end(config->pages), std::begin(*tempConfig), std::end(*tempConfig));
     }
 
-
     flufUi = module;
     auto imgui = flufUi->GetImGuiInterface();
     imgui->RegisterImGuiModule(this);
@@ -74,10 +73,7 @@ void FlightManual::Render() { flightManualWindow->Render(); }
 
 FlightManual::FlightManual() = default;
 
-FlightManual::~FlightManual()
-{
-    flufUi->GetImGuiInterface()->UnregisterImGuiModule(this);
-}
+FlightManual::~FlightManual() { flufUi->GetImGuiInterface()->UnregisterImGuiModule(this); }
 
 std::string_view FlightManual::GetModuleName() { return moduleName; }
 

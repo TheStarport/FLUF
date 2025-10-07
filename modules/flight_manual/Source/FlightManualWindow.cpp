@@ -100,12 +100,14 @@ void FlightManualWindow::RenderWindowContents()
 
     ImGui::TableNextColumn();
 
+    static std::string dataPath = "../data";
+
     if (!currentPage)
     {
         for (auto* page : topLevelPages)
         {
             uint width = 0, height = 0;
-            if (SquareButton(page->title, imguiInterface->LoadTexture(page->icon, width, height), ImVec2(225.f, 100.f)))
+            if (SquareButton(page->title, imguiInterface->LoadTexture(dataPath + page->icon, width, height), ImVec2(225.f, 100.f)))
             {
                 PageClicked(page);
             }
@@ -116,7 +118,7 @@ void FlightManualWindow::RenderWindowContents()
         for (auto* page : currentPage->children.value())
         {
             uint width = 0, height = 0;
-            if (SquareButton(page->title, imguiInterface->LoadTexture(page->icon, width, height), ImVec2(225.f, 100.f)))
+            if (SquareButton(page->title, imguiInterface->LoadTexture(dataPath + page->icon, width, height), ImVec2(225.f, 100.f)))
             {
                 PageClicked(page);
             }
@@ -258,8 +260,20 @@ FlightManualWindow::FlightManualWindow(ImGuiInterface* imguiInterface, rfl::Ref<
                               return true;
                           }
 
+                          const auto orderL = a->order.value_or(0);
+                          const auto orderR = b->order.value_or(0);
+                          if (orderL < orderR)
+                          {
+                              return false;
+                          }
+
+                          if (orderL > orderR)
+                          {
+                              return true;
+                          }
+
                           // Same count, strcmp
-                          return strcmp(a->path.c_str(), b->path.c_str()) <= 0;
+                          return strcmp(a->path.c_str(), b->path.c_str()) < 0;
                       });
 
     // Iterate through all pages, ensuring each one is parented

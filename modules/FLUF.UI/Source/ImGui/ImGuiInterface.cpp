@@ -23,15 +23,16 @@
 #include "Internal/ImGuiD3D8.hpp"
 #include "Internal/PlayerStatusWindow.hpp"
 #include "Vanilla/HudManager.hpp"
-
+#
 #include <magic_enum.hpp>
 #include <ImGui/IconFontAwesome6.hpp>
 #include <stb_image.h>
+#include <webp/decode.h>
 #undef STB_IMAGE_IMPLEMENTATION
 
 ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
 {
-    constexpr auto bgColor = ImVec4(0.07f, 0.03f, 0.16f, 0.80f);           // #140B39
+    constexpr auto bgColor = ImVec4(0.07f, 0.03f, 0.16f, 0.80f);     // #140B39
     constexpr auto bgColorChild = ImVec4(0.07f, 0.03f, 0.16f, 0.0f); // #140B39
 
     constexpr auto titleBgColor = ImVec4(0.00784314, 0.105882, 0.188235, 1); // #021B30
@@ -492,9 +493,32 @@ void ImGuiInterface::MoveWindowToEnd(FlWindow* window)
     {
         return;
     }
-    
+
     flWindowStack.remove(window);
     flWindowStack.push_back(window);
+}
+
+std::pair<byte*, bool> LoadImageFile(FILE* f, const std::string& path, int* width, int* height)
+{
+    bool webpAllocated = false;
+    byte* imageHandle = nullptr;
+    if (path.ends_with(".webp"))
+    {
+        fseek(f, 0, SEEK_END);
+        const auto size = ftell(f);
+        std::vector<byte> fileData(size);
+        fseek(f, 0, SEEK_SET);
+        fread_s(fileData.data(), fileData.size(), sizeof(byte), size, f);
+        imageHandle = WebPDecodeRGBA(fileData.data(), fileData.size(), width, height);
+        webpAllocated = true;
+    }
+    else
+    {
+        int channels = 0;
+        imageHandle = stbi_load_from_file(f, width, height, &channels, 4);
+    }
+
+    return { imageHandle, webpAllocated };
 }
 
 ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, uint& height)
@@ -506,21 +530,46 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         return reinterpret_cast<ImTextureID>(texture->second.texture);
     }
 
-    if (backend == RenderingBackend::Dx8)
+    static auto failed = [&](const std::string& texPath, FILE* file, byte* buffer, bool isWebp)
     {
-        FILE* f = fopen(path.c_str(), "rb");
-        if (f == nullptr)
+        if (file)
         {
-            goto failed;
-        }
-        int channels = 0;
-        auto imageHandle = stbi_load_from_file(f, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height), &channels, 4);
-        if (!imageHandle)
-        {
-            fclose(f);
-            goto failed;
+            fclose(file);
         }
 
+        if (buffer)
+        {
+            if (isWebp)
+            {
+                WebPFree(buffer);
+            }
+            else
+            {
+                stbi_image_free(buffer);
+            }
+        }
+
+        // Cache the fact we did not find it to prevent duplicate logs
+        loadedTextures[texPath] = { nullptr, 0, 0 };
+        Fluf::Log(LogLevel::Error, std::format("Failed to load texture: {}", texPath));
+
+        return 0;
+    };
+
+    FILE* f = fopen(path.c_str(), "rb");
+    if (f == nullptr)
+    {
+        return failed(path, f, nullptr, false);
+    }
+
+    auto [imageHandle, webpAllocated] = LoadImageFile(f, path, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height));
+    if (!imageHandle)
+    {
+        return failed(path, f, nullptr, false);
+    }
+
+    if (backend == RenderingBackend::Dx8)
+    {
         PDIRECT3DTEXTURE8 d3dTexture = nullptr;
 
         // Create empty IDirect3DTexture9*
@@ -528,20 +577,25 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         dx->CreateTexture(width, height, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &d3dTexture);
         if (!d3dTexture)
         {
-            throw std::runtime_error("CreateTexture failed");
+            return failed(path, f, imageHandle, webpAllocated);
         }
 
         D3DLOCKED_RECT rect;
         d3dTexture->LockRect(0, &rect, nullptr, D3DLOCK_DISCARD);
 
         auto* dest = static_cast<unsigned char*>(rect.pBits);
-        // Convert RGBA->ARGB
+        // Convert RGBA->BGRA
         for (int i = 0; i < width * height; i++)
         {
-            dest[i * 4] = imageHandle[i * 4 + 3];     // Alpha
-            dest[i * 4 + 1] = imageHandle[i * 4 + 2]; // Red
-            dest[i * 4 + 2] = imageHandle[i * 4 + 1]; // Green
-            dest[i * 4 + 3] = imageHandle[i * 4];     // Blue
+            auto& blue = dest[i * 4];
+            auto& green = dest[i * 4 + 1];
+            auto& red = dest[i * 4 + 2];
+            auto& alpha = dest[i * 4 + 3];
+
+            alpha = imageHandle[i * 4 + 3];
+            red = imageHandle[i * 4];
+            green = imageHandle[i * 4 + 1];
+            blue = imageHandle[i * 4 + 2];
         }
 
         d3dTexture->UnlockRect(0);
@@ -550,11 +604,21 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         if (const auto hr = d3dTexture->GetLevelDesc(0, &surfaceDesc); hr != D3D_OK)
         {
             d3dTexture->Release();
-            goto failed;
+            return failed(path, f, imageHandle, webpAllocated);
         }
 
         width = surfaceDesc.Width;
         height = surfaceDesc.Height;
+
+        fclose(f);
+        if (webpAllocated)
+        {
+            WebPFree(imageHandle);
+        }
+        else
+        {
+            stbi_image_free(imageHandle);
+        }
 
         loadedTextures[path] = { .texture = d3dTexture, .width = width, .height = height };
         return reinterpret_cast<ImTextureID>(d3dTexture);
@@ -562,19 +626,6 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
 
     if (backend == RenderingBackend::OpenGL)
     {
-        FILE* f = fopen(path.c_str(), "rb");
-        if (f == nullptr)
-        {
-            goto failed;
-        }
-
-        auto imageHandle = stbi_load_from_file(f, reinterpret_cast<int*>(&width), reinterpret_cast<int*>(&height), nullptr, 4);
-        if (!imageHandle)
-        {
-            fclose(f);
-            goto failed;
-        }
-
         // Create a OpenGL texture identifier
         GLuint imageTexture;
         glGenTextures(1, &imageTexture);
@@ -587,14 +638,22 @@ ImTextureID ImGuiInterface::LoadTexture(const std::string& path, uint& width, ui
         // Upload pixels into texture
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageHandle);
-        stbi_image_free(imageHandle);
+
+        if (webpAllocated)
+        {
+            WebPFree(imageHandle);
+        }
+        else
+        {
+            stbi_image_free(imageHandle);
+        }
+
         fclose(f);
 
         loadedTextures[path] = { .texture = reinterpret_cast<void*>(imageTexture), .width = width, .height = height };
         return imageTexture;
     }
 
-failed:
     // Cache the fact we did not find it to prevent duplicate logs
     loadedTextures[path] = { nullptr, 0, 0 };
 
