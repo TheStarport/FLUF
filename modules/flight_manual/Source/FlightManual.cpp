@@ -59,8 +59,8 @@ void FlightManual::OnGameLoad()
             continue;
         }
 
-        auto tempConfig = rfl::make_ref<std::vector<FlightManualPage>>(*ConfigHelper<std::vector<FlightManualPage>>::Load(file.path().string()));
-        config->pages.insert(std::end(config->pages), std::begin(*tempConfig), std::end(*tempConfig));
+        auto tempConfig = *ConfigHelper<std::vector<FlightManualPage>>::Load(file.path().string());
+        config->pages.insert(std::end(config->pages), std::begin(tempConfig), std::end(tempConfig));
     }
 
     flufUi = module;

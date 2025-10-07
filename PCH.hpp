@@ -87,23 +87,15 @@ struct ConfigHelper
         }
 
     private:
-        static std::string_view GetSaveLocation(std::string_view path, const bool fromUserData)
+        static std::string GetSaveLocation(std::string_view path, const bool fromUserData)
         {
-            static std::string savePath;
-            if (savePath.empty())
+            if (fromUserData)
             {
-                if (fromUserData)
-                {
-                    std::array<char, MAX_PATH> totalPath{};
-                    GetUserDataPath(totalPath.data());
-                    savePath = std::format("{}/{}", std::string(totalPath.data()), path);
-                }
-                else
-                {
-                    savePath = std::format("{}", path);
-                }
+                std::array<char, MAX_PATH> totalPath{};
+                GetUserDataPath(totalPath.data());
+                return std::format("{}/{}", std::string(totalPath.data()), path);
             }
 
-            return savePath;
+            return std::format("{}", path);
         }
 };

@@ -7,7 +7,7 @@ class ImGuiModule
     protected:
         static constexpr ImGuiWindowFlags defaultHeadlessWindowsFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration |
                                                                         ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoFocusOnAppearing |
-                                                                        ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBringToFrontOnFocus;
+                                                                        ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     public:
         virtual ~ImGuiModule() = default;

@@ -27,6 +27,7 @@
 #include <magic_enum.hpp>
 #include <ImGui/IconFontAwesome6.hpp>
 #include <stb_image.h>
+#include <misc/freetype/imgui_freetype.h>
 #include <webp/decode.h>
 #undef STB_IMAGE_IMPLEMENTATION
 
@@ -37,7 +38,9 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
 
     constexpr auto titleBgColor = ImVec4(0.00784314, 0.105882, 0.188235, 1); // #021B30
     constexpr auto borderColor = ImVec4(0.50f, 0.72f, 0.83f, 1.0f);
-    constexpr auto textColor = ImVec4(0.529f, 0.764f, 0.878f, 1.0f);
+
+    constexpr auto textColor = ImVec4(0.52f, 0.78f, 0.91f, 1.00f);
+    ;
     constexpr auto checkBoxCheckColor = ImVec4(0.16f, 0.59f, 0.16f, 1.0f);        // #28962B
     constexpr auto scrollBarColor = ImVec4(0.411f, 0.596f, 0.678f, 1.0f);         // #6998AE
     constexpr auto disabledColor = ImVec4(0.451f, 0.451f, 0.463f, 1.0f);          // #737276
@@ -354,7 +357,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     ctx->ConfigNavWindowingKeyPrev = 0;
 
     ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NoMouseCursorChange;
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
     io.IniFilename = iniPath.c_str();
 
     for (auto& loadedFont : config->loadedFonts)
@@ -379,6 +382,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             fontConfig.MergeMode = true;
             fontConfig.PixelSnapH = true;
             fontConfig.GlyphMinAdvanceX = iconFontSize;
+            fontConfig.FontLoaderFlags |= ImGuiFreeTypeLoaderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_ForceAutoHint;
             ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(FontAwesomeCompressedData, FontAwesomeCompressedSize, iconFontSize, &fontConfig, iconRanges);
         };
 
@@ -409,7 +413,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             static UImGui::TextUtilsData data;
 
             std::filesystem::path fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
-            auto lightPath = fontPath.parent_path().append(fontPath.stem().string()).string() + +"-Light" + fontPath.extension().string();
+            auto lightPath = fontPath.parent_path().append(fontPath.stem().string()).string() + fontPath.extension().string();
             auto boldPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-Bold" + fontPath.extension().string();
             auto italicPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-Italic" + fontPath.extension().string();
             auto boldAndItalicPath = fontPath.parent_path().append(fontPath.stem().string()).string() + "-BoldItalic" + fontPath.extension().string();

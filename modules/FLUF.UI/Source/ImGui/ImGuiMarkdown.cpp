@@ -619,6 +619,7 @@ bool ImguiMarkdown::CheckHtml(const char* str, const char* str_end)
         ImGui::NewLine();
         return true;
     }
+
     if (strncmp(str, "<hr>", sz) == 0)
     {
         ImGui::Separator();
@@ -629,6 +630,7 @@ bool ImguiMarkdown::CheckHtml(const char* str, const char* str_end)
         isUnderline = true;
         return true;
     }
+
     if (strncmp(str, "</u>", sz) == 0)
     {
         isUnderline = false;
@@ -642,6 +644,7 @@ bool ImguiMarkdown::CheckHtml(const char* str, const char* str_end)
         HtmlDiv(divStack.back(), true);
         return true;
     }
+
     if (strncmp(str, "</div>", sz) == 0)
     {
         if (divStack.empty())
@@ -652,6 +655,7 @@ bool ImguiMarkdown::CheckHtml(const char* str, const char* str_end)
         divStack.pop_back();
         return true;
     }
+
     return false;
 }
 

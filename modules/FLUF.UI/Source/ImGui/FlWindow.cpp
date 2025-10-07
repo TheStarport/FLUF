@@ -264,14 +264,13 @@ void FlWindow::Render()
 
     // TODO: Make this texture customizable
     uint width = 0, height = 0;
-    auto backgroundTexture = imguiInterface->LoadTexture("backgroundpattern.png", width, height);
+    const auto backgroundTexture = imguiInterface->LoadTexture("backgroundpattern.png", width, height);
 
     if (backgroundTexture)
     {
-        ImVec2 imageSize = ImVec2{ static_cast<float>(width), static_cast<float>(height) } * 0.5f;
+        const ImVec2 imageSize = ImVec2{ static_cast<float>(width), static_cast<float>(height) } * 0.5f;
         ImDrawList* drawList = ImGui::GetWindowDrawList();
-        drawList->AddCallback([](const ImDrawList*, const ImDrawCmd*) {}, nullptr);
-        drawList->AddImage(backgroundTexture, windowPos, windowPos + windowSize, ImVec2(0.f, 0.f), windowSize / imageSize, 0xFFFFFFFF);
+        drawList->AddImage(backgroundTexture, windowPos, windowPos + windowSize, ImVec2(0.f, 0.f), windowSize / imageSize, 0x40FFFFFF);
     }
 
     RenderWindowContents();

@@ -30,7 +30,6 @@ add_library(FLUF.UI SHARED
         ${IMGUI_PATH}/misc/cpp/imgui_stdlib.cpp
         ${IMGUI_PATH}/misc/freetype/imgui_freetype.cpp
         ${IMGUI_PATH}/backends/imgui_impl_win32.cpp
-        ${IMGUI_PATH}/backends/imgui_impl_dx9.cpp
         ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
         ${IMGUI_COLOR_TEXT_EDIT_SOURCE_FILES}
         ${IMGUI_TEXT_PATH}/UImGuiTextUtils.cpp
@@ -59,6 +58,7 @@ target_compile_definitions(FLUF.UI PRIVATE
         FLUF_UI
         FLCore
         MLS_LIB_COMPILE
+        IMGUI_ENABLE_FREETYPE
 )
 add_dependencies(FLUF.UI FLUF)
 

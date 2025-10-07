@@ -445,21 +445,19 @@ namespace ImGui
             // PushStyleColor(ImGuiCol_Text, textColor);
             SetNextWindowBgAlpha(opacity);
 
-            short mainMonitorId = static_cast<ImGuiViewportP*>(GetMainViewport())->PlatformMonitor;
-
             ImGuiPlatformIO& platformIO = GetPlatformIO();
-            ImGuiPlatformMonitor& monitor = platformIO.Monitors[mainMonitorId];
+            auto viewport = ImGui::GetMainViewport();
 
             if (rightAligned)
             {
                 // Set notification window position to bottom right corner of the monitor
-                SetNextWindowPos(ImVec2((monitor.WorkPos.x + monitor.WorkSize.x) * 0.95f, (monitor.WorkPos.y + monitor.WorkSize.y) * 0.1f + height),
+                SetNextWindowPos(ImVec2((viewport->WorkPos.x + viewport->WorkSize.x) * 0.95f, (viewport->WorkPos.y + viewport->WorkSize.y) * 0.1f + height),
                                  ImGuiCond_Always,
                                  ImVec2(1.0f, 1.0f));
             }
             else
             {
-                SetNextWindowPos(ImVec2((monitor.WorkPos.x + monitor.WorkSize.x) * 0.02f, (monitor.WorkPos.y + monitor.WorkSize.y) * 0.05f + height),
+                SetNextWindowPos(ImVec2((viewport->WorkPos.x + viewport->WorkSize.x) * 0.02f, (viewport->WorkPos.y + viewport->WorkSize.y) * 0.05f + height),
                                  ImGuiCond_Always);
             }
 
