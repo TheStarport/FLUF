@@ -53,45 +53,49 @@ void KeyManager::GenerateKeyMap()
 {
     userKeyMap.clear();
 
+    struct KeyWithMod
+    {
+            int key;
+            KeyMapping::KeyMod mod;
+    };
+
     struct InternalKeyMap
     {
+            DWORD a0;
+            DWORD a1;
+            DWORD a2;
             DWORD a3;
             DWORD a4;
-            DWORD a5;
-            DWORD a6;
-            DWORD a7;
-            DWORD a8;
-            DWORD a9;
+            KeyWithMod* start;
+            KeyWithMod* end;
     };
 
     auto* itemList = reinterpret_cast<st6::list<InternalKeyMap>*>(0x67C254);
     const auto userKeyStringMap = reinterpret_cast<const char**>(0x614DD8);
 
-    for (const auto& key : *itemList)
+    for (const auto& keyCmd : *itemList)
     {
-        if (key.a8 && (key.a9 - key.a8) >> 3)
+        if (keyCmd.start && (reinterpret_cast<DWORD>(keyCmd.end) - reinterpret_cast<DWORD>(keyCmd.start)) >> 3)
         {
-            auto nickname = key.a3 >= 0xCC ? "USER_NONE" : userKeyStringMap[key.a3];
-
-            if (key.a3)
+            auto nickname = keyCmd.a0 >= 0xCC ? "USER_NONE" : userKeyStringMap[keyCmd.a0];
+            if (keyCmd.a0)
             {
-                for (auto i = reinterpret_cast<DWORD*>(key.a8); i != reinterpret_cast<DWORD*>(key.a9); i += 2)
+                for (auto key = keyCmd.start; key != keyCmd.end; key++)
                 {
-                    KeyMapping::KeyMod mod;
-                    switch (const auto existingMod = static_cast<KeyMapping::KeyMod>(i[1]))
+                    KeyMapping::KeyMod mod = KeyMapping::KeyMod::None;
+                    switch (key->mod)
                     {
                         case KeyMapping::KeyMod::SHIFT:
                         case KeyMapping::KeyMod::CTRL:
                         case KeyMapping::KeyMod::ALT:
                             {
-                                mod = existingMod;
+                                mod = key->mod;
                                 break;
                             }
                         default:;
                     }
 
-                    Fluf::Info(std::format("nickname: {}, mod: {}", nickname, (int)mod));
-                    userKeyMap.emplace_back(nickname, mod, i[0]);
+                    userKeyMap.emplace_back(nickname, mod, key->key);
                 }
             }
         }
