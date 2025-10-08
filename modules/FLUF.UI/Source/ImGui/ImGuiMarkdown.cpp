@@ -625,6 +625,7 @@ bool ImguiMarkdown::CheckHtml(const char* str, const char* str_end)
         ImGui::Separator();
         return true;
     }
+
     if (strncmp(str, "<u>", sz) == 0)
     {
         isUnderline = true;
@@ -671,8 +672,6 @@ void ImguiMarkdown::HtmlDiv(const std::string& dclass, bool e)
 		}
 	}
 #endif
-    dclass;
-    e;
 }
 
 int ImguiMarkdown::Text(MD_TEXTTYPE type, const char* str, const char* str_end)

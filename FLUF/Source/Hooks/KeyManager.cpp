@@ -48,6 +48,56 @@ void __declspec(naked) KeyManager::HandleKeyNaked()
     }
 }
 
+void KeyManager::GenerateKeyMap()
+{
+    userKeyMap.clear();
+
+    struct InternalKeyMap
+    {
+            DWORD a1;
+            DWORD a2;
+            DWORD a3;
+            DWORD a4;
+            DWORD a5;
+            DWORD a6;
+            DWORD a7;
+            DWORD* a8;
+            DWORD* a9;
+    };
+
+    auto* keyMap = reinterpret_cast<st6::list<InternalKeyMap>*>(0x67C258);
+    auto userKeyStringMap = reinterpret_cast<const char**>(0x614DD8);
+
+    for (auto& key : *keyMap)
+    {
+        if (key.a8 && (key.a9 - key.a8) >> 3)
+        {
+            auto nickname = key.a3 >= 0xCC ? "USER_NONE" : userKeyStringMap[key.a3];
+            if (key.a3)
+            {
+                for (auto i = key.a8; i != key.a9; i += 2)
+                {
+                    KeyMapping::KeyMod mod;
+                    auto existingMod = static_cast<KeyMapping::KeyMod>(i[1]);
+                    switch (existingMod)
+                    {
+                        case KeyMapping::KeyMod::Shift:
+                        case KeyMapping::KeyMod::Control:
+                        case KeyMapping::KeyMod::Alt:
+                            {
+                                mod = existingMod;
+                                break;
+                            }
+                        default:;
+                    }
+
+                    userKeyMap.emplace_back(nickname, mod, i[0]);
+                }
+            }
+        }
+    }
+}
+
 using MessagePumpKeyHandler = bool (*)(int keyState, int a2, int a3);
 FunctionDetour messagePumpKeyHandlerDetour{ reinterpret_cast<MessagePumpKeyHandler>(0x577850) };
 bool MessagePumpKeyHandlerDetour(const int keyState, const int a2, const int a3)
@@ -72,9 +122,13 @@ KeyManager::KeyManager()
     MemUtils::WriteProcMem(0x576410, patch.data(), patch.size());
 
     messagePumpKeyHandlerDetour.Detour(MessagePumpKeyHandlerDetour);
+
+    GenerateKeyMap();
 }
 
 KeyManager::~KeyManager() = default;
+
+const std::vector<KeyMapping>& KeyManager::GetKeyMap() const { return userKeyMap; }
 
 void KeyManager::RegisterKey(FlufModule* module, std::string_view newName, Key key, const KeyFunc function, const bool suppressWarnings)
 {

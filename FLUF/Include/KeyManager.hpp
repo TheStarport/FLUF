@@ -217,6 +217,21 @@ enum class Key
     USER_SCREEN_SHOT
 };
 
+struct KeyMapping
+{
+        enum class KeyMod : uint8_t
+        {
+            None = 0,
+            Shift = 1,
+            Control = 4,
+            Alt = 16
+        };
+
+        std::string name;
+        KeyMod mod;
+        int virtualKey;
+};
+
 class FlufModule;
 using KeyFunc = bool (FlufModule::*)(KeyState state);
 class KeyManager
@@ -284,10 +299,15 @@ class KeyManager
 
         bool HandleKey(Key key);
         static void HandleKeyNaked();
+        void GenerateKeyMap();
+
+        std::vector<KeyMapping> userKeyMap;
 
     public:
         explicit KeyManager();
         ~KeyManager();
+        [[nodiscard]]
+        const std::vector<KeyMapping>& GetKeyMap() const;
 
         /**
          * @brief This function allows you to set up a callback for when certain keys are pressed and conditionally decide to process said key commands.
