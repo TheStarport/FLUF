@@ -4,39 +4,52 @@
 
 #include "Utils/StringUtils.hpp"
 
+#include <Fluf.hpp>
+#include <KeyManager.hpp>
+
 bool FlightManualMarkdown::CheckHtml(const char* str, const char* str_end)
 {
-    const size_t sz = str_end - str;
+    std::string_view element = { str, str_end };
     constexpr std::string_view elStart = "<kc code=\"";
     constexpr std::string_view elEnd = "\">";
 
-    if (strcmp(str, elStart.data()) != 0)
+    if (!element.starts_with(elStart) || !element.ends_with(elEnd))
     {
         return ImguiMarkdown::CheckHtml(str, str_end);
     }
 
     std::string code;
-    code.reserve(sz);
+    code.reserve(element.size());
     bool success = false;
-    for (int i = elStart.size(); i < sz && str[i] != '>'; i++)
+    for (int i = elStart.size(); element[i] != '>'; i++)
     {
-        code += str[i];
-        if (i + 1 == '"')
+        if (element[i] == '"')
         {
             success = true;
             break;
         }
+
+        code += element[i];
     }
 
-    if (!success || code.size() <= 4 || strcmp(str + code.size(), elEnd.data()) != 0)
+    if (!success || code.size() <= 4)
     {
         return false;
     }
 
-    return true;
-}
+    const auto keyManager = Fluf::GetKeyManager();
+    for (auto& keyMap = keyManager->GetKeyMap(); auto& key : keyMap)
+    {
+        if (key.name == code)
+        {
+            const auto currentKeyCode = KeyManager::TranslateKeyMapping(key);
+            ImGui::Text("%s", currentKeyCode.c_str());
+            return true;
+        }
+    }
 
-void FlightManualMarkdown::HtmlDiv(const std::string& dclass, bool e) { ImguiMarkdown::HtmlDiv(dclass, e); }
+    return false;
+}
 
 void FlightManualMarkdown::OpenUrl() const
 {

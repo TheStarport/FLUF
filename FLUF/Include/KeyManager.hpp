@@ -222,9 +222,9 @@ struct KeyMapping
         enum class KeyMod : uint8_t
         {
             None = 0,
-            Shift = 1,
-            Control = 4,
-            Alt = 16
+            SHIFT = 1,
+            CTRL = 4,
+            ALT = 16
         };
 
         std::string name;
@@ -300,14 +300,20 @@ class KeyManager
         bool HandleKey(Key key);
         static void HandleKeyNaked();
         void GenerateKeyMap();
+        static void OnKeyMapLoad();
+        static void OnKeyMapSave();
 
         std::vector<KeyMapping> userKeyMap;
 
     public:
         explicit KeyManager();
         ~KeyManager();
+
         [[nodiscard]]
-        const std::vector<KeyMapping>& GetKeyMap() const;
+        FLUF_API const std::vector<KeyMapping>& GetKeyMap() const;
+
+        [[nodiscard]]
+        FLUF_API static std::string TranslateKeyMapping(const KeyMapping&);
 
         /**
          * @brief This function allows you to set up a callback for when certain keys are pressed and conditionally decide to process said key commands.

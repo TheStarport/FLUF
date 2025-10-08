@@ -7,6 +7,7 @@
 #include "Utils/MemUtils.hpp"
 
 #include <magic_enum.hpp>
+#include <Utils/StringUtils.hpp>
 
 static KeyState currentKeyState;
 
@@ -54,36 +55,34 @@ void KeyManager::GenerateKeyMap()
 
     struct InternalKeyMap
     {
-            DWORD a1;
-            DWORD a2;
             DWORD a3;
             DWORD a4;
             DWORD a5;
             DWORD a6;
             DWORD a7;
-            DWORD* a8;
-            DWORD* a9;
+            DWORD a8;
+            DWORD a9;
     };
 
-    auto* keyMap = reinterpret_cast<st6::list<InternalKeyMap>*>(0x67C258);
-    auto userKeyStringMap = reinterpret_cast<const char**>(0x614DD8);
+    auto* itemList = reinterpret_cast<st6::list<InternalKeyMap>*>(0x67C254);
+    const auto userKeyStringMap = reinterpret_cast<const char**>(0x614DD8);
 
-    for (auto& key : *keyMap)
+    for (const auto& key : *itemList)
     {
         if (key.a8 && (key.a9 - key.a8) >> 3)
         {
             auto nickname = key.a3 >= 0xCC ? "USER_NONE" : userKeyStringMap[key.a3];
+
             if (key.a3)
             {
-                for (auto i = key.a8; i != key.a9; i += 2)
+                for (auto i = reinterpret_cast<DWORD*>(key.a8); i != reinterpret_cast<DWORD*>(key.a9); i += 2)
                 {
                     KeyMapping::KeyMod mod;
-                    auto existingMod = static_cast<KeyMapping::KeyMod>(i[1]);
-                    switch (existingMod)
+                    switch (const auto existingMod = static_cast<KeyMapping::KeyMod>(i[1]))
                     {
-                        case KeyMapping::KeyMod::Shift:
-                        case KeyMapping::KeyMod::Control:
-                        case KeyMapping::KeyMod::Alt:
+                        case KeyMapping::KeyMod::SHIFT:
+                        case KeyMapping::KeyMod::CTRL:
+                        case KeyMapping::KeyMod::ALT:
                             {
                                 mod = existingMod;
                                 break;
@@ -91,10 +90,37 @@ void KeyManager::GenerateKeyMap()
                         default:;
                     }
 
+                    Fluf::Info(std::format("nickname: {}, mod: {}", nickname, (int)mod));
                     userKeyMap.emplace_back(nickname, mod, i[0]);
                 }
             }
         }
+    }
+}
+
+void __declspec(naked) KeyManager::OnKeyMapLoad()
+{
+    static constexpr DWORD returnAddress = 0x576B60;
+    __asm
+    {
+        push ecx
+        mov ecx, KeyManager::instance
+        call KeyManager::GenerateKeyMap
+        pop ecx
+        jmp returnAddress
+    }
+}
+
+void __declspec(naked) KeyManager::OnKeyMapSave()
+{
+    static constexpr DWORD returnAddress = 0x5772D0;
+    __asm
+    {
+        push ecx
+        mov ecx, KeyManager::instance
+        call KeyManager::GenerateKeyMap
+        pop ecx
+        jmp returnAddress
     }
 }
 
@@ -123,12 +149,28 @@ KeyManager::KeyManager()
 
     messagePumpKeyHandlerDetour.Detour(MessagePumpKeyHandlerDetour);
 
-    GenerateKeyMap();
+    // When key map is loaded/saved in Freelancer, populate our internal keymap
+    MemUtils::PatchCallAddr(GetModuleHandleA(nullptr), 0x17750D, OnKeyMapLoad);
+    MemUtils::PatchCallAddr(GetModuleHandleA(nullptr), 0xAC230, OnKeyMapSave);
 }
 
 KeyManager::~KeyManager() = default;
 
 const std::vector<KeyMapping>& KeyManager::GetKeyMap() const { return userKeyMap; }
+
+std::string KeyManager::TranslateKeyMapping(const KeyMapping& mapping)
+{
+    using TranslateKeyInternal = void (*)(int* block, wchar_t* buffer, int a256);
+    static auto translateKeyInternal = reinterpret_cast<TranslateKeyInternal>(0x577F50);
+
+    int a[3]{ 0, mapping.virtualKey, static_cast<int>(mapping.mod) };
+    wchar_t buffer[256];
+    translateKeyInternal(a, buffer, sizeof(buffer));
+    const std::string output = StringUtils::wstos(buffer);
+
+    using namespace std::string_view_literals;
+    return StringUtils::ReplaceStr(output, "KP_"sv, "Num "sv);
+}
 
 void KeyManager::RegisterKey(FlufModule* module, std::string_view newName, Key key, const KeyFunc function, const bool suppressWarnings)
 {
