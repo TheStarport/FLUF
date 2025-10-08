@@ -10,7 +10,7 @@
 
 #include <imgui_internal.h>
 
-bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVec2& buttonSize, const ImVec4& backgroundColor = ImVec4(0.0f, 0.0f, 0.0f, 0.0f))
+bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVec2& buttonSize, const ImVec4& backgroundColor = ImVec4(0.0f, 0.0f, 0.0f, 1.0f))
 {
     const ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
@@ -46,7 +46,11 @@ bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVe
         points[i] = ImVec2(buttonSize.x * ratio.x + pos.x, buttonSize.y * ratio.y + pos.y);
     }
 
-    drawList->AddConcavePolyFilled(points.data(), points.size(), ImGui::ColorConvertFloat4ToU32(backgroundColor));
+    if (backgroundColor.w != 0.0f)
+    {
+        drawList->AddConcavePolyFilled(points.data(), points.size(), ImGui::ColorConvertFloat4ToU32(backgroundColor));
+    }
+
     for (auto& point : points)
     {
         drawList->PathLineTo(point);
@@ -56,12 +60,22 @@ bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVe
 
     if (textureId)
     {
-        ImGui::Image(textureId, ImVec2(buttonSize.x * 0.95f, buttonSize.y));
+        float imageTint;
+        if (held || hovered)
+        {
+            imageTint = 1.0f;
+        }
+        else
+        {
+            imageTint = 0.5f;
+        }
+
+        ImGui::ImageWithBg(textureId, ImVec2(buttonSize.x * 0.95f, buttonSize.y), {}, { 1.f, 1.f }, {}, { imageTint, imageTint, imageTint, 1.f });
     }
 
     auto textPos = pos;
-    auto font = ImGui::GetFont();
-    auto fontSize = ImGui::CalcTextSize(text.data());
+    const auto font = ImGui::GetFont();
+    const auto fontSize = ImGui::CalcTextSize(text.data());
     textPos.x += buttonSize.x * 0.75f - fontSize.x + 20.f;
     textPos.y += buttonSize.y * 0.5f - fontSize.y * 0.5f;
     drawList->AddText(font, fontSize.y, textPos, 0xFFFFFFFF, text.data());
