@@ -20,6 +20,7 @@ struct Config
 
 class Fixes final : public FlufModule
 {
+        static void DisableCharacterFileEncryption();
         static void AllowNegativeDamage();
         static void PatchAudioCodec();
         static void FixNpcLootCapacity();

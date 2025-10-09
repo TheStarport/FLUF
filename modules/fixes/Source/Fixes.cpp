@@ -36,6 +36,8 @@ void Fixes::OnGameLoad()
     SupportRollingDuringMouseFlight();
     ForceWeaponPrimaryWeaponGroupOnLaunch();
     FixSoundsNotBeingPlayed();
+
+    DisableCharacterFileEncryption();
 }
 
 void Fixes::OnServerStart(const SStartupInfo&)
@@ -44,6 +46,8 @@ void Fixes::OnServerStart(const SStartupInfo&)
     FixNpcLootCapacity();
     EnsureShieldOfflineWhileInDeathFuse();
     EnableDamagePerFire();
+
+    DisableCharacterFileEncryption();
 }
 
 void Fixes::OnDllLoaded(std::string_view dllName, HMODULE dllPtr)
@@ -53,6 +57,7 @@ void Fixes::OnDllLoaded(std::string_view dllName, HMODULE dllPtr)
     {
         AllowNegativeDamage();
         EnableDamagePerFire();
+        DisableCharacterFileEncryption();
     }
 }
 

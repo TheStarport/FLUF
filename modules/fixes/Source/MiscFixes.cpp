@@ -172,3 +172,23 @@ void Fixes::AllowUndockingFromNonTargetableObject()
     MemUtils::WriteProcMem(common + 0x50192, patch1, sizeof(patch1));
     MemUtils::PatchCallAddr(common, 0x50192, &ManualLaunchOnSpecialBase);
 }
+
+void Fixes::DisableCharacterFileEncryption()
+{
+    const auto server = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll"));
+    if (!server)
+    {
+        return;
+    }
+
+    constexpr BYTE patch[] = { 0x14, 0xB3 };
+    MemUtils::WriteProcMem(server + 0x06E10D, patch, sizeof(patch)); // Disable on char file
+    MemUtils::WriteProcMem(server + 0x07399D, patch, sizeof(patch)); // Disable on restart file
+
+    constexpr BYTE regenRestartFile1[] = { 0x8D, 0x8C, 0x24, 0x5C, 0x01, 0x00, 0x00, 0x51, 0x8D, 0x54, 0x24, 0x5C, 0x52, 0xEB, 0x13, 0xFF, 0x11, 0x83,
+                                           0xC4, 0x08, 0x85, 0xC0, 0x74, 0x11, 0x8B, 0xCD, 0xE8, 0x22, 0xFD, 0xFF, 0xFF, 0xEB, 0x0F, 0x90, 0xB9 };
+    constexpr BYTE regenRestartFile2[] = { 0xEB, 0xE6, 0x83, 0xC4, 0x08, 0xEB };
+
+    MemUtils::WriteProcMem(server + 0x06900F, regenRestartFile1, sizeof(regenRestartFile1)); // Regenerate restart file every time
+    MemUtils::WriteProcMem(server + 0x069036, regenRestartFile2, sizeof(regenRestartFile2));
+}
