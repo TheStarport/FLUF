@@ -70,9 +70,6 @@ void Retold::Render()
         Fluf::Info(std::format("Story+10: {}", contentStory->dunno10));
         Fluf::Info(std::format("Story+14: {}", contentStory->dunno14));
         Fluf::Info(std::format("Story+18: {}", contentStory->dunno18));
-        Fluf::Info(std::format("Story+1C: {}", contentStory->dunno1C));
-        Fluf::Info(std::format("Story+20: {}", contentStory->dunno20));
-        Fluf::Info(std::format("Story+24: {}", contentStory->dunno24));
         Fluf::Info(std::format("Story+24: {}", contentStory->name));
     }
     equipmentDealerWindow->Render();

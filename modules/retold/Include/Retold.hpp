@@ -9,22 +9,17 @@
 class EquipmentDealerWindow;
 class FlufUi;
 
-#pragma pack(push, 1)
 struct ContentStory
 {
         void* vtable00;
         void* vtable04;
         DWORD dunno08;
-        DWORD dunno0C;
+        uint missionStage;
         DWORD dunno10;
         float dunno14;
-        DWORD dunno18;
-        DWORD dunno1C;
-        DWORD dunno20;
-        bool dunno24;
-        const char* name;
+        bool dunno18;
+        const char name[32];
 };
-#pragma pack(pop)
 
 class Retold final : public FlufModule, public ImGuiModule
 {
