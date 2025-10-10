@@ -38,6 +38,9 @@ class Retold final : public FlufModule, public ImGuiModule
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
 
         void HookContentDll();
+        DWORD OnSystemIniOpen(INI_Reader* ini, const char* file, bool unk);
+        static void SystemIniOpenNaked();
+        void HookSystemFileReading();
 
         void OnGameLoad() override;
         void OnServerStart(const SStartupInfo&) override;

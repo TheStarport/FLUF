@@ -9,6 +9,7 @@
 
 #include <ImGui/ImGuiInterface.hpp>
 #include <EquipmentDealerWindow.hpp>
+#include <Utils/MemUtils.hpp>
 
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
@@ -40,6 +41,48 @@ void Retold::HookContentDll()
     contentStoryCreateDetour = std::make_unique<FunctionDetour<CreateContentMessageHandler<ContentStory*>>>(
         reinterpret_cast<CreateContentMessageHandler<ContentStory*>>(contentDll + 0x5E10));
     contentStoryCreateDetour->Detour(ContentStoryCreateDetour);
+}
+
+void test(DWORD* ecx, const char* file, DWORD unk) { printf("%p, %s | %x\n", ecx, file, unk); }
+
+byte* systemIniBuffer;
+DWORD Retold::OnSystemIniOpen(INI_Reader* ini, const char* file, bool unk)
+{
+    printf("%p, %s | %s\n", ini, file, unk ? "Open" : "Close");
+    return 0;
+}
+
+void __declspec(naked) Retold::SystemIniOpenNaked()
+{
+    static auto openMemory = &INI_Reader::open_memory;
+    static auto open = &INI_Reader::open;
+    __asm
+    {
+        push ecx // Store for restoration
+        push [esp+12] // bool unk
+        push [esp+12] // const char* path
+        push ecx // INI_Reader
+        mov ecx, Retold::instance
+        call OnSystemIniOpen // should pop 12
+        test eax, eax
+        jz normal_operation
+
+        pop ecx
+        add esp, 8 // Remove the previous two parameters
+        push eax
+        push systemIniBuffer
+        jmp openMemory
+
+        normal_operation:
+            pop ecx
+            jmp open
+    }
+}
+
+void Retold::HookSystemFileReading()
+{
+    const auto common = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll"));
+    MemUtils::PatchCallAddr(common, 0xD72CE, SystemIniOpenNaked);
 }
 
 void Retold::OnGameLoad()
@@ -82,6 +125,7 @@ void Retold::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
 Retold::Retold()
 {
     instance = this;
+    HookSystemFileReading();
 
     if (!Fluf::IsRunningOnClient())
     {
