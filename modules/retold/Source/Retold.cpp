@@ -60,20 +60,7 @@ void Retold::OnGameLoad()
 
 void Retold::OnServerStart(const SStartupInfo& startup_info) { HookContentDll(); }
 
-int i = 0;
-void Retold::Render()
-{
-    if (contentStory && i++ > 150)
-    {
-        i = 0;
-        Fluf::Info(std::format("Story+08: {}", contentStory->dunno08));
-        Fluf::Info(std::format("Story+10: {}", contentStory->dunno10));
-        Fluf::Info(std::format("Story+14: {}", contentStory->dunno14));
-        Fluf::Info(std::format("Story+18: {}", contentStory->dunno18));
-        Fluf::Info(std::format("Story+24: {}", contentStory->name));
-    }
-    equipmentDealerWindow->Render();
-}
+void Retold::Render() { equipmentDealerWindow->Render(); }
 
 void Retold::OnDllLoaded(std::string_view dllName, HMODULE dllPtr)
 {
@@ -88,6 +75,7 @@ void Retold::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
     if (dllName.ends_with("content.dll") || dllName.ends_with("Content.dll"))
     {
         contentDll = 0;
+        contentStoryCreateDetour = nullptr;
     }
 }
 
