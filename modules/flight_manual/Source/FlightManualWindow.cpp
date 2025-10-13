@@ -188,13 +188,14 @@ void FlightManualWindow::ChangePage(const std::string_view fullPath)
 
         for (auto* child : *children)
         {
-            if (child->title != *component)
+            if (!StringUtils::CompareCaseInsensitive(std::string_view(child->title), *component))
             {
                 continue;
             }
 
             if (i + 1 == expectedParents)
             {
+
                 foundDest = true;
                 PageClicked(child);
                 break;
