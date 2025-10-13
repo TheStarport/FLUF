@@ -39,8 +39,6 @@ class FLUF_UI_API ImguiMarkdown
         int Block(MD_BLOCKTYPE type, void* d, bool e);
         int Span(MD_SPANTYPE type, void* d, bool e);
 
-        void RenderText(const char* str, const char* str_end);
-
         void SetFont(bool e);
         void SetColor(bool e);
         void SetHRef(bool e, const MD_ATTRIBUTE& src);
@@ -66,6 +64,8 @@ class FLUF_UI_API ImguiMarkdown
         std::vector<std::string> divStack;
 
     protected:
+        void RenderText(const char* str, const char* str_end);
+
         MD_PARSER parser;
         virtual void BLOCK_DOC(bool);
         virtual void BLOCK_QUOTE(bool);

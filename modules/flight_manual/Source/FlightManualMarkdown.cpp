@@ -43,7 +43,9 @@ bool FlightManualMarkdown::CheckHtml(const char* str, const char* str_end)
         if (key.name == code)
         {
             const auto currentKeyCode = KeyManager::TranslateKeyMapping(key);
-            ImGui::Text("%s", currentKeyCode.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Text, 0xB00899FC);
+            RenderText(currentKeyCode.c_str(), currentKeyCode.c_str() + currentKeyCode.size());
+            ImGui::PopStyleColor();
             return true;
         }
     }
