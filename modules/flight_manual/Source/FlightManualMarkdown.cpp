@@ -42,7 +42,12 @@ bool FlightManualMarkdown::CheckHtml(const char* str, const char* str_end)
     {
         if (key.name == code)
         {
-            const auto currentKeyCode = KeyManager::TranslateKeyMapping(key);
+            auto currentKeyCode = KeyManager::TranslateKeyMapping(key);
+            if (currentKeyCode.empty())
+            {
+                currentKeyCode = "[UNBOUND]";
+            }
+
             ImGui::PushStyleColor(ImGuiCol_Text, 0xB00899FC);
             RenderText(currentKeyCode.c_str(), currentKeyCode.c_str() + currentKeyCode.size());
             ImGui::PopStyleColor();
@@ -62,6 +67,31 @@ void FlightManualMarkdown::OpenUrl() const
 
     using namespace std::string_view_literals;
     onPageSelected(StringUtils::ReplaceStr(href, "_"sv, " "sv));
+}
+
+bool FlightManualMarkdown::GetImage(image_info& nfo) const
+{
+    if (const auto success = ImguiMarkdown::GetImage(nfo); !success)
+    {
+        constexpr std::string_view badPath = "IMAGE NOT FOUND";
+        const auto badImageSize = ImGui::CalcTextSize(badPath.data());
+
+        auto imageSize = ImVec2{ 200.f, 200.f };
+
+        auto textPos = ImGui::GetCursorScreenPos();
+        ImGui::ImageWithBg({}, imageSize, {}, {}, { 1.f, 1.f, 1.f, 1.f });
+        auto nextElPos = ImGui::GetCursorScreenPos();
+
+        textPos += imageSize * 0.5f;
+        textPos.x -= badImageSize.x * 0.5f;
+        ImGui::SetCursorScreenPos(textPos);
+        ImGui::Text(badPath.data());
+
+        ImGui::SetCursorScreenPos({ nextElPos.x, nextElPos.y + badImageSize.y });
+        return false;
+    }
+
+    return true;
 }
 
 FlightManualMarkdown::FlightManualMarkdown(ImGuiInterface* imguiInterface, std::function<void(std::string_view)> pageSelected)

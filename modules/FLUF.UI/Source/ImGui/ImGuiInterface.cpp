@@ -66,7 +66,6 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
     style.ItemInnerSpacing = ImVec2(6.0f, 3.0f);
     style.IndentSpacing = 20.0f;
     style.ColumnsMinSpacing = 6.0f;
-    style.ScrollbarSize = 20.0f;
     style.GrabMinSize = 16.0f;
     style.TabBorderSize = 1.0f;
     style.ColorButtonPosition = ImGuiDir_Right;
@@ -81,8 +80,11 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
     style.FrameRounding = 5.0f;
     style.GrabRounding = 6.0f;
     style.PopupRounding = 5.0f;
-    style.ScrollbarRounding = 6.0f;
     style.TabRounding = 5.0f;
+
+    style.ScrollbarSize = 20.0f;
+    style.ScrollbarRounding = 6.0f;
+    style.ScrollbarPadding = 7.f;
 
     auto& colors = style.Colors;
 
@@ -101,7 +103,7 @@ ImGuiStyle& ImGuiInterface::GenerateDefaultStyle()
     colors[ImGuiCol_TitleBgCollapsed] = titleBgColor;
 
     colors[ImGuiCol_MenuBarBg] = bgColor;
-    colors[ImGuiCol_ScrollbarBg] = bgColor;
+    colors[ImGuiCol_ScrollbarBg] = {};
     colors[ImGuiCol_ScrollbarGrab] = scrollBarColor;
     colors[ImGuiCol_ScrollbarGrabHovered] = comboHoverColor;
     colors[ImGuiCol_ScrollbarGrabActive] = comboHoverColor;

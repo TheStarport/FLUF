@@ -79,7 +79,6 @@ void Breadcrumb::Render()
     int count = 0;
     for (const auto& item : items)
     {
-
         const auto width = std::clamp(ImGui::CalcTextSize(item.c_str()).x + 100.f, 125.f, 9999.f);
         if (ArrowButton(pos, ImVec2(width, 30.f), std::format("{}-arrow{}", reinterpret_cast<intptr_t>(module), count).c_str(), item, ++count == items.size()))
         {

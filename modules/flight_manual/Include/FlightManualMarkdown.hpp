@@ -8,6 +8,7 @@ class FlightManualMarkdown final : public ImguiMarkdown
 
         bool CheckHtml(const char* str, const char* str_end) override;
         void OpenUrl() const override;
+        bool GetImage(image_info& nfo) const override;
 
     public:
         explicit FlightManualMarkdown(ImGuiInterface* imguiInterface, std::function<void(std::string_view)>);

@@ -817,7 +817,6 @@ bool ImguiMarkdown::GetImage(image_info& nfo) const
         return false;
     }
 
-    printf("%u, %u\n", width, height);
     nfo.textureId = texture;
     nfo.size = ImVec2(width, height);
     nfo.uv0 = { 0, 0 };

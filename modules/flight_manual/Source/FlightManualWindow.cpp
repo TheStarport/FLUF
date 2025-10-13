@@ -21,6 +21,9 @@ bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVe
 
     auto cursorPos = ImGui::GetCursorPos();
     auto pos = window->DC.CursorPos;
+    pos.x += 10.f;
+
+    constexpr float borderSize = 2.5f;
 
     const auto buttonRegion = ImRect(pos, pos + buttonSize);
     bool hovered, held;
@@ -28,18 +31,16 @@ bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVe
         ImGui::ButtonBehavior(buttonRegion, ImGui::GetID(std::format("{}##button", text).c_str()), &hovered, &held, ImGuiButtonFlags_PressedOnRelease);
 
     auto drawList = ImGui::GetWindowDrawList();
-    static std::array<ImVec2, 8> ratios = {
+    static std::array<ImVec2, 6> ratios = {
         { { 0.0f, 0.0f },
          { 1.f, 0.0f },
          { 1.f, 0.75f },
          { 0.85f, 1.f },
-         { 0.0f, 1.0f },
-         { 0.f, 0.f },
-         { 0.f, 1.f }, //
-          { 0.f, 0.f } }
+         { 0.0f, 1.0f }, //
+          { 0.0f, 0.f } }
     };
 
-    std::array<ImVec2, 8> points;
+    std::array<ImVec2, 6> points;
     for (int i = 0; i < points.size(); ++i)
     {
         const auto& ratio = ratios[i];
@@ -56,7 +57,7 @@ bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVe
         drawList->PathLineTo(point);
     }
 
-    drawList->PathStroke(0xB00899FC, 0, 2.5f);
+    drawList->PathStroke(0xB00899FC, 0, borderSize);
 
     if (textureId)
     {
@@ -70,7 +71,9 @@ bool SquareButton(std::string_view text, const ImTextureID textureId, const ImVe
             imageTint = 0.5f;
         }
 
-        ImGui::ImageWithBg(textureId, ImVec2(buttonSize.x * 0.95f, buttonSize.y), {}, { 1.f, 1.f }, {}, { imageTint, imageTint, imageTint, 1.f });
+        ImGui::SetCursorPos({ cursorPos.x + 10.f + borderSize, cursorPos.y + borderSize });
+        ImGui::ImageWithBg(
+            textureId, ImVec2(buttonSize.x * 0.95f, buttonSize.y - borderSize * 2), {}, { 1.f, 1.f }, {}, { imageTint, imageTint, imageTint, 1.f });
     }
 
     auto textPos = pos;
@@ -141,6 +144,8 @@ void FlightManualWindow::RenderWindowContents()
 
     ImGui::TableNextColumn();
 
+    ImGui::BeginChild("##fmw-child");
+
     if (!currentPage)
     {
         markdown->Render(rootPageContent);
@@ -149,6 +154,8 @@ void FlightManualWindow::RenderWindowContents()
     {
         markdown->Render(currentPage->content);
     }
+
+    ImGui::EndChild();
 
     ImGui::EndTable();
 }
@@ -161,13 +168,14 @@ void FlightManualWindow::PageClicked(FlightManualPage* page)
 
 void FlightManualWindow::Render()
 {
-    SetSizeWithAspectRatio(1440, ImVec2(4.f, 3.f));
+    SetSizeWithAspectRatio(1280, ImVec2(4.f, 3.f));
     CenterWindow();
     FlWindow::Render();
 }
 
 void FlightManualWindow::ChangePage(const std::string_view fullPath)
 {
+    auto lastPage = currentPage;
     breadcrumb->Reset();
     if (fullPath.empty() || fullPath == "/")
     {
@@ -210,7 +218,7 @@ void FlightManualWindow::ChangePage(const std::string_view fullPath)
     if (!foundDest)
     {
         Fluf::Error(std::format("Bad link located within flight manual: {}", fullPath));
-        currentPage = nullptr;
+        PageClicked(lastPage);
     }
 }
 

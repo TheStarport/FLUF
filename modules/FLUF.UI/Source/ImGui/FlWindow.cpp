@@ -48,17 +48,17 @@ void FlWindow::DrawScrollbars() const
 
         if (axis == ImGuiAxis_Y)
         {
-            barBox.Min.x -= 20.f;
-            barBox.Max.x -= 20.f;
-            barBox.Min.y += 20.f;
-            barBox.Max.y -= 20.f;
+            barBox.Min.x -= 30.f;
+            barBox.Max.x -= 30.f;
+            barBox.Min.y += 30.f;
+            barBox.Max.y -= 30.f;
         }
         else
         {
-            barBox.Min.x += 20.f;
-            barBox.Max.x -= 20.f;
-            barBox.Min.y -= 20.f;
-            barBox.Max.y -= 20.f;
+            barBox.Min.x += 30.f;
+            barBox.Max.x -= 30.f;
+            barBox.Min.y -= 30.f;
+            barBox.Max.y -= 30.f;
         }
 
         ImDrawFlags rounding = ImDrawFlags_RoundCornersNone;
