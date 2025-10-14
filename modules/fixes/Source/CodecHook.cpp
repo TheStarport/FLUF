@@ -83,6 +83,15 @@ void __declspec(naked) AudioCodecHook()
 
 void Fixes::PatchAudioCodec()
 {
+    auto sm = reinterpret_cast<DWORD>(GetModuleHandleA("SoundManager.dll"));
+    auto ss = reinterpret_cast<DWORD>(GetModuleHandleA("SoundStreamer.dll"));
+
+    if (MemUtils::IsRunningOnWine())
+    {
+        MemUtils::NopAddress(ss + 0x1016, 33);
+        MemUtils::NopAddress(sm + 0x8676, 33);
+    }
+
     const auto soundManagerAddress = reinterpret_cast<DWORD>(GetModuleHandleA("SoundManager.dll")) + (0x6ee8ca0 - 0x6ee0000);
     const auto soundStreamerAddress = reinterpret_cast<DWORD>(GetModuleHandleA("SoundStreamer.dll")) + (0x6ef3f50 - 0x6ef0000);
 
