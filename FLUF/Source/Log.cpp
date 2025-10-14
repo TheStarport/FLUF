@@ -2,7 +2,7 @@
 
 #include <Fluf.hpp>
 #include <Internal/FlufConfiguration.hpp>
-#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 std::shared_ptr<spdlog::logger> logFile;
 
@@ -148,7 +148,7 @@ void Fluf::SetupLogging() const
         GetUserDataPath(path.data());
 
         std::string_view pathPartial{ path.data(), strlen(path.data()) };
-        logFile = spdlog::rotating_logger_st("file_logger", std::format("{}\\fluf.log", pathPartial), 1048576 * 5, 3);
+        logFile = spdlog::basic_logger_mt("file_logger", std::format("{}\\fluf.log", pathPartial), true);
         logFile->set_pattern("[%H:%M:%S %z] %v");
     }
 
