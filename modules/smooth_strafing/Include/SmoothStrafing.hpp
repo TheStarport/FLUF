@@ -12,6 +12,7 @@ struct CustomStrafe
         float acceleration;
         uint leftFuse;
         uint rightFuse;
+        float verticalMultiplier;
 };
 
 class SmoothStrafing final : public FlufModule
@@ -19,11 +20,12 @@ class SmoothStrafing final : public FlufModule
         inline static std::unordered_map<uint, CustomStrafe> shipStrafeForces;
         inline static float totalTimeBeenStrafing = 0.f;
         inline static float deltaTime = 0.f;
-        inline static float currentStrafeForce = 0.f;
+        inline static float currentHorizontalStrafeForce = 0.f;
+        inline static float currentVerticalStrafeForce = 0.f;
         inline static uint lastFuse = 0;
         inline static bool fuseIsLit = false;
 
-        static float* __fastcall GetStrafeForce(const CShip* ship);
+        static float* __fastcall GetStrafeForce(CShip* ship, CStrafeEngine* engine);
         static void OnStrafeForceApply();
         static float* __fastcall GetThrusterForce(const Archetype::Thruster* archetype, const CEqObj* owner);
         static void OnThrusterForceApply();

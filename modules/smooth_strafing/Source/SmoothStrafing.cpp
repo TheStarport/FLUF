@@ -30,6 +30,7 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
 
         std::string nickname;
         float strafeAcceleration = 0.f;
+        float strafeVerticalMultiplier = 0.1f;
         uint leftFuse = 0;
         uint rightFuse = 0;
         while (ini.read_value())
@@ -41,6 +42,10 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
             else if (ini.is_value("strafe_force_acceleration"))
             {
                 strafeAcceleration = ini.get_value_float(0);
+            }
+            else if (ini.is_value("strafe_vertical_multiplier"))
+            {
+                strafeVerticalMultiplier = ini.get_value_float(0);
             }
             else if (ini.is_value("strafe_fuse"))
             {
@@ -54,7 +59,12 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
             continue;
         }
 
-        shipStrafeForces[CreateID(nickname.c_str())] = { .acceleration = strafeAcceleration, .leftFuse = leftFuse, .rightFuse = rightFuse };
+        shipStrafeForces[CreateID(nickname.c_str())] = {
+            .acceleration = strafeAcceleration,
+            .leftFuse = leftFuse,
+            .rightFuse = rightFuse,
+            .verticalMultiplier = strafeVerticalMultiplier //
+        };
     }
 }
 
@@ -82,7 +92,7 @@ void ToggleShipFuse(const CShip* ship, const uint id, const bool on)
     }
 }
 
-float* __fastcall SmoothStrafing::GetStrafeForce(const CShip* ship)
+float* __fastcall SmoothStrafing::GetStrafeForce(CShip* ship, CStrafeEngine* engine)
 {
     static float retValue;
 
@@ -93,8 +103,39 @@ float* __fastcall SmoothStrafing::GetStrafeForce(const CShip* ship)
         return &retValue;
     }
 
-    static StrafeDir lastStrafeDirection = StrafeDir::None;
-    if (const auto dir = ship->strafeDir; dir != lastStrafeDirection)
+    static auto lastStrafeDirection = StrafeDir::None;
+    auto dir = engine->GetStrafe();
+
+    if (dir == StrafeDir::UpLeft || dir == StrafeDir::UpRight)
+    {
+        if (lastStrafeDirection == StrafeDir::Up)
+        {
+            dir = dir == StrafeDir::UpLeft ? StrafeDir::Left : StrafeDir::Right;
+        }
+        else
+        {
+            dir = StrafeDir::Up;
+        }
+
+        engine->SetStrafe(dir);
+        ship->strafeDir = dir;
+    }
+    else if (dir == StrafeDir::DownLeft || dir == StrafeDir::DownRight)
+    {
+        if (lastStrafeDirection == StrafeDir::Down)
+        {
+            dir = dir == StrafeDir::DownLeft ? StrafeDir::Left : StrafeDir::Right;
+        }
+        else
+        {
+            dir = StrafeDir::Down;
+        }
+
+        engine->SetStrafe(dir);
+        ship->strafeDir = dir;
+    }
+
+    if (dir != lastStrafeDirection)
     {
         if (fuseIsLit)
         {
@@ -114,17 +155,44 @@ float* __fastcall SmoothStrafing::GetStrafeForce(const CShip* ship)
         totalTimeBeenStrafing = 0.f;
     }
 
-    if (!fuseIsLit)
+    if (dir == StrafeDir::None)
     {
-        fuseIsLit = true;
-        lastFuse = ship->strafeDir == StrafeDir::Right ? strafeData->second.rightFuse : strafeData->second.leftFuse;
-        ToggleShipFuse(ship, lastFuse, true);
+        retValue = 0.f;
+        return &retValue;
     }
 
     totalTimeBeenStrafing += deltaTime;
-
     retValue = std::clamp(strafeData->second.acceleration * totalTimeBeenStrafing, 0.f, ship->shiparch()->strafeForce);
-    currentStrafeForce = retValue;
+
+    if (dir == StrafeDir::Right || dir == StrafeDir::Left)
+    {
+        currentHorizontalStrafeForce = retValue;
+        if (std::abs(currentVerticalStrafeForce) > 1.f)
+        {
+            currentVerticalStrafeForce *= 0.97f;
+        }
+
+        if (!fuseIsLit)
+        {
+            fuseIsLit = true;
+            lastFuse = ship->strafeDir == StrafeDir::Right ? strafeData->second.rightFuse : strafeData->second.leftFuse;
+            ToggleShipFuse(ship, lastFuse, true);
+        }
+    }
+    else if (dir == StrafeDir::Up || dir == StrafeDir::Down)
+    {
+        retValue *= strafeData->second.verticalMultiplier;
+        currentVerticalStrafeForce = retValue;
+        if (std::abs(currentHorizontalStrafeForce) > 1.f)
+        {
+            currentHorizontalStrafeForce *= 0.97f;
+        }
+    }
+    else
+    {
+        retValue = 0.f;
+    }
+
     return &retValue;
 }
 
@@ -133,10 +201,13 @@ void __declspec(naked) SmoothStrafing::OnStrafeForceApply()
     static constexpr DWORD retAddress = 0x62BBA6E;
     __asm
     {
+        push edx
         push eax
+        mov edx, esi
         call GetStrafeForce
         fld [eax]
         pop eax
+        pop edx
         jmp retAddress
     }
 }
@@ -150,7 +221,7 @@ float* __fastcall SmoothStrafing::GetThrusterForce(const Archetype::Thruster* ar
         return &retValue;
     }
 
-    retValue = std::clamp(archetype->maxForce - currentStrafeForce, 0.f, archetype->maxForce);
+    retValue = std::clamp(archetype->maxForce - currentHorizontalStrafeForce, 0.f, archetype->maxForce);
     return &retValue;
 }
 
@@ -174,23 +245,38 @@ void SmoothStrafing::BeforePhysicsUpdate(uint system, const float delta)
 {
     deltaTime = delta;
 
-    auto player = Fluf::GetPlayerCShip();
+    const auto player = Fluf::GetPlayerCShip();
     if (!player)
     {
         return;
     }
 
-    const auto dir = player->strafeDir;
-    if (dir == StrafeDir::None)
+    if (player->strafeDir == StrafeDir::None)
     {
         // If no longer strafing, slowly reduce to 0
-        currentStrafeForce *= 0.96f;
+        currentHorizontalStrafeForce *= 0.97f;
+        currentVerticalStrafeForce *= 0.97f;
+        totalTimeBeenStrafing = std::clamp(totalTimeBeenStrafing - delta, 0.f, 1.f);
 
         if (fuseIsLit)
         {
             ToggleShipFuse(player, lastFuse, false);
             fuseIsLit = false;
         }
+
+        return;
+    }
+
+    // If the player has changed direction in strafe, but is still strafing
+    // We want to lower the amount of force, but not feel like they are being
+    // forcefully stopped. So we decrease by ~6% a second, vs the normal ~18%
+    if (player->strafeDir != StrafeDir::Left && player->strafeDir != StrafeDir::Right)
+    {
+        currentHorizontalStrafeForce *= 0.99f;
+    }
+    else if (player->strafeDir != StrafeDir::Down && player->strafeDir != StrafeDir::Up)
+    {
+        currentVerticalStrafeForce *= 0.99f;
     }
 }
 
@@ -230,7 +316,8 @@ void SmoothStrafing::OnGameLoad()
 
 void SmoothStrafing::OnLaunch(uint client, struct FLPACKET_LAUNCH& launch)
 {
-    currentStrafeForce = 0.f;
+    currentHorizontalStrafeForce = 0.f;
+    currentVerticalStrafeForce = 0.f;
     totalTimeBeenStrafing = 0.f;
     deltaTime = 0.f;
 }
