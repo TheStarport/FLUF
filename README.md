@@ -104,7 +104,7 @@ On Windows systems at least, you will need to add the location of the `7z` binar
 This must be done before running the `cli.py dependencies` step below.
 
 Linux requires compilation to be done through [MSVC Wine](https://github.com/mstorsjo/msvc-wine). Follow the
-instructions there for setting it up. Once setup in your directories of choice, add these to your .bashrc
+instructions there for setting it up. Once setup in your directories of choice, add these to your .bashrc*
 (or convert to your shell of choice):
 
 ```shell
@@ -152,6 +152,8 @@ the specified destination directory. It must be an absolute directory, and any b
 - When using CLion on Windows, the default toolchain is often not correct and overrides some of the
   conan build settings. Ensure that the active toolchain looks like
   [this](https://github.com/TheStarport/FLUF/blob/master/.github/images/clion.png).
+- On Linux, if you get an error saying 'CMAKE_CXX_COMPILER not found' or similar, it is possible that your CLion is not
+  reading from your `.bashrc` file and environment variables should be added to `.profile` instead.
 
 ## Docs
 
