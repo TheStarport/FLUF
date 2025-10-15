@@ -146,12 +146,6 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void Fluf::OnGameLoad()
 {
-    // MANUAL PATCH DO NOT COMMIT LAZ
-    const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
-    constexpr byte m = 127;
-    MemUtils::WriteProcMem(fl + 0x16835B, &m, sizeof(m));
-    MemUtils::WriteProcMem(fl + 0x169D2B, &m, sizeof(m));
-
     InfocardOverrides::Initialise();
 
     Log(LogLevel::Info, "Data loaded, Freelancer ready.");
