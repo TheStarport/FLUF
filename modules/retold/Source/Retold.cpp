@@ -126,9 +126,21 @@ void Retold::HookSystemFileReading()
     MemUtils::WriteProcMem(fl + 0x15379D, &systemIniOpenRedirectionAddress2, sizeof(systemIniOpenRedirectionAddress2));
 }
 
+bool Retold::OnKeyToggleAutoTurrets(const KeyState state)
+{
+    if (state == KeyState::Released)
+    {
+        autoTurretsEnabled = !autoTurretsEnabled;
+    }
+    return true;
+}
+
 void Retold::OnGameLoad()
 {
     HookContentDll();
+
+    auto* km = Fluf::GetKeyManager();
+    km->RegisterKey(this, "FLUF_TOGGLE_AUTO_TURRETS", Key::USER_WARP_OVERRIDE, static_cast<KeyFunc>(&Retold::OnKeyToggleAutoTurrets));
 
     if (flufUi->GetConfig()->uiMode != UiMode::ImGui)
     {
@@ -136,21 +148,13 @@ void Retold::OnGameLoad()
     }
 
     auto imgui = flufUi->GetImGuiInterface();
-    imgui->RegisterImGuiModule(this);
+    //imgui->RegisterImGuiModule(this);
     //imgui->RegisterOptionsMenu(this, static_cast<RegisterOptionsFunc>(&Retold::RenderRetoldOptions));
 
-    equipmentDealerWindow = std::make_unique<EquipmentDealerWindow>(imgui);
+    //equipmentDealerWindow = std::make_unique<EquipmentDealerWindow>(imgui);
 }
 
 void Retold::OnServerStart(const SStartupInfo& startup_info) { HookContentDll(); }
-
-bool Retold::BeforeBaseExit(uint baseId, uint client)
-{
-    auto system = const_cast<Universe::ISystem*>(Universe::get_system(CreateID("li01")));
-    auto base = const_cast<Universe::IBase*>(Universe::get_base(CreateID("li01_01_base")));
-
-    return true;
-}
 
 void Retold::Render() { equipmentDealerWindow->Render(); }
 
@@ -171,41 +175,67 @@ void Retold::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
     }
 }
 
-class CliEquip
+struct CliLauncher
 {
-    public:
         virtual void dunno0();
         virtual void dunno4();
         virtual void dunno8();
-        virtual void fire(const Vector& pos);
-        virtual void fireForward();
+        virtual bool fire(const Vector& pos);
+        virtual bool fireForward();
 
-        CEquip* equip;
+        CELauncher* launcher;
         Ship* owner;
+
+        static constexpr auto PlayFireSound = reinterpret_cast<int(__thiscall*)(CliLauncher*, const Vector& pos, void* unused)>(0x52CED0);
 };
 
 void Retold::OnFixedUpdate(const double delta)
 {
-    static int counter = 0;
-
-    if (counter++ > 60)
-    {
-        counter = 0;
-    }
-
-    auto iobj = Fluf::GetPlayerIObj();
-    if (!iobj)
+    if (!autoTurretsEnabled)
     {
         return;
     }
-    st6::list<CliEquip*>* equipList = (st6::list<CliEquip*>*)(DWORD(iobj) + (4 * 45));
 
-    for (auto equip : *equipList)
+    auto iObj = Fluf::GetPlayerIObj();
+    if (!iObj)
     {
-        if (equip->equip->archetype->get_class_type() == Archetype::ClassType::Gun
-            && equip->equip->IsActive())
+        return;
+    }
+
+    auto* equipList = reinterpret_cast<st6::list<CliLauncher*>*>(reinterpret_cast<DWORD>(iObj) + (4 * 45));
+
+    IObjRW* target = nullptr;
+    iObj->get_target(target);
+    if (!target)
+    {
+        return;
+    }
+
+    float attitude = 0.0f;
+    target->get_attitude_towards(attitude, reinterpret_cast<const IObjInspect*>(iObj));
+
+    if (attitude > -0.6f)
+    {
+        return;
+    }
+
+    for (const auto equip : *equipList)
+    {
+        if (equip->launcher->archetype->get_class_type() == Archetype::ClassType::Gun && equip->launcher->IsActive())
         {
-            equip->fire({ 0, 0, 0 });
+            const auto gun = dynamic_cast<CEGun*>(equip->launcher);
+            if (!gun->GunArch()->autoTurret)
+            {
+                continue;
+            }
+
+            if (Vector targetPos{}; iObj->cship()->get_tgt_lead_fire_pos(targetPos) && equip->fire(targetPos))
+            {
+                auto pos = gun->GetBarrelPosWS(0);
+                const auto mult = 1.0f / static_cast<float>(gun->GetProjectilesPerFire());
+                pos *= mult;
+                CliLauncher::PlayFireSound(equip, pos, nullptr);
+            }
         }
     }
 }
@@ -258,7 +288,7 @@ Retold::Retold()
             }
             else if (ini.is_value("file_override"))
             {
-                fileOverrides.push_back(ini.get_value_string());
+                fileOverrides.emplace_back(ini.get_value_string());
             }
         }
 
@@ -270,7 +300,7 @@ Retold::Retold()
             {
                 if (!std::filesystem::exists(filePath))
                 {
-                    filePath = std::string("..\\DATA\\UNIVERSE\\") + filePath;
+                    filePath = std::string(R"(..\DATA\UNIVERSE\)") + filePath;
                 }
 
                 Fluf::Debug(std::format("Loading override file: {}", filePath));
@@ -291,7 +321,7 @@ Retold::Retold()
 
             if (!overrideFile.empty())
             {
-                systemFileOverrides[std::format("..\\data\\universe\\{}", systemFile)] = overrideFile;
+                systemFileOverrides[std::format(R"(..\data\universe\{})", systemFile)] = overrideFile;
             }
         }
     }

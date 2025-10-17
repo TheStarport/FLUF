@@ -29,6 +29,8 @@ class Retold final : public FlufModule, public ImGuiModule
         inline static Retold* instance = nullptr;
         ContentStory* contentStory = nullptr;
 
+        bool autoTurretsEnabled = true;
+
         template <typename T>
         using CreateContentMessageHandler = T(__thiscall*)(T, void* contentInstance, DWORD* payload);
 
@@ -42,12 +44,13 @@ class Retold final : public FlufModule, public ImGuiModule
 
         void OnGameLoad() override;
         void OnServerStart(const SStartupInfo&) override;
-        bool BeforeBaseExit(uint baseId, uint client) override;
         void Render() override;
         void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
 
         void OnFixedUpdate(const double delta) override;
+
+        bool OnKeyToggleAutoTurrets(KeyState state);
 
         std::unordered_map<std::string, std::string> systemFileOverrides;
 
