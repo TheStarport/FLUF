@@ -217,7 +217,7 @@ function(create_post_build)
 endfunction()
 
 # For ImGuiTextUtils
-add_definitions(-DMLS_EXPORT_LIBRARY=1)
+add_definitions(-DMLS_EXPORT_LIBRARY=1 -DINI_CALL_HANDLER_ON_NEW_SECTION=1)
 
 # Now we add our sub-projects
 

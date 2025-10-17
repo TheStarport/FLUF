@@ -23,3 +23,6 @@
 [submodule "vendor/ImGuiTextUtils"]
 	path = vendor/ImGuiTextUtils
 	url = https://github.com/MadLadSquad/UntitledImGuiTextUtils.git
+[submodule "vendor/inih"]
+	path = vendor/inih
+	url = https://github.com/benhoyt/inih

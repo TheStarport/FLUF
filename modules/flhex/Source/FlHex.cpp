@@ -70,6 +70,7 @@ FlHex::FlHex()
     const auto loadedHexEdits = ConfigHelper<decltype(hexEdits)>::Load(configPath);
     if (!loadedHexEdits.has_value())
     {
+        Fluf::Info("Failed to load FLHex Config");
         return;
     }
 
