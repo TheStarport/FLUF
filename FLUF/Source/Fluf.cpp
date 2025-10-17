@@ -10,6 +10,7 @@
 #include "Internal/Hooks/InfocardOverrides.hpp"
 #include "Utils/MemUtils.hpp"
 #include "KeyManager.hpp"
+#include "DamageDeath.hpp"
 
 #include <Exceptions.hpp>
 #include <spdlog/common.h>
@@ -57,6 +58,10 @@ HINSTANCE __stdcall Fluf::LoadLibraryDetour(LPCSTR dllName)
             }
             delayedRPCLocalDetour = std::make_unique<FunctionDetour<RPCLocalDetourType>>(reinterpret_cast<RPCLocalDetourType>(DWORD(res) + 0xEED0));
             delayedRPCLocalDetour->Detour(DelayedRPCLocalDetour);
+        }
+        else if (_stricmp(dllName, "server.dll") == 0)
+        {
+            LoadServerHooks();
         }
         else if (_stricmp(dllName, "remoteserver.dll") == 0)
         {
@@ -144,9 +149,77 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
+void Fluf::LoadCommonHooks()
+{
+#define VTablePtr(x) static_cast<unsigned short>(x)
+    const void* ptr = &IEngineHook::CShipInit;
+    IEngineHook::cShipVTable.Hook(VTablePtr(CShipVTable::InitCShip), &ptr);
+    ptr = &IEngineHook::CSolarInit;
+    IEngineHook::cSolarVTable.Hook(VTablePtr(CSolarVTable::InitCSolar), &ptr);
+    ptr = &IEngineHook::CLootInit;
+    IEngineHook::cLootVTable.Hook(VTablePtr(CLootVTable::InitCLoot), &ptr);
+    ptr = &IEngineHook::CGuidedInit;
+    IEngineHook::cGuidedVTable.Hook(VTablePtr(CGuidedVTable::InitCEquipObject), &ptr);
+#undef VtablePtr
+}
+
+void Fluf::LoadServerHooks()
+{
+#define VTablePtr(x) static_cast<unsigned short>(x)
+    const void* ptr = &IEngineHook::ShipMunitionHit;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::MunitionImpact), &ptr);
+
+    ptr = &IEngineHook::ShipDestroy;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::ObjectDestroyed), &ptr);
+    ptr = &IEngineHook::SolarDestroy;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::ObjectDestroyed), &ptr);
+    ptr = &IEngineHook::LootDestroy;
+    IEngineHook::iLootVTable.Hook(VTablePtr(ILootInspectVTable::ObjectDestroyed), &ptr);
+    ptr = &IEngineHook::MineDestroy;
+    IEngineHook::iMineVTable.Hook(VTablePtr(IMineInspectVTable::ObjectDestroyed), &ptr);
+    ptr = &IEngineHook::GuidedDestroy;
+    IEngineHook::iGuidedVTable.Hook(VTablePtr(IGuidedInspectVTable::ObjectDestroyed), &ptr);
+
+    ptr = &IEngineHook::ShipHullDamage;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageHull), &ptr);
+    ptr = &IEngineHook::SolarHullDamage;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::DamageHull), &ptr);
+
+    ptr = &IEngineHook::SolarColGrpDestroy;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::ColGrpDeath), &ptr);
+
+    ptr = &IEngineHook::ShipShieldDmg;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageShield), &ptr);
+    ptr = &IEngineHook::ShipEnergyDmg;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageEnergy), &ptr);
+
+    ptr = &IEngineHook::ShipExplosionHit;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::ProcessExplosionDamage), &ptr);
+    ptr = &IEngineHook::GuidedExplosionHit;
+    IEngineHook::iGuidedVTable.Hook(VTablePtr(IGuidedInspectVTable::ProcessExplosionDamage), &ptr);
+    ptr = &IEngineHook::SolarExplosionHit;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::ProcessExplosionDamage), &ptr);
+
+    ptr = &IEngineHook::ShipFuse;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::LightFuse), &ptr);
+
+    ptr = &IEngineHook::ShipEquipDmg;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageExtEq), &ptr);
+    ptr = &IEngineHook::ShipEquipDestroy;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::CEquipDeath), &ptr);
+
+    ptr = &IEngineHook::ShipColGrpDmg;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageColGrp), &ptr);
+    ptr = &IEngineHook::ShipColGrpDestroy;
+    IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::ColGrpDeath), &ptr);
+#undef VtablePtr
+}
+
 void Fluf::OnGameLoad()
 {
     InfocardOverrides::Initialise();
+    LoadCommonHooks();
+    LoadServerHooks();
 
     Log(LogLevel::Info, "Data loaded, Freelancer ready.");
     for (auto module = loadedModules.begin(); module != loadedModules.end();)

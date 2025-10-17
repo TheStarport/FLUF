@@ -12,6 +12,7 @@
 #include <memory>
 
 class ClientServerCommunicator;
+class IEngineHook;
 enum class LogLevel
 {
     Trace,
@@ -56,6 +57,7 @@ class Fluf
         friend ClientSend;
         friend ClientReceive;
         friend ClientServerCommunicator;
+        friend IEngineHook;
         friend FlufModule;
         inline static HMODULE thisDll;
         inline static Fluf* instance;
@@ -76,6 +78,8 @@ class Fluf
 
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
+        static void LoadCommonHooks();
+        static void LoadServerHooks();
         void OnGameLoad();
         static bool __thiscall OnServerStart(IServerImpl* server, SStartupInfo& info);
 
