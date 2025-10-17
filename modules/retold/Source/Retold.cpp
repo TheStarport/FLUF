@@ -171,6 +171,45 @@ void Retold::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
     }
 }
 
+class CliEquip
+{
+    public:
+        virtual void dunno0();
+        virtual void dunno4();
+        virtual void dunno8();
+        virtual void fire(const Vector& pos);
+        virtual void fireForward();
+
+        CEquip* equip;
+        Ship* owner;
+};
+
+void Retold::OnFixedUpdate(const double delta)
+{
+    static int counter = 0;
+
+    if (counter++ > 60)
+    {
+        counter = 0;
+    }
+
+    auto iobj = Fluf::GetPlayerIObj();
+    if (!iobj)
+    {
+        return;
+    }
+    st6::list<CliEquip*>* equipList = (st6::list<CliEquip*>*)(DWORD(iobj) + (4 * 45));
+
+    for (auto equip : *equipList)
+    {
+        if (equip->equip->archetype->get_class_type() == Archetype::ClassType::Gun
+            && equip->equip->IsActive())
+        {
+            equip->fire({ 0, 0, 0 });
+        }
+    }
+}
+
 Retold::Retold()
 {
     instance = this;

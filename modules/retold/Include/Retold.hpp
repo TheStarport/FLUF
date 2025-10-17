@@ -47,6 +47,8 @@ class Retold final : public FlufModule, public ImGuiModule
         void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
 
+        void OnFixedUpdate(const double delta) override;
+
         std::unordered_map<std::string, std::string> systemFileOverrides;
 
     public:

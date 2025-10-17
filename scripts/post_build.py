@@ -61,9 +61,6 @@ def post_build(release: bool, dest: str):
         os.makedirs('./dist/DATA', exist_ok=True)
         shutil.copytree('./assets', 'dist', dirs_exist_ok=True)
 
-        # Create ZIP
-        log('Zipping up dist folder to build.zip')
-        shutil.make_archive('build', 'zip', './dist')
 
         if dest:
             log('Copying to end dest')
@@ -76,5 +73,10 @@ def post_build(release: bool, dest: str):
             shutil.copytree('./dist/DATA', f'{dest}..{os.path.sep}DATA{os.path.sep}', dirs_exist_ok=True)
             shutil.copy2(f'dist/EXE/FLUF.dll', dest)
             shutil.copy2(f'dist/EXE/curl-ca-bundle.crt', dest)
+
+        # Create ZIP
+        log('Zipping up dist folder to build.zip')
+        shutil.make_archive('build', 'zip', './dist')
+
     except Exception:
         print(traceback.format_exc())
