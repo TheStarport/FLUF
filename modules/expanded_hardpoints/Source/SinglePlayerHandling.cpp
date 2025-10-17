@@ -3,8 +3,6 @@
 #include "ExpandedHardpoints.hpp"
 #include "Utils/MemUtils.hpp"
 
-#define NAKED                  __declspec(naked)
-
 #define ADDR_INFO              ((PDWORD)(0x4767d3 + 1))
 #define ADDR_XFER              ((PDWORD)(0x47b008 + 2))
 #define ADDR_MOUNT1            ((PDWORD)(0x47c8c3 + 2))
@@ -35,12 +33,8 @@ DWORD dummyz;
 DWORD Mount1_Org, Mount2_Org, Mount3a_Org, Mount3b_Org;
 DWORD Dealer1_Org, Dealer2_Org, Xfer_Org, Info_Org;
 
-#define SLOTS 5
-ExpandedHardpoints::SlotData slot[SLOTS];
-
 // Create a list of the archetypes in each slot.
-NAKED
-void Mount1_Hook()
+__declspec(naked) void ExpandedHardpoints::Mount1_Hook()
 {
     __asm {
 		cmp [esp + 0x24], 0 // check if on player inventory, not vendor
@@ -51,7 +45,7 @@ void Mount1_Hook()
 		push eax
 		push edi
 
-		lea ebx, slot
+		lea ebx, ExpandedHardpoints::slot
 		mov ecx, eax
 		mov eax, edi
 		mov edi, 8
@@ -173,13 +167,13 @@ bool __stdcall ExpandedHardpoints::Mount2_Hook2(SlotData& good)
     return IsValidSubclassItem(good.arch, Fluf::GetPlayerShipArchId(), true);
 }
 
-uint mount2RetAddr = 0x47F5AF;
-NAKED void Mount2_HookNaked()
+__declspec(naked) void ExpandedHardpoints::Mount2_HookNaked()
 {
+    static constexpr uint mount2RetAddr = 0x47F5AF;
     __asm {
 		mov eax, [esp + 0x18]
 		add esp, 4
-		lea eax, slot[eax*8]
+		lea eax, ExpandedHardpoints::slot[eax*8]
 		push eax
 		push mount2RetAddr
 		jmp ExpandedHardpoints::Mount2_Hook2
@@ -187,8 +181,7 @@ NAKED void Mount2_HookNaked()
 }
 
 // Prevent automatic unmount of internal equipment.
-NAKED
-void Mount3a_Hook()
+__declspec(naked) void Mount3a_Hook()
 {
     __asm {
 		push[edi + 4]
@@ -206,8 +199,7 @@ void Mount3a_Hook()
     }
 }
 
-NAKED
-void Mount3b_Hook()
+__declspec(naked) void Mount3b_Hook()
 {
     __asm {
 		push[edi + 4]
@@ -226,8 +218,7 @@ void Mount3b_Hook()
 }
 
 // Prevent selling and transferring.
-NAKED
-void Dealer1_Hook()
+__declspec(naked) void Dealer1_Hook()
 {
     __asm {
 		push	ecx
@@ -249,8 +240,7 @@ void Dealer1_Hook()
     }
 }
 
-NAKED
-void Dealer2_Hook()
+__declspec(naked) void Dealer2_Hook()
 {
     __asm {
 		push	eax
@@ -285,8 +275,7 @@ bool __stdcall ExpandedHardpoints::TransferLock(uint newShipArchId, uint goodId)
 }
 
 // Prevent transferring to the new ship.
-NAKED
-void Xfer_Hook()
+__declspec(naked) void Xfer_Hook()
 {
     __asm {
 		push	eax
@@ -303,8 +292,7 @@ void Xfer_Hook()
 }
 
 // Prevent base info from displaying it as a commodity to buy.
-NAKED
-void Info_Hook()
+__declspec(naked) void Info_Hook()
 {
     __asm {
 		mov	eax, [esp + 0x64]
@@ -317,12 +305,6 @@ void Info_Hook()
 			ret	4
     }
 }
-
-DWORD Mount1_New = (DWORD)Mount1_Hook;
-DWORD Mount3b_New = (DWORD)Mount3b_Hook;
-DWORD Dealer1_New = (DWORD)Dealer1_Hook;
-DWORD Dealer2_New = (DWORD)Dealer2_Hook;
-DWORD Xfer_New = (DWORD)Xfer_Hook;
 
 void __fastcall ExpandedHardpoints::SetEquippedDetour(EquipDesc* equipDesc, void* edx, uint shipArch, bool newState) { equipDesc->set_equipped(newState); }
 
@@ -405,11 +387,11 @@ char* __fastcall ExpandedHardpoints::RenderVendorItemState(void* vendorList, voi
     }
 }
 
-bool __stdcall FinalEquipmentCheck(uint equipId) { return ExpandedHardpoints::IsValidSubclassItem(equipId, Fluf::GetPlayerShipArchId(), false); }
+bool __stdcall ExpandedHardpoints::FinalEquipmentCheck(uint equipId) { return IsValidSubclassItem(equipId, Fluf::GetPlayerShipArchId(), false); }
 
-uint FinalRetJump = 0x482ED8;
-__declspec(naked) void FinalEquipmentCheckNaked()
+__declspec(naked) void ExpandedHardpoints::FinalEquipmentCheckNaked()
 {
+    static constexpr uint FinalRetJump = 0x482ED8;
     __asm
     {
         push ebx
@@ -442,6 +424,12 @@ void ExpandedHardpoints::SinglePlayerPatch()
     ProtectX(ADDR_DEALER1, 4);
     //ProtectX( ADDR_DEALER2, 4 );
 
+    static auto Mount1_New = reinterpret_cast<DWORD>(Mount1_Hook);
+    static auto Mount3b_New = reinterpret_cast<DWORD>(Mount3b_Hook);
+    static auto Dealer1_New = reinterpret_cast<DWORD>(Dealer1_Hook);
+    static auto Dealer2_New = reinterpret_cast<DWORD>(Dealer2_Hook);
+    static auto Xfer_New = reinterpret_cast<DWORD>(Xfer_Hook);
+
     *ADDR_INTERN = 0; // show internal equipment with a price of 0
     INDIRECT(ADDR_MOUNT1, Mount1_New, Mount1_Org);
     NEWOFS(ADDR_MOUNT2, Mount2_HookNaked, Mount2_Org);
@@ -461,7 +449,7 @@ void ExpandedHardpoints::SinglePlayerPatch()
 
     //getVendorActiveState = std::make_unique<FunctionDetour<GetVendorItemActiveState>>(reinterpret_cast<GetVendorItemActiveState>(0x585F20));
     //getVendorActiveState->Detour(RenderVendorItemState);
-    
+
     BYTE jump = 0xE9;
     MemUtils::WriteProcMem(DWORD(GetModuleHandleA(nullptr)) + 0x82ED2, &jump, 1);
     MemUtils::PatchCallAddr(GetModuleHandleA(nullptr), 0x82ED2, FinalEquipmentCheckNaked);
