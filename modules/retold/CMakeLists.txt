@@ -9,15 +9,25 @@ set(CUR_PROJECT "retold")
 begin_glob()
 
 configure_file(${ROOT_DIR}/metadata.rc.in ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc @ONLY)
-add_library(${CUR_PROJECT} SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR}/PCH.hpp ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc)
+add_library(${CUR_PROJECT} SHARED
+        ${SOURCE_FILES}
+        ${ROOT_DIR}/PCH.cpp
+        ${ROOT_DIR}/PCH.hpp
+        ${CMAKE_CURRENT_BINARY_DIR}/metadata.rc
+        ${VENDOR_PATH}/inih/ini.c
+)
 
 # Dependencies
 target_include_directories(${CUR_PROJECT} PRIVATE
         ${INCLUDE_PATH}
         ${FLUF_UI_PATH}/Include
+        ${VENDOR_PATH}/inih
 )
 add_dependencies(${CUR_PROJECT} FLUF FLUF.UI)
-target_link_libraries(${CUR_PROJECT} PRIVATE FLUF FLUF.UI)
+target_link_libraries(${CUR_PROJECT} PRIVATE
+        FLUF
+        FLUF.UI
+)
 
 # Link against FLCore
 target_link_libraries(${CUR_PROJECT} PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")

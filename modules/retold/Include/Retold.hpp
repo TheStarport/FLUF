@@ -27,26 +27,27 @@ class Retold final : public FlufModule, public ImGuiModule
         std::shared_ptr<EquipmentDealerWindow> equipmentDealerWindow = nullptr;
         DWORD contentDll = 0;
         inline static Retold* instance = nullptr;
-
         ContentStory* contentStory = nullptr;
 
         template <typename T>
         using CreateContentMessageHandler = T(__thiscall*)(T, void* contentInstance, DWORD* payload);
 
         std::unique_ptr<FunctionDetour<CreateContentMessageHandler<ContentStory*>>> contentStoryCreateDetour;
-
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
 
         void HookContentDll();
-        DWORD OnSystemIniOpen(INI_Reader* ini, const char* file, bool unk);
+        DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);
         static void SystemIniOpenNaked();
         void HookSystemFileReading();
 
         void OnGameLoad() override;
         void OnServerStart(const SStartupInfo&) override;
+        bool BeforeBaseExit(uint baseId, uint client) override;
         void Render() override;
         void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
+
+        std::unordered_map<std::string, std::string> systemFileOverrides;
 
     public:
         static constexpr std::string_view moduleName = "Retold";

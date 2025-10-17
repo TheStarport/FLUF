@@ -11,6 +11,8 @@
 #include <EquipmentDealerWindow.hpp>
 #include <Utils/MemUtils.hpp>
 
+#include <ini.h>
+
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
 const st6_free_t st6_free = reinterpret_cast<st6_free_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "free"));
@@ -43,21 +45,57 @@ void Retold::HookContentDll()
     contentStoryCreateDetour->Detour(ContentStoryCreateDetour);
 }
 
-void test(DWORD* ecx, const char* file, DWORD unk) { printf("%p, %s | %x\n", ecx, file, unk); }
-
-byte* systemIniBuffer;
-DWORD Retold::OnSystemIniOpen(INI_Reader* ini, const char* file, bool unk)
+static int handler(std::string& iniBuffer, const char* section, const char* name, const char* value)
 {
-    printf("%p, %s | %s\n", ini, file, unk ? "Open" : "Close");
-    return 0;
+    if (!name && !value)
+    {
+        iniBuffer += std::format("[{}]\n", section);
+        return 1;
+    }
+
+    iniBuffer += std::format("{} = {}\n", name, value);
+
+    return 1;
+}
+
+const char* systemIniBuffer;
+DWORD systemReturnAddress;
+DWORD Retold::OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk)
+{
+    if (!iniReader.open(file, unk))
+    {
+        return 0;
+    }
+
+    iniReader.close();
+
+    static std::string systemBuffer;
+    systemBuffer.clear();
+
+    for (auto& overrideFile : systemFileOverrides)
+    {
+        if (_strcmpi(file, overrideFile.first.c_str()) == 0)
+        {
+            systemBuffer += overrideFile.second;
+            break;
+        }
+    }
+
+    Fluf::Info(file);
+    ini_parse(file, reinterpret_cast<ini_handler>(handler), &systemBuffer);
+
+    systemIniBuffer = systemBuffer.c_str();
+    return systemBuffer.size();
 }
 
 void __declspec(naked) Retold::SystemIniOpenNaked()
 {
-    static auto openMemory = &INI_Reader::open_memory;
-    static auto open = &INI_Reader::open;
+    constexpr static DWORD openMemory = 0x0630FC50;
+    constexpr static DWORD open = 0x630F9B0;
     __asm
     {
+        mov eax, [esp]
+        mov systemReturnAddress, eax
         push ecx // Store for restoration
         push [esp+12] // bool unk
         push [esp+12] // const char* path
@@ -68,9 +106,10 @@ void __declspec(naked) Retold::SystemIniOpenNaked()
         jz normal_operation
 
         pop ecx
-        add esp, 8 // Remove the previous two parameters
+        add esp, 12 // Remove the previous two parameters + return address
         push eax
         push systemIniBuffer
+        push systemReturnAddress
         jmp openMemory
 
         normal_operation:
@@ -81,8 +120,10 @@ void __declspec(naked) Retold::SystemIniOpenNaked()
 
 void Retold::HookSystemFileReading()
 {
-    const auto common = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll"));
-    MemUtils::PatchCallAddr(common, 0xD72CE, SystemIniOpenNaked);
+    const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
+    static auto systemIniOpenRedirectionAddress = &SystemIniOpenNaked;
+    static auto systemIniOpenRedirectionAddress2 = &systemIniOpenRedirectionAddress;
+    MemUtils::WriteProcMem(fl + 0x15379D, &systemIniOpenRedirectionAddress2, sizeof(systemIniOpenRedirectionAddress2));
 }
 
 void Retold::OnGameLoad()
@@ -102,6 +143,14 @@ void Retold::OnGameLoad()
 }
 
 void Retold::OnServerStart(const SStartupInfo& startup_info) { HookContentDll(); }
+
+bool Retold::BeforeBaseExit(uint baseId, uint client)
+{
+    auto system = const_cast<Universe::ISystem*>(Universe::get_system(CreateID("li01")));
+    auto base = const_cast<Universe::IBase*>(Universe::get_base(CreateID("li01_01_base")));
+
+    return true;
+}
 
 void Retold::Render() { equipmentDealerWindow->Render(); }
 
@@ -125,7 +174,6 @@ void Retold::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
 Retold::Retold()
 {
     instance = this;
-    HookSystemFileReading();
 
     if (!Fluf::IsRunningOnClient())
     {
@@ -146,7 +194,68 @@ Retold::Retold()
         throw ModuleLoadException("RaidUi was loaded, but FLUF UI's ui mode was not set to 'ImGui'");
     }
 
-    // TODO: Load config?
+    HookSystemFileReading();
+
+    INI_Reader ini;
+    if (!ini.open("../DATA/UNIVERSE/universe.ini", false))
+    {
+        throw ModuleLoadException("universe.ini not found");
+    }
+
+    while (ini.read_header())
+    {
+        if (!ini.is_header("system"))
+        {
+            continue;
+        }
+
+        std::string systemFile{};
+        std::list<std::string> fileOverrides;
+        while (ini.read_value())
+        {
+            if (ini.is_value("file"))
+            {
+                systemFile = ini.get_value_string();
+            }
+            else if (ini.is_value("file_override"))
+            {
+                fileOverrides.push_back(ini.get_value_string());
+            }
+        }
+
+        if (!systemFile.empty() && !fileOverrides.empty())
+        {
+            std::string overrideFile;
+
+            for (auto& filePath : fileOverrides)
+            {
+                if (!std::filesystem::exists(filePath))
+                {
+                    filePath = std::string("..\\DATA\\UNIVERSE\\") + filePath;
+                }
+
+                Fluf::Debug(std::format("Loading override file: {}", filePath));
+
+                std::ifstream file(filePath, std::ios::in | std::ios::binary);
+                if (!file)
+                {
+                    continue;
+                }
+
+                const auto sz = std::filesystem::file_size(filePath);
+                std::string result(sz, '\0');
+                file.read(result.data(), sz);
+                file.close();
+
+                overrideFile += result + "\n";
+            }
+
+            if (!overrideFile.empty())
+            {
+                systemFileOverrides[std::format("..\\data\\universe\\{}", systemFile)] = overrideFile;
+            }
+        }
+    }
 }
 
 Retold::~Retold()
