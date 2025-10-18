@@ -54,6 +54,20 @@ void Retold::BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType dest
     shipDots.erase(id);
 }
 
+void Retold::BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)
+{
+    const auto munitionData = extraMunitionData.find(impact->munitionArch->archId);
+    if (munitionData == extraMunitionData.end())
+    {
+        return;
+    }
+
+    if (impact->subObjId > 1 && munitionData->second.equipmentMultiplier != 0.f)
+    {
+        equipmentMultipliersToApply = munitionData->second.equipmentMultiplier;
+    }
+}
+
 void Retold::BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)
 {
     auto& agm = ship->cship()->archGroupManager;
@@ -127,6 +141,23 @@ void Retold::BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, 
     const auto maxStackDamage = curHullDotMax - totalDamage;
     float damage = std::clamp(munitionData->second.hullDot, 0.f, maxStackDamage);
     dotInfo.emplace_back(hullDotDuration, damage, impact->subObjId);
+}
+void Retold::BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList)
+{
+    if (equipmentMultipliersToApply != 0.f)
+    {
+        damage *= equipmentMultipliersToApply;
+        equipmentMultipliersToApply = 0.f;
+    }
+}
+
+void Retold::BeforeShipColGrpDmg(Ship* ship, CArchGroup* colGrp, float& incDmg, DamageList* dmg)
+{
+    if (equipmentMultipliersToApply != 0.f)
+    {
+        incDmg *= equipmentMultipliersToApply;
+        equipmentMultipliersToApply = 0.f;
+    }
 }
 
 void Retold::ApplyShipDotStacks()

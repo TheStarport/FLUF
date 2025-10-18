@@ -40,6 +40,14 @@ struct ShipDotData
         ushort targetHardpoint = 0;
 };
 
+struct EquipmentMultiplierData
+{
+
+        float equipmentMultiplier = 0.f;
+        ushort targetHardpoint = 0;
+        EqObj* target;
+};
+
 class Retold final : public FlufModule, public ImGuiModule
 {
         std::shared_ptr<FlufUi> flufUi = nullptr;
@@ -52,6 +60,7 @@ class Retold final : public FlufModule, public ImGuiModule
         std::unordered_map<EquipmentId, ExtraMunitionData> extraMunitionData;
         std::unordered_map<EquipmentId, ExtraShipData> extraShipData;
         std::unordered_map<EquipmentId, ExtraShieldData> extraShieldData;
+        float equipmentMultipliersToApply;
         std::unordered_map<ShipId, std::vector<std::pair<float, float>>> shipShieldRechargeDebuffs;
         std::unordered_map<ShipId, std::list<ShipDotData>> shipDots;
 
@@ -84,7 +93,10 @@ class Retold final : public FlufModule, public ImGuiModule
         void OnFixedUpdate(const double delta) override;
         bool OnKeyToggleAutoTurrets(KeyState state);
         void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) override;
+        void BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
         void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
+        void BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList) override;
+        void BeforeShipColGrpDmg(Ship*, CArchGroup* colGrp, float& incDmg, DamageList* dmg) override;
 
         // INI Reading
         DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);
