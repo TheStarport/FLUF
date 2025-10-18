@@ -68,27 +68,6 @@ void Fixes::PatchSectorLetters()
     *ADDR_LETTER2b = *ADDR_LETTER3b = 0x53;
 }
 
-#define ADDR_ROLL ((DWORD*)0x4c7f14)
-void __thiscall Fixes::OnRollHook(IBehaviorManager* behaviour, Vector& vec)
-{
-    if (vec.x != 0.f || vec.y != 0.f)
-    {
-        *ADDR_ROLL = 0;
-    }
-    else
-    {
-        *ADDR_ROLL = *reinterpret_cast<DWORD*>(&vec.z);
-    }
-
-    behaviour->update_current_behavior_direction(vec);
-}
-
-void Fixes::SupportRollingDuringMouseFlight()
-{
-    MemUtils::PatchCallAddr(DWORD(GetModuleHandleA(nullptr)), 0xc7940, &Fixes::OnRollHook);
-    MemUtils::Protect(ADDR_ROLL, 4);
-}
-
 void Fixes::AllowViewingOfServerInfoForDifferentVersions()
 {
 #define ADDR_SELECT     ((PWORD)0x5711a1)

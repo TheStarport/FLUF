@@ -31,8 +31,6 @@ class Fixes final : public FlufModule
         static void EnableDynamicAsteroidExtensions();
         static void EnableDamagePerFire();
         static void PatchSectorLetters();
-        static void __thiscall OnRollHook(IBehaviorManager* behaviour, Vector& vec);
-        static void SupportRollingDuringMouseFlight();
         static void AllowViewingOfServerInfoForDifferentVersions();
         static void ForceWeaponPrimaryWeaponGroupOnLaunch();
         static void FixSoundsNotBeingPlayed();

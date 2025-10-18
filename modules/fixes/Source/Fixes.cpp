@@ -33,7 +33,6 @@ void Fixes::OnGameLoad()
     EnableDamagePerFire();
 
     PatchSectorLetters();
-    SupportRollingDuringMouseFlight();
     ForceWeaponPrimaryWeaponGroupOnLaunch();
     FixSoundsNotBeingPlayed();
 
