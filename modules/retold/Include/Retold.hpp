@@ -2,6 +2,8 @@
 
 #include "FlufModule.hpp"
 
+#include "RetoldHooks.hpp"
+
 #include <KeyManager.hpp>
 #include <memory>
 #include <ImGui/ImGuiModule.hpp>
@@ -9,17 +11,13 @@
 class EquipmentDealerWindow;
 class FlufUi;
 
-struct ContentStory
+struct ExtraWeaponData
 {
-        void* vtable00;
-        void* vtable04;
-        DWORD dunno08;
-        uint missionStage;
-        DWORD dunno10;
-        float dunno14;
-        bool dunno18;
-        const char name[32];
+        float shieldPowerUsage;
 };
+
+struct ExtraMunitionData
+{};
 
 class Retold final : public FlufModule, public ImGuiModule
 {
@@ -29,28 +27,35 @@ class Retold final : public FlufModule, public ImGuiModule
         inline static Retold* instance = nullptr;
         ContentStory* contentStory = nullptr;
 
+        std::unordered_map<EquipmentId, ExtraWeaponData> extraWeaponData;
+        std::unordered_map<EquipmentId, ExtraMunitionData> extraMunitionData;
+
         bool autoTurretsEnabled = true;
 
-        template <typename T>
-        using CreateContentMessageHandler = T(__thiscall*)(T, void* contentInstance, DWORD* payload);
+        // Hooks
 
-        std::unique_ptr<FunctionDetour<CreateContentMessageHandler<ContentStory*>>> contentStoryCreateDetour;
+        static FireResult __thiscall GunCanFireDetour(CEGun* gun, Vector& target);
+        static void __thiscall LauncherConsumeFireResourcesDetour(CELauncher* launcher);
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
 
         void HookContentDll();
-        DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);
-        static void SystemIniOpenNaked();
-        void HookSystemFileReading();
+
+        void Render() override;
 
         void OnGameLoad() override;
         void OnServerStart(const SStartupInfo&) override;
-        void Render() override;
         void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
-
         void OnFixedUpdate(const double delta) override;
-
         bool OnKeyToggleAutoTurrets(KeyState state);
+
+        // INI Reading
+        DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);
+        static void SystemIniOpenNaked();
+        void SetupHooks();
+        void ReadUniverseIni();
+        void ReadFreelancerIni();
+        void ReadEquipmentIni(std::string file);
 
         std::unordered_map<std::string, std::string> systemFileOverrides;
 
