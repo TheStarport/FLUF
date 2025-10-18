@@ -19,12 +19,18 @@ struct ExtraWeaponData
 struct ExtraMunitionData
 {
         float equipmentMultiplier = 0.f;
+        float shieldRechargeReduction = 0.f;
         float hullDot = 0.f;
 };
 
 struct ExtraShipData
 {
         float hullDotMax = 0.f;
+};
+
+struct ExtraShieldData
+{
+        float shieldStrength = 0.f;
 };
 
 struct ShipDotData
@@ -45,10 +51,14 @@ class Retold final : public FlufModule, public ImGuiModule
         std::unordered_map<EquipmentId, ExtraWeaponData> extraWeaponData;
         std::unordered_map<EquipmentId, ExtraMunitionData> extraMunitionData;
         std::unordered_map<EquipmentId, ExtraShipData> extraShipData;
+        std::unordered_map<EquipmentId, ExtraShieldData> extraShieldData;
+        std::unordered_map<ShipId, std::vector<std::pair<float, float>>> shipShieldRechargeDebuffs;
         std::unordered_map<ShipId, std::list<ShipDotData>> shipDots;
 
         float hullDotDuration = 5.f;
         float hullDotMax = 1000.f;
+        float shieldRechargeReductionDuration = 5.f;
+        float shieldRechargeReductionMax = 0.f;
 
         bool autoTurretsEnabled = true;
 
@@ -57,6 +67,11 @@ class Retold final : public FlufModule, public ImGuiModule
         static FireResult __thiscall GunCanFireDetour(CEGun* gun, Vector& target);
         static void __thiscall LauncherConsumeFireResourcesDetour(CELauncher* launcher);
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
+        static void __thiscall ShieldSetHealthDetour(CEShield* shield, float hitPts);
+
+        // Weapons
+        void ApplyShipDotStacks();
+        void RemoveShieldReductionStacks();
 
         void HookContentDll();
 
@@ -70,9 +85,6 @@ class Retold final : public FlufModule, public ImGuiModule
         bool OnKeyToggleAutoTurrets(KeyState state);
         void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) override;
         void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
-
-        // Weapons
-        void ApplyShipDotStacks();
 
         // INI Reading
         DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);

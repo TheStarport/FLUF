@@ -92,6 +92,7 @@ void Retold::SetupHooks()
 
     RetoldHooks::gunCanFireDetour.Detour(GunCanFireDetour);
     RetoldHooks::consumeFireResourcesDetour.Detour(LauncherConsumeFireResourcesDetour);
+    RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
 }
 
 void Retold::ReadUniverseIni()
@@ -251,12 +252,39 @@ void Retold::ReadEquipmentIni(const std::string& file)
                 {
                     data.hullDot = ini.get_value_float(0);
                 }
+                else if (ini.is_value("shield_recharge_reduction"))
+                {
+                    data.shieldRechargeReduction = ini.get_value_float(0);
+                }
             }
 
-            if (!nickname.empty() && (data.equipmentMultiplier != 0.f || data.hullDot != 0.f))
+            if (!nickname.empty() && (data.equipmentMultiplier != 0.f || data.hullDot != 0.f || data.shieldRechargeReduction != 0.f))
             {
                 Fluf::Debug(std::format("Adding custom munition: {}", nickname));
                 extraMunitionData[CreateID(nickname.c_str())] = data;
+            }
+        }
+        else if (ini.is_header("ShieldGenerator"))
+        {
+            std::string nickname;
+            ExtraShieldData data{};
+
+            while (ini.read_value())
+            {
+                if (ini.is_value("nickname"))
+                {
+                    nickname = ini.get_value_string();
+                }
+                else if (ini.is_value("shield_strength"))
+                {
+                    data.shieldStrength = ini.get_value_float(0);
+                }
+            }
+
+            if (!nickname.empty() && data.shieldStrength != 0.f)
+            {
+                Fluf::Debug(std::format("Adding custom shield: {}", nickname));
+                extraShieldData[CreateID(nickname.c_str())] = data;
             }
         }
     }
@@ -316,6 +344,18 @@ void Retold::ReadConstantsIni(const std::string& file)
         else if (ini.is_value("HULL_DOT_DURATION"))
         {
             hullDotDuration = ini.get_value_float(0);
+        }
+        else if (ini.is_value("SHIELD_RECHARGE_REDUCTION_DURATION"))
+        {
+            shieldRechargeReductionDuration = ini.get_value_float(0);
+        }
+        else if (ini.is_value("SHIELD_RECHARGE_REDUCTION_MIN"))
+        {
+            shieldRechargeReductionMax = ini.get_value_float(0);
+            if (shieldRechargeReductionMax >= 1.f)
+            {
+                shieldRechargeReductionMax = 0.f;
+            }
         }
     }
 }

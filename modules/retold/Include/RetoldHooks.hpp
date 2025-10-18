@@ -28,4 +28,8 @@ class RetoldHooks
         using GunCanFireType = FireResult(__thiscall*)(CEGun* gun, Vector& target);
         inline static FunctionDetour<GunCanFireType> gunCanFireDetour{ reinterpret_cast<GunCanFireType>(
             GetProcAddress(GetModuleHandleA("common.dll"), "?CanFire@CEGun@@MBE?AW4FireResult@@ABVVector@@@Z")) };
+
+        using ShieldSetHealth = void(__thiscall*)(CEShield* shield, float hitPts);
+        inline static FunctionDetour<ShieldSetHealth> shieldSetHealthDetour{ reinterpret_cast<ShieldSetHealth>(
+            GetProcAddress(GetModuleHandleA("common.dll"), "?SetHitPoints@CEShield@@UAEXM@Z")) };
 };

@@ -48,19 +48,10 @@ void __thiscall Retold::LauncherConsumeFireResourcesDetour(CELauncher* launcher)
 
 void Retold::BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId)
 {
-    const auto shipId = ship->get_id();
-    const auto shipDot = shipDots.find(shipId);
-    if (shipDot == shipDots.end())
-    {
-        return;
-    }
+    const auto id = ship->get_id();
 
-    for (auto& stack : shipDot->second)
-    {
-        // TODO: Remove FX?
-    }
-
-    shipDots.erase(shipDot);
+    shipShieldRechargeDebuffs.erase(id);
+    shipDots.erase(id);
 }
 
 void Retold::BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)
@@ -72,13 +63,40 @@ void Retold::BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, 
     bool shieldActive = true;
     pub::SpaceObj::GetShieldHealth(ship->get_id(), currentShields, maxShields, shieldActive);
 
-    if (shieldActive)
+    const auto munitionData = extraMunitionData.find(impact->munitionArch->archId);
+    if (munitionData == extraMunitionData.end())
     {
         return;
     }
 
-    const auto munitionData = extraMunitionData.find(impact->munitionArch->archId);
-    if (munitionData == extraMunitionData.end() || munitionData->second.hullDot == 0.f)
+    if (shieldActive)
+    {
+        if (munitionData->second.shieldRechargeReduction > 0.f)
+        {
+            auto& em = ship->cship()->equipManager;
+            CEquipTraverser traverser{ static_cast<int>(EquipmentClass::ShieldGenerator) };
+            CEShieldGenerator* gen;
+            float shieldStrength = 1.f;
+            while ((gen = static_cast<CEShieldGenerator*>(em.Traverse(traverser))))
+            {
+                if (auto shield = extraShieldData.find(gen->archetype->archId); shield != extraShieldData.end())
+                {
+                    shieldStrength += shield->second.shieldStrength;
+                }
+            }
+
+            Fluf::Info(std::format("Applying shield reduction: {} (divided by {}) (total {})",
+                                   munitionData->second.shieldRechargeReduction,
+                                   shieldStrength,
+                                   munitionData->second.shieldRechargeReduction / shieldStrength));
+            auto& reductionInfo = shipShieldRechargeDebuffs[ship->get_id()];
+            reductionInfo.emplace_back(shieldRechargeReductionDuration, munitionData->second.shieldRechargeReduction / shieldStrength);
+        }
+
+        return;
+    }
+
+    if (munitionData->second.hullDot == 0.f)
     {
         return;
     }
@@ -168,4 +186,53 @@ void Retold::ApplyShipDotStacks()
 
         obj->apply_damage_list(&list);
     }
+}
+
+void Retold::RemoveShieldReductionStacks()
+{
+    constexpr float delta = 1.f / 60.f;
+    for (auto& reductions : shipShieldRechargeDebuffs | std::views::values)
+    {
+        for (auto stack = reductions.begin(); stack != reductions.end();)
+        {
+            stack->first -= delta;
+            if (stack->first <= 0.f)
+            {
+                stack = reductions.erase(stack);
+            }
+            else
+            {
+                ++stack;
+            }
+        }
+    }
+}
+
+void __thiscall Retold::ShieldSetHealthDetour(CEShield* shield, float hitPts)
+{
+    auto owner = shield->GetOwner();
+    auto currentHitPts = shield->GetHitPoints();
+
+    // We are increasing our shields, lets apply any needed debufs
+    if (currentHitPts < hitPts)
+    {
+        auto diff = hitPts - currentHitPts;
+        auto activeDebuffs = instance->shipShieldRechargeDebuffs.find(owner->id);
+        if (activeDebuffs != instance->shipShieldRechargeDebuffs.end())
+        {
+            float reduction = 1.f;
+            for (const auto val : activeDebuffs->second | std::views::values)
+            {
+                reduction -= val;
+            }
+
+            reduction = std::clamp(reduction, 0.f, 1.f);
+            diff *= reduction;
+            hitPts = currentHitPts + diff;
+        }
+    }
+
+    RetoldHooks::shieldSetHealthDetour.UnDetour();
+    RetoldHooks::shieldSetHealthDetour.GetOriginalFunc()(shield, hitPts);
+    RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
 }

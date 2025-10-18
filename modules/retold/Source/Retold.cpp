@@ -111,6 +111,7 @@ struct CliLauncher
 void Retold::OnFixedUpdate(const double delta)
 {
     ApplyShipDotStacks();
+    RemoveShieldReductionStacks();
 
     if (!Fluf::IsRunningOnClient() || !autoTurretsEnabled)
     {
