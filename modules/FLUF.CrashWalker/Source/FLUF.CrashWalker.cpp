@@ -77,9 +77,8 @@ int FlufCrashWalker::GlobalExceptionHandler(EXCEPTION_POINTERS* exceptionPointer
     std::array<char, MAX_PATH> totalPath{};
     GetUserDataPath(totalPath.data());
 
-    const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
     auto dumpPath = config->useOnlySingleDumpFile ? std::format("{}\\crash.dmp", std::string(totalPath.data()))
-                                                  : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), time);
+                                                  : std::format("{}/{:%Y-%m-%d %H.%M.%S}.dmp", std::string(totalPath.data()), std::chrono::system_clock::now());
 
     bool createdDump = false;
     if (HANDLE file = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -328,7 +327,14 @@ FlufCrashWalker::FlufCrashWalker()
     AssertRunningOnClient;
 
     // Add a global try/catch to the application
-    MemUtils::PatchCallAddr(GetModuleHandle(nullptr), 0x1B3378, FlufCrashWalker::TryCatchDetour);
+    if (IsDebuggerPresent())
+    {
+        Fluf::Info("Debugger is attached, not adding global-try-catch");
+    }
+    else
+    {
+        MemUtils::PatchCallAddr(GetModuleHandle(nullptr), 0x1B3378, FlufCrashWalker::TryCatchDetour);
+    }
 
     module = this;
     config = std::make_unique<Config>();
