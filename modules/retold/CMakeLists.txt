@@ -30,7 +30,10 @@ target_link_libraries(${CUR_PROJECT} PRIVATE
 )
 
 # Link against FLCore
-target_link_libraries(${CUR_PROJECT} PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
+target_link_libraries(${CUR_PROJECT} PRIVATE
+        "${SDK_PATH}/lib/FLCoreCommon.lib"
+        "${SDK_PATH}/lib/FLCoreServer.lib"
+)
 
 target_precompile_headers(${CUR_PROJECT} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${ROOT_DIR}/PCH.hpp>")
 

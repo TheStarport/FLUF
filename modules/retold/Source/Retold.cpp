@@ -23,48 +23,6 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-FireResult __thiscall Retold::GunCanFireDetour(CEGun* gun, Vector& target)
-{
-    RetoldHooks::gunCanFireDetour.UnDetour();
-    auto canFire = RetoldHooks::gunCanFireDetour.GetOriginalFunc()(gun, target);
-    RetoldHooks::gunCanFireDetour.Detour(GunCanFireDetour);
-
-    auto gunInfo = instance->extraWeaponData.find(gun->archetype->archId);
-    if (canFire != FireResult::Success || gunInfo == instance->extraWeaponData.end())
-    {
-        return canFire;
-    }
-
-    auto& em = gun->owner->equipManager;
-    const CEShield* shield = static_cast<CEShield*>(em.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
-
-    if (!shield || shield->currShieldHitPoints < gunInfo->second.shieldPowerUsage)
-    {
-        return FireResult::PowerRequirementsNotMet;
-    }
-
-    return FireResult::Success;
-}
-
-void __thiscall Retold::LauncherConsumeFireResourcesDetour(CELauncher* launcher)
-{
-    RetoldHooks::consumeFireResourcesDetour.UnDetour();
-    RetoldHooks::consumeFireResourcesDetour.GetOriginalFunc()(launcher);
-    RetoldHooks::consumeFireResourcesDetour.Detour(LauncherConsumeFireResourcesDetour);
-
-    auto gunInfo = instance->extraWeaponData.find(launcher->archetype->archId);
-    if (gunInfo == instance->extraWeaponData.end())
-    {
-        return;
-    }
-
-    auto& em = launcher->owner->equipManager;
-    if (CEShield* shield = static_cast<CEShield*>(em.FindFirst(static_cast<uint>(EquipmentClass::Shield))))
-    {
-        shield->currShieldHitPoints = std::clamp(shield->currShieldHitPoints - gunInfo->second.shieldPowerUsage, 0.f, shield->maxShieldHitPoints);
-    }
-}
-
 ContentStory* __thiscall Retold::ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload)
 {
     instance->contentStory = story;
@@ -152,7 +110,9 @@ struct CliLauncher
 
 void Retold::OnFixedUpdate(const double delta)
 {
-    if (!autoTurretsEnabled)
+    ApplyShipDotStacks();
+
+    if (!Fluf::IsRunningOnClient() || !autoTurretsEnabled)
     {
         return;
     }

@@ -127,31 +127,31 @@ class FLUF_API FlufModule
 
         //Damage/init hooks
         virtual void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) {}
-        virtual void BeforeLootDestroy(Loot* loot, DestroyType destroyType, Id killerId){}
-        virtual void BeforeSolarDestroy(Solar* solar, DestroyType destroyType, Id killerId){}
-        virtual void BeforeMineDestroy(Mine* mine, DestroyType destroyType, Id killerId){}
-        virtual void BeforeGuidedDestroy(Guided* mine, DestroyType destroyType, Id killerId){}
-        virtual void BeforeShipHullDamage(Ship* ship, float damage, DamageList* dmgList){}
-        virtual void BeforeSolarHullDamage(Solar* ship, float damage, DamageList* dmgList){}
-        virtual void BeforeSolarColGrpDestroy(Solar* solar, CArchGroup* colGrp, DamageEntry::SubObjFate fate, DamageList* dmgList, bool killParent){}
-        virtual void BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float damage, DamageList* dmgList){}
-        virtual void BeforeShipEquipDestroy(Ship* ship, CEquip* equip, DamageEntry::SubObjFate fate, DamageList* dmgList){}
-        virtual void BeforeShipColGrpDmg(Ship*, CArchGroup* colGrp, float incDmg, DamageList* dmg){}
-        virtual void BeforeShipColGrpDestroy(Ship* ship, CArchGroup* colGrp, DamageEntry::SubObjFate fate, DamageList* dmgList, bool killLinkedElements){}
-        virtual void BeforeShipDropAllCargo(Ship* ship, const char* hardPoint, DamageList* dmgList){}
-        virtual void BeforeShipRadiationDamage(Ship* ship, float deltaTime, DamageList* dmgList){}
-        virtual void BeforeGuidedExplosionHit(Guided* guided, ExplosionDamageEvent* explosion, DamageList* dmgList){}
-        virtual void BeforeSolarExplosionHit(Solar* guided, ExplosionDamageEvent* explosion, DamageList* dmgList){}
-        virtual void BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList){}
-        virtual void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList){}
-        virtual void BeforeShipExplosionHit(Ship* ship, ExplosionDamageEvent* explosion, DamageList* dmgList){}
-        virtual void BeforeShipShieldDmg(Ship* iobj, CEShield* shield, float incDmg, DamageList* dmg){}
-        virtual void BeforeShipEnergyDmg(Ship* ship, float incDmg, DamageList* dmgList){}
-        virtual void BeforeShipFuse(Ship* ship, uint fuseCause, uint& fuseId, ushort sId, float radius, float lifetime){}
+        virtual void BeforeLootDestroy(Loot* loot, DestroyType destroyType, Id killerId) {}
+        virtual void BeforeSolarDestroy(Solar* solar, DestroyType destroyType, Id killerId) {}
+        virtual void BeforeMineDestroy(Mine* mine, DestroyType destroyType, Id killerId) {}
+        virtual void BeforeGuidedDestroy(Guided* mine, DestroyType destroyType, Id killerId) {}
+        virtual void BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList) {}
+        virtual void BeforeSolarHullDamage(Solar* ship, float& damage, DamageList* dmgList) {}
+        virtual void BeforeSolarColGrpDestroy(Solar* solar, CArchGroup* colGrp, DamageEntry::SubObjFate fate, DamageList* dmgList, bool killParent) {}
+        virtual void BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList) {}
+        virtual void BeforeShipEquipDestroy(Ship* ship, CEquip* equip, DamageEntry::SubObjFate fate, DamageList* dmgList) {}
+        virtual void BeforeShipColGrpDmg(Ship*, CArchGroup* colGrp, float& incDmg, DamageList* dmg) {}
+        virtual void BeforeShipColGrpDestroy(Ship* ship, CArchGroup* colGrp, DamageEntry::SubObjFate fate, DamageList* dmgList, bool killLinkedElements) {}
+        virtual void BeforeShipDropAllCargo(Ship* ship, const char* hardPoint, DamageList* dmgList) {}
+        virtual void BeforeShipRadiationDamage(Ship* ship, float deltaTime, DamageList* dmgList) {}
+        virtual void BeforeGuidedExplosionHit(Guided* guided, ExplosionDamageEvent* explosion, DamageList* dmgList) {}
+        virtual void BeforeSolarExplosionHit(Solar* guided, ExplosionDamageEvent* explosion, DamageList* dmgList) {}
+        virtual void BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) {}
+        virtual void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) {}
+        virtual void BeforeShipExplosionHit(Ship* ship, ExplosionDamageEvent* explosion, DamageList* dmgList) {}
+        virtual void BeforeShipShieldDmg(Ship* iobj, CEShield* shield, float& incDmg, DamageList* dmg) {}
+        virtual void BeforeShipEnergyDmg(Ship* ship, float& incDmg, DamageList* dmgList) {}
+        virtual void BeforeShipFuse(Ship* ship, uint fuseCause, uint& fuseId, ushort sId, float radius, float lifetime) {}
 
-        virtual void OnCShipInit(CShip* ship){}
-        virtual void OnCSolarInit(CSolar* solar){}
-        virtual void OnCLootInit(CLoot* loot){}
+        virtual void OnCShipInit(CShip* ship) {}
+        virtual void OnCSolarInit(CSolar* solar) {}
+        virtual void OnCLootInit(CLoot* loot) {}
         virtual void OnCGuidedInit(CGuided* guided) {}
 
         // After Hooks

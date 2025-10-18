@@ -13,11 +13,26 @@ class FlufUi;
 
 struct ExtraWeaponData
 {
-        float shieldPowerUsage;
+        float shieldPowerUsage = 0.f;
 };
 
 struct ExtraMunitionData
-{};
+{
+        float equipmentMultiplier = 0.f;
+        float hullDot = 0.f;
+};
+
+struct ExtraShipData
+{
+        float hullDotMax = 0.f;
+};
+
+struct ShipDotData
+{
+        float timeLeft = 0.f;
+        float damageToApply = 0.f;
+        ushort targetHardpoint = 0;
+};
 
 class Retold final : public FlufModule, public ImGuiModule
 {
@@ -29,6 +44,11 @@ class Retold final : public FlufModule, public ImGuiModule
 
         std::unordered_map<EquipmentId, ExtraWeaponData> extraWeaponData;
         std::unordered_map<EquipmentId, ExtraMunitionData> extraMunitionData;
+        std::unordered_map<EquipmentId, ExtraShipData> extraShipData;
+        std::unordered_map<ShipId, std::list<ShipDotData>> shipDots;
+
+        float hullDotDuration = 5.f;
+        float hullDotMax = 1000.f;
 
         bool autoTurretsEnabled = true;
 
@@ -48,6 +68,11 @@ class Retold final : public FlufModule, public ImGuiModule
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnFixedUpdate(const double delta) override;
         bool OnKeyToggleAutoTurrets(KeyState state);
+        void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) override;
+        void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
+
+        // Weapons
+        void ApplyShipDotStacks();
 
         // INI Reading
         DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);
@@ -55,7 +80,9 @@ class Retold final : public FlufModule, public ImGuiModule
         void SetupHooks();
         void ReadUniverseIni();
         void ReadFreelancerIni();
-        void ReadEquipmentIni(std::string file);
+        void ReadEquipmentIni(const std::string& file);
+        void ReadShipArchFile(const std::string& file);
+        void ReadConstantsIni(const std::string& file);
 
         std::unordered_map<std::string, std::string> systemFileOverrides;
 

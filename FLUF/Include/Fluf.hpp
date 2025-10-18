@@ -60,6 +60,7 @@ class Fluf
         friend IEngineHook;
         friend FlufModule;
         inline static HMODULE thisDll;
+        inline static DWORD server = 0;
         inline static Fluf* instance;
 
         std::vector<std::shared_ptr<FlufModule>> loadedModules{};
@@ -185,6 +186,12 @@ class Fluf
         FLUF_API static bool IsRunningOnClient();
         FLUF_API static std::wstring GetInfocardName(uint ids);
         FLUF_API static bool GetInfocard(uint ids, RenderDisplayList* rdl);
+
+        /**
+         * @brief Gets the server inspect object for a given CObject ID.
+         * @return A server inspect object, will be null if being run from a client connected to a server
+         */
+        FLUF_API static GameObject* GetObjInspect(ObjectId id);
 
         /**
          * @brief Gets the KeyManager for setting up custom key callbacks

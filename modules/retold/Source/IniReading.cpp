@@ -165,12 +165,27 @@ void Retold::ReadFreelancerIni()
     ini.find_header("DATA");
 
     std::list<std::string> allEquipment;
+    std::list<std::string> allShips;
+    std::string constants;
     while (ini.read_value())
     {
         if (ini.is_value("equipment"))
         {
             allEquipment.emplace_back(ini.get_value_string());
         }
+        else if (ini.is_value("ships"))
+        {
+            allShips.emplace_back(ini.get_value_string());
+        }
+        else if (ini.is_value("constants"))
+        {
+            constants = ini.get_value_string();
+        }
+    }
+
+    if (!constants.empty())
+    {
+        ReadConstantsIni(constants);
     }
 
     for (auto& equipment : allEquipment)
@@ -178,9 +193,15 @@ void Retold::ReadFreelancerIni()
         Fluf::Debug(std::format("Loading equipment file: {}", equipment));
         ReadEquipmentIni(equipment);
     }
+
+    for (auto& ship : allShips)
+    {
+        Fluf::Debug(std::format("Loading ship file: {}", ship));
+        ReadShipArchFile(ship);
+    }
 }
 
-void Retold::ReadEquipmentIni(std::string file)
+void Retold::ReadEquipmentIni(const std::string& file)
 {
     INI_Reader ini;
     if (!ini.open(std::format("../DATA/{}", file).c_str(), false))
@@ -211,6 +232,90 @@ void Retold::ReadEquipmentIni(std::string file)
                 Fluf::Debug(std::format("Adding custom equipment: {}", nickname));
                 extraWeaponData[CreateID(nickname.c_str())] = data;
             }
+        }
+        else if (ini.is_header("Munition"))
+        {
+            std::string nickname;
+            ExtraMunitionData data{};
+            while (ini.read_value())
+            {
+                if (ini.is_value("nickname"))
+                {
+                    nickname = ini.get_value_string();
+                }
+                else if (ini.is_value("equipment_multiplier"))
+                {
+                    data.equipmentMultiplier = ini.get_value_float(0);
+                }
+                else if (ini.is_value("hull_dot"))
+                {
+                    data.hullDot = ini.get_value_float(0);
+                }
+            }
+
+            if (!nickname.empty() && (data.equipmentMultiplier != 0.f || data.hullDot != 0.f))
+            {
+                Fluf::Debug(std::format("Adding custom munition: {}", nickname));
+                extraMunitionData[CreateID(nickname.c_str())] = data;
+            }
+        }
+    }
+}
+
+void Retold::ReadShipArchFile(const std::string& file)
+{
+    INI_Reader ini;
+    if (!ini.open(std::format("../DATA/{}", file).c_str(), false))
+    {
+        return;
+    }
+
+    while (ini.read_header())
+    {
+        if (!ini.is_header("Ship"))
+        {
+            continue;
+        }
+
+        std::string nickname;
+        ExtraShipData data{};
+        while (ini.read_value())
+        {
+            if (ini.is_value("nickname"))
+            {
+                nickname = ini.get_value_string();
+            }
+            else if (ini.is_value("hull_dot_max"))
+            {
+                data.hullDotMax = ini.get_value_float(0);
+            }
+        }
+
+        if (!nickname.empty() && data.hullDotMax)
+        {
+            Fluf::Debug(std::format("Adding custom ship: {}", nickname));
+            extraShipData[CreateID(nickname.c_str())] = data;
+        }
+    }
+}
+
+void Retold::ReadConstantsIni(const std::string& file)
+{
+    INI_Reader ini;
+    if (!ini.open(std::format("../DATA/{}", file).c_str(), false) || !ini.find_header("RetoldConsts"))
+    {
+        return;
+    }
+
+    while (ini.read_value())
+    {
+        if (ini.is_value("HULL_DOT_MAX"))
+        {
+            hullDotMax = ini.get_value_float(0);
+        }
+        else if (ini.is_value("HULL_DOT_DURATION"))
+        {
+            hullDotDuration = ini.get_value_float(0);
         }
     }
 }

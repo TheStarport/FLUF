@@ -168,6 +168,8 @@ void Fluf::LoadCommonHooks()
 
 void Fluf::LoadServerHooks()
 {
+    server = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll"));
+
 #define VTablePtr(x) static_cast<unsigned short>(x)
     const void* ptr = &IEngineHook::ShipMunitionHit;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::MunitionImpact), &ptr);
@@ -376,6 +378,23 @@ bool Fluf::GetInfocard(uint ids, RenderDisplayList* rdl)
     static auto getInfocard = reinterpret_cast<GetInfocardType>(0x57DA40);
 
     return getInfocard(ids, rdl);
+}
+
+GameObject* Fluf::GetObjInspect(ObjectId id)
+{
+    if (!server || !id)
+    {
+        return nullptr;
+    }
+
+    using GetServerGameObject = bool(__cdecl*)(const uint& ship, GameObject*& inspect, StarSystem*& starSystem);
+
+    auto getShipInspect = reinterpret_cast<GetServerGameObject>(server + 0x206C0);
+    StarSystem* starSystem = nullptr;
+    GameObject* obj = nullptr;
+    getShipInspect(id, obj, starSystem);
+
+    return obj;
 }
 
 KeyManager* Fluf::GetKeyManager() { return instance->keyManager.get(); }
