@@ -35,6 +35,13 @@ FunctionDetour loadLibraryDetour(LoadLibraryA);
 
 HINSTANCE __stdcall Fluf::LoadLibraryDetour(LPCSTR dllName)
 {
+    auto handle = GetModuleHandleA(dllName);
+    if (handle)
+    {
+        // Already loaded, just return that
+        return handle;
+    }
+
     loadLibraryDetour.UnDetour();
     const auto res = LoadLibraryA(dllName);
     loadLibraryDetour.Detour(LoadLibraryDetour);
