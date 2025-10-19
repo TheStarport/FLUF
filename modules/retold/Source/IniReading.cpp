@@ -256,9 +256,14 @@ void Retold::ReadEquipmentIni(const std::string& file)
                 {
                     data.shieldRechargeReduction = ini.get_value_float(0);
                 }
+                else if (ini.is_value("hull_vulnerability"))
+                {
+                    data.hullVulnerability = ini.get_value_float(0);
+                }
             }
 
-            if (!nickname.empty() && (data.equipmentMultiplier != 0.f || data.hullDot != 0.f || data.shieldRechargeReduction != 0.f))
+            if (!nickname.empty() &&
+                (data.equipmentMultiplier != 0.f || data.hullDot != 0.f || data.shieldRechargeReduction != 0.f || data.hullVulnerability != 0.f))
             {
                 Fluf::Debug(std::format("Adding custom munition: {}", nickname));
                 extraMunitionData[CreateID(nickname.c_str())] = data;
@@ -317,9 +322,22 @@ void Retold::ReadShipArchFile(const std::string& file)
             {
                 data.hullDotMax = ini.get_value_float(0);
             }
+            else if (ini.is_value("hull_vulnerability_fuse"))
+            {
+                float threshold = ini.get_value_float(0);
+                uint fuse = CreateID(ini.get_value_string(1));
+
+                if (threshold > 0.f && fuse)
+                {
+                    data.hullVulnerabilityFuses.emplace_back(threshold, fuse);
+                }
+            }
         }
 
-        if (!nickname.empty() && data.hullDotMax)
+        // Sort so we are high thresholds first
+        data.hullVulnerabilityFuses.sort([](const auto& a, const auto& b) { return b.first > a.second; });
+
+        if (!nickname.empty() && (data.hullDotMax || !data.hullVulnerabilityFuses.empty()))
         {
             Fluf::Debug(std::format("Adding custom ship: {}", nickname));
             extraShipData[CreateID(nickname.c_str())] = data;
@@ -357,5 +375,34 @@ void Retold::ReadConstantsIni(const std::string& file)
                 shieldRechargeReductionMax = 0.f;
             }
         }
+        else if (ini.is_value("HULL_VULNERABILITY_MAX"))
+        {
+            hullVulnerabilityMax = ini.get_value_float(0);
+            if (hullVulnerabilityMax < 0.f)
+            {
+                hullVulnerabilityMax = 1.5f;
+            }
+        }
+        else if (ini.is_value("HULL_VULNERABILITY_DURATION"))
+        {
+            hullVulnerabilityDuration = ini.get_value_float(0);
+            if (hullVulnerabilityDuration < 0.f)
+            {
+                hullVulnerabilityDuration = 5.f;
+            }
+        }
+        else if (ini.is_value("HULL_VULNERABILITY_FUSE"))
+        {
+            float threshold = ini.get_value_float(0);
+            uint fuse = CreateID(ini.get_value_string(1));
+
+            if (threshold > 0.f && fuse)
+            {
+                hullVulnerabilityFuses.emplace_back(threshold, fuse);
+            }
+        }
     }
+
+    // Sort so we are high thresholds first
+    hullVulnerabilityFuses.sort([](const auto& a, const auto& b) { return b.first > a.second; });
 }

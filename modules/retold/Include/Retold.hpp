@@ -21,11 +21,13 @@ struct ExtraMunitionData
         float equipmentMultiplier = 0.f;
         float shieldRechargeReduction = 0.f;
         float hullDot = 0.f;
+        float hullVulnerability = 0.f;
 };
 
 struct ExtraShipData
 {
         float hullDotMax = 0.f;
+        std::list<std::pair<float, Id>> hullVulnerabilityFuses;
 };
 
 struct ExtraShieldData
@@ -40,12 +42,12 @@ struct ShipDotData
         ushort targetHardpoint = 0;
 };
 
-struct EquipmentMultiplierData
+struct ShipHullVulnerability
 {
-
-        float equipmentMultiplier = 0.f;
-        ushort targetHardpoint = 0;
-        EqObj* target;
+        float duration = 0.f;
+        float modifier = 0.f;
+        Id fuseId = 0;
+        ushort hardPoint = 0;
 };
 
 class Retold final : public FlufModule, public ImGuiModule
@@ -61,9 +63,13 @@ class Retold final : public FlufModule, public ImGuiModule
         std::unordered_map<EquipmentId, ExtraShipData> extraShipData;
         std::unordered_map<EquipmentId, ExtraShieldData> extraShieldData;
         float equipmentMultipliersToApply;
-        std::unordered_map<ShipId, std::vector<std::pair<float, float>>> shipShieldRechargeDebuffs;
+        std::unordered_map<ShipId, std::list<std::pair<float, float>>> shipShieldRechargeDebuffs;
+        std::unordered_map<ShipId, std::list<ShipHullVulnerability>> shipHullVulnerabilities;
         std::unordered_map<ShipId, std::list<ShipDotData>> shipDots;
 
+        float hullVulnerabilityDuration = 5.f;
+        float hullVulnerabilityMax = 1.5f;
+        std::list<std::pair<float, Id>> hullVulnerabilityFuses;
         float hullDotDuration = 5.f;
         float hullDotMax = 1000.f;
         float shieldRechargeReductionDuration = 5.f;
@@ -79,8 +85,12 @@ class Retold final : public FlufModule, public ImGuiModule
         static void __thiscall ShieldSetHealthDetour(CEShield* shield, float hitPts);
 
         // Weapons
-        void ApplyShipDotStacks();
+        void ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
+        void ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
+        void ApplyShieldReductionStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
+        void ProcessShipDotStacks();
         void RemoveShieldReductionStacks();
+        void RemoveShipVulnerabilityStacks();
 
         void HookContentDll();
 
@@ -90,13 +100,14 @@ class Retold final : public FlufModule, public ImGuiModule
         void OnServerStart(const SStartupInfo&) override;
         void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
-        void OnFixedUpdate(const double delta) override;
+        void OnFixedUpdate(double delta) override;
         bool OnKeyToggleAutoTurrets(KeyState state);
         void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) override;
         void BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
         void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
         void BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList) override;
         void BeforeShipColGrpDmg(Ship*, CArchGroup* colGrp, float& incDmg, DamageList* dmg) override;
+        void BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList) override;
 
         // INI Reading
         DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);
