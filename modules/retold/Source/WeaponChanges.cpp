@@ -19,7 +19,7 @@ FireResult __thiscall Retold::GunCanFireDetour(CEGun* gun, Vector& target)
     auto& em = gun->owner->equipManager;
 
     if (const CEShield* shield = static_cast<CEShield*>(em.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
-        !shield || shield->currShieldHitPoints < gunInfo->second.shieldPowerUsage)
+        !shield || (shield->IsFunctioning() && shield->currShieldHitPoints < gunInfo->second.shieldPowerUsage))
     {
         return FireResult::PowerRequirementsNotMet;
     }
