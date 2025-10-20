@@ -286,7 +286,7 @@ void Retold::ReadEquipmentIni(const std::string& file)
                 {
                     data.shieldStrength = ini.get_value_float(0);
                 }
-                else if (ini.is_value("offline_regenerate_rate"))
+                else if (ini.is_value("offline_regeneration_rate"))
                 {
                     data.offlineRegenerationRate = ini.get_value_float(0);
                 }
