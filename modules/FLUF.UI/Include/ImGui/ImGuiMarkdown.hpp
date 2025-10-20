@@ -119,8 +119,8 @@ class FLUF_UI_API ImguiMarkdown
         //returns true if the term has been processed
         virtual bool RenderEntity(const char* str, const char* str_end);
 
-        //returns true if the term has been processed
-        virtual bool CheckHtml(const char* str, const char* str_end);
+        // returns true if the term has been processed
+        virtual bool CheckHtml(std::string_view html, std::string_view nodeName, bool isEndNode, bool isSelfClosing);
 
         //called when '\n' in source text where it is not semantically meaningful
         virtual void SoftBreak();
@@ -128,6 +128,9 @@ class FLUF_UI_API ImguiMarkdown
         //e==true : enter
         //e==false : leave
         virtual void HtmlDiv(const std::string& dclass, bool e);
+
+        virtual void DocumentStart(const char* start) {};
+        virtual void DocumentEnd(const char* end) {};
         ////////////////////////////////////////////////////////////////////////////
 
         //current state

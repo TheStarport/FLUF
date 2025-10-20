@@ -17,4 +17,5 @@ struct FlightManualConfig
         static constexpr char path[] = "modules/config/flight_manual.yml";
         std::string rootPageContent = "This text will appear on the root page";
         std::vector<FlightManualPage> pages{ {} };
+        rfl::Skip<std::unordered_map<std::string, std::string>> tooltips;
 };

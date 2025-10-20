@@ -27,6 +27,7 @@ target_link_libraries(${CUR_PROJECT} PRIVATE
         "${SDK_PATH}/lib/FLCoreCommon.lib"
         ${VENDOR_PATH}/libcurl.lib
         md4c::md4c-html
+        pugixml::pugixml
 )
 
 target_precompile_headers(${CUR_PROJECT} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${ROOT_DIR}/PCH.hpp>")

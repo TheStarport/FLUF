@@ -47,14 +47,37 @@ void FlightManual::OnGameLoad()
 
     config = rfl::make_ref<FlightManualConfig>(*ConfigHelper<FlightManualConfig>::Load(FlightManualConfig::path));
 
+    if (std::filesystem::exists("modules/config/flight_manual/tooltips.yml")) {}
+
+    using namespace std::string_view_literals;
     constexpr std::string_view pathyPath = "modules/config/flight_manual/";
+    const std::string tooltipPath = std::string(pathyPath) + "tooltips.yml";
     if (!std::filesystem::exists(pathyPath))
     {
         std::filesystem::create_directories(pathyPath);
     }
+
+    if (!std::filesystem::exists(tooltipPath))
+    {
+        std::ofstream out(tooltipPath);
+        out << R"(test_tip: |
+    A tool tip that can be displayed using <tooltip id="test_tip">content you want to hover over</tooltip>)";
+        out.close();
+    }
+
+    auto tooltips = ConfigHelper<std::unordered_map<std::string, std::string>>::Load(tooltipPath);
+    if (!tooltips)
+    {
+        Fluf::Warn("Could not load tooltips.yml for flight manual. Ensure file exists and is valid tooltip YAML.");
+    }
+    else
+    {
+        config->tooltips.value() = *tooltips;
+    }
+
     for (auto& file : std::filesystem::recursive_directory_iterator(pathyPath))
     {
-        if (!file.is_regular_file() || file.path().extension() != ".yml")
+        if (!file.is_regular_file() || file.path().extension() != ".yml" || file.path().filename() == "tooltips.yml")
         {
             continue;
         }

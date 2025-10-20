@@ -230,7 +230,7 @@ FlightManualWindow::FlightManualWindow(ImGuiInterface* imguiInterface, rfl::Ref<
     breadcrumb = std::make_unique<Breadcrumb>(this, static_cast<OnBreadcrumbItemClicked>(&FlightManualWindow::ChangePage), "Flight Manual");
     rootPageContent = config->rootPageContent;
 
-    markdown = std::make_unique<FlightManualMarkdown>(imguiInterface, [this](const std::string_view path) { ChangePage(path); });
+    markdown = std::make_unique<FlightManualMarkdown>(imguiInterface, config, [this](const std::string_view path) { ChangePage(path); });
 
     std::vector<FlightManualPage*> pages;
     for (auto& page : config->pages)

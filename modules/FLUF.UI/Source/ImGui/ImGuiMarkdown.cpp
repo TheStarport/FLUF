@@ -610,44 +610,36 @@ static std::string get_div_class(const char* str, const char* str_end)
     return d.substr(p, pe - p);
 }
 
-bool ImguiMarkdown::CheckHtml(const char* str, const char* str_end)
+bool ImguiMarkdown::CheckHtml(const std::string_view html, std::string_view nodeName, bool isEndNode, bool isSelfClosing)
 {
-    const size_t sz = str_end - str;
-
-    if (strncmp(str, "<br>", sz) == 0)
+    if (html == "<br/>" || html == "<br/>")
     {
         ImGui::NewLine();
         return true;
     }
 
-    if (strncmp(str, "<hr>", sz) == 0)
+    if (html == "<hr>" || html == "<hr/>")
     {
         ImGui::Separator();
         return true;
     }
 
-    if (strncmp(str, "<u>", sz) == 0)
+    if (nodeName == "u")
     {
-        isUnderline = true;
-        return true;
-    }
-
-    if (strncmp(str, "</u>", sz) == 0)
-    {
-        isUnderline = false;
+        isUnderline = !isEndNode;
         return true;
     }
 
     const size_t div_sz = 4;
-    if (strncmp(str, "<div", sz > div_sz ? div_sz : sz) == 0)
+    if (nodeName == "div")
     {
-        divStack.emplace_back(get_div_class(str + div_sz, str_end));
-        HtmlDiv(divStack.back(), true);
-        return true;
-    }
+        if (!isEndNode)
+        {
+            divStack.emplace_back(get_div_class(html.data() + div_sz, html.data() + html.size()));
+            HtmlDiv(divStack.back(), true);
+            return true;
+        }
 
-    if (strncmp(str, "</div>", sz) == 0)
-    {
         if (divStack.empty())
         {
             return false;
@@ -690,9 +682,55 @@ int ImguiMarkdown::Text(MD_TEXTTYPE type, const char* str, const char* str_end)
             };
             break;
         case MD_TEXT_HTML:
-            if (!CheckHtml(str, str_end))
             {
-                RenderText(str, str_end);
+                const std::string_view html = std::string_view(str, str_end);
+                if (html.size() < 2 || html.front() != '<' || html.back() != '>')
+                {
+                    RenderText(str, str_end);
+                    break;
+                }
+
+                std::string nodeName;
+                nodeName.reserve(str_end - str);
+                bool isEnd = false;
+                bool isSelfClosing = false;
+                bool nodeNameEnded = false;
+                for (int i = 1; str + i < str_end; i++)
+                {
+                    const auto ch = str[i];
+                    if (i == 1 && ch == '/')
+                    {
+                        isEnd = true;
+                        continue;
+                    }
+
+                    if (!nodeNameEnded)
+                    {
+                        nodeName += str[i];
+                    }
+
+                    if (i + 2 < html.size() && str[i + 1] == '/' && str[i + 2] == '>')
+                    {
+                        isSelfClosing = true;
+                        break;
+                    }
+
+                    if (i + 1 == html.size())
+                    {
+                        break;
+                    }
+
+                    if (const auto nextCh = str[i + 1];
+                        nextCh == ' ' || nextCh == '>' || nextCh == '\t' || nextCh == '\n' || nextCh == '\r' || nextCh == ',' || nextCh == '.' || nextCh == '"')
+                    {
+                        nodeNameEnded = true;
+                    }
+                }
+
+                if (!CheckHtml(html, nodeName, isEnd, isSelfClosing))
+                {
+                    RenderText(str, str_end);
+                }
             }
             break;
         case MD_TEXT_LATEXMATH: RenderText(str, str_end); break;
@@ -764,7 +802,10 @@ int ImguiMarkdown::Render(const std::string_view str)
         return 0;
     }
 
-    return md_parse(str.data(), str.size(), &parser, this);
+    DocumentStart(str.data());
+    const auto result = md_parse(str.data(), str.size(), &parser, this);
+    DocumentEnd(str.data() + str.size());
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -808,9 +849,9 @@ bool ImguiMarkdown::GetImage(image_info& nfo) const
         return false;
     }
 
-    std::string path = std::format("../DATA/{}", href);
+    const std::string path = std::format("../DATA/{}", href);
     uint width, height;
-    auto texture = imguiInterface->LoadTexture(path, width, height);
+    const auto texture = imguiInterface->LoadTexture(path, width, height);
 
     if (!texture)
     {

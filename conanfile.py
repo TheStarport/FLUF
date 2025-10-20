@@ -29,6 +29,10 @@ class CompressorRecipe(ConanFile):
             "md2html": False
         })
         self.requires("msgpack-c/6.1.0")
+        self.requires("pugixml/1.15", options={
+            'shared': False,
+            'header_only': True
+        })
         self.requires("spdlog/1.15.0", options={
             'use_std_fmt': True,
             'header_only': True
