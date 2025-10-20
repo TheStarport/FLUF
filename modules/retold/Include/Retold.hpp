@@ -33,6 +33,7 @@ struct ExtraShipData
 struct ExtraShieldData
 {
         float shieldStrength = 0.f;
+        float offlineRegenerationRate = 0.f;
 };
 
 struct ShipDotData
@@ -83,6 +84,8 @@ class Retold final : public FlufModule, public ImGuiModule
         static void __thiscall LauncherConsumeFireResourcesDetour(CELauncher* launcher);
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
         static void __thiscall ShieldSetHealthDetour(CEShield* shield, float hitPts);
+        static void __fastcall ShieldRegenerationPatch(CEShieldGenerator* generator, CEShield* shield, float hitPts);
+        static void ShieldRegenerationPatchNaked();
 
         // Weapons
         void ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);

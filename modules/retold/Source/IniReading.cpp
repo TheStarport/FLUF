@@ -93,6 +93,8 @@ void Retold::SetupHooks()
     RetoldHooks::gunCanFireDetour.Detour(GunCanFireDetour);
     RetoldHooks::consumeFireResourcesDetour.Detour(LauncherConsumeFireResourcesDetour);
     RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
+
+    MemUtils::PatchAssembly(common + 0x3CF06, ShieldRegenerationPatchNaked);
 }
 
 void Retold::ReadUniverseIni()
@@ -284,9 +286,13 @@ void Retold::ReadEquipmentIni(const std::string& file)
                 {
                     data.shieldStrength = ini.get_value_float(0);
                 }
+                else if (ini.is_value("offline_regenerate_rate"))
+                {
+                    data.offlineRegenerationRate = ini.get_value_float(0);
+                }
             }
 
-            if (!nickname.empty() && data.shieldStrength != 0.f)
+            if (!nickname.empty() && (data.shieldStrength != 0.f || data.offlineRegenerationRate != 0.f))
             {
                 Fluf::Debug(std::format("Adding custom shield: {}", nickname));
                 extraShieldData[CreateID(nickname.c_str())] = data;

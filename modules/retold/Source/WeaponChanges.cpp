@@ -229,6 +229,52 @@ void Retold::RemoveShipVulnerabilityStacks()
     }
 }
 
+void __fastcall Retold::ShieldRegenerationPatch(CEShieldGenerator* generator, CEShield* shield, float delta)
+{
+    float regenRate = 0.f;
+    auto arch = generator->ShieldGenArch();
+
+    if (shield->IsFunctioning())
+    {
+        regenRate = arch->regenerationRate;
+    }
+    else
+    {
+        auto customShield = instance->extraShieldData.find(arch->archId);
+        if (customShield != instance->extraShieldData.end() && customShield->second.offlineRegenerationRate != 0.f)
+        {
+            regenRate = customShield->second.offlineRegenerationRate;
+        }
+        else
+        {
+            regenRate = arch->regenerationRate;
+        }
+    }
+
+    if (regenRate < 0.f)
+    {
+        return;
+    }
+
+    const auto hitPts = shield->GetHitPoints();
+    shield->SetHitPoints(std::clamp(hitPts + regenRate * delta, 0.f, 1'000'000'000.f));
+}
+
+void __declspec(naked) Retold::ShieldRegenerationPatchNaked()
+{
+    static constexpr DWORD returnAddress = 0x629CF11;
+    __asm
+    {
+        mov edx, ecx // CEShield
+        mov ecx, esi // CEShieldGenerator
+        mov eax, [esp+0xC+0x4] // frame delta
+        push eax
+        call Retold::ShieldRegenerationPatch
+        pop edi
+        jmp returnAddress
+    }
+}
+
 void __thiscall Retold::ShieldSetHealthDetour(CEShield* shield, float hitPts)
 {
     auto owner = shield->GetOwner();
