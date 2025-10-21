@@ -4,11 +4,74 @@
 
 #include "Retold.hpp"
 
+// Reimplementation of common.dll version
+
+FireResult CanGunFire(CEGun* gun, Vector& target)
+{
+    auto arch = gun->GunArch();
+    //
+    if (gun->IsDestroyed())
+    {
+        return FireResult::ObjectIsDestroyed;
+    }
+
+    if (gun->IsDisabled() && !arch->autoTurret)
+    {
+        return FireResult::ObjectIsDisabled;
+    }
+
+    if (!gun->RefireDelayElapsed())
+    {
+        return FireResult::RefireDelayNotElapsed;
+    }
+
+    if (!gun->AmmoNeedsMet())
+    {
+        return FireResult::AmmoRequirementsNotMet;
+    }
+
+    if (!gun->PowerNeedsMet())
+    {
+        return FireResult::PowerRequirementsNotMet;
+    }
+
+    if (gun->owner->is_cloaked())
+    {
+        return FireResult::FailureCloakActive;
+    }
+
+    if (gun->owner->objectClass == CObject::CSHIP_OBJECT)
+    {
+        auto ship = (CShip*)gun->owner;
+        if (ship->is_using_tradelane())
+        {
+            return FireResult::FailureTradelane;
+        }
+
+        if (ship->is_cruise_active())
+        {
+            return FireResult::FailureCruiseActive;
+        }
+    }
+
+    auto muzzleConeAngle = MUZZLE_CONE_ANGLE * 0.017453292f;
+    auto barrelPos = gun->GetBarrelPosWS(0);
+    auto relativeTargetPos = target - barrelPos;
+    auto mod = 1.0f / sqrtf(relativeTargetPos.length());
+
+    auto resultAngle = relativeTargetPos * mod;
+    auto direction = gun->GetBarrelDirWS(0);
+    if (cos(muzzleConeAngle) >= (resultAngle * direction).length())
+    {
+        return FireResult::FailureGunAngle;
+    }
+
+    return FireResult::Success;
+}
+
 FireResult __thiscall Retold::GunCanFireDetour(CEGun* gun, Vector& target)
 {
-    RetoldHooks::gunCanFireDetour.UnDetour();
-    const auto canFire = RetoldHooks::gunCanFireDetour.GetOriginalFunc()(gun, target);
-    RetoldHooks::gunCanFireDetour.Detour(GunCanFireDetour);
+    auto canFire = CanGunFire(gun, target);
 
     const auto gunInfo = instance->extraWeaponData.find(gun->archetype->archId);
     if (canFire != FireResult::Success || gunInfo == instance->extraWeaponData.end())
@@ -82,9 +145,9 @@ void Retold::BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, 
         return;
     }
 
+    ApplyShieldReductionStacks(ship, impact, munitionData->second);
     if (shieldActive)
     {
-        ApplyShieldReductionStacks(ship, impact, munitionData->second);
         return;
     }
 
