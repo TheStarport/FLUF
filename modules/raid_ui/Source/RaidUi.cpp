@@ -31,8 +31,13 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-void RaidUi::OnFixedUpdate(const double delta)
+void RaidUi::OnFixedUpdate(const float delta, bool gamePaused)
 {
+    if (gamePaused)
+    {
+        return;
+    }
+
     timer -= delta;
     if (timer > 0)
     {

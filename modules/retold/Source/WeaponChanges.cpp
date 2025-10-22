@@ -187,9 +187,8 @@ void Retold::BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList
     }
 }
 
-void Retold::ProcessShipDotStacks()
+void Retold::ProcessShipDotStacks(float delta)
 {
-    constexpr float delta = 1.f / 60.f;
     for (auto& [id, stacks] : shipDots)
     {
         const auto obj = static_cast<EqObj*>(Fluf::GetObjInspect(id));
@@ -227,18 +226,10 @@ void Retold::ProcessShipDotStacks()
             if (!part)
             {
                 obj->damage_hull(damage, &list);
-                if (const auto& back = list.damageEntries.back(); back.health == 0.f)
-                {
-                    stacks.clear();
-                }
             }
             else
             {
                 obj->damage_col_grp(part, damage, &list);
-                if (const auto& back = list.damageEntries.back(); back.health == 0.f)
-                {
-                    std::erase_if(stacks, [&](auto& stack) { return stack.targetHardpoint == back.subObj; });
-                }
             }
         }
 
@@ -246,10 +237,9 @@ void Retold::ProcessShipDotStacks()
     }
 }
 
-void Retold::RemoveShieldReductionStacks()
+void Retold::RemoveShieldReductionStacks(float delta)
 {
     // TODO: This function and the one below it are near identical, merge?
-    constexpr float delta = 1.f / 60.f;
     for (auto& reductions : shipShieldRechargeDebuffs | std::views::values)
     {
         for (auto stack = reductions.begin(); stack != reductions.end();)
@@ -267,9 +257,8 @@ void Retold::RemoveShieldReductionStacks()
     }
 }
 
-void Retold::RemoveShipVulnerabilityStacks()
+void Retold::RemoveShipVulnerabilityStacks(float delta)
 {
-    constexpr float delta = 1.f / 60.f;
     for (auto& [id, vulnerabilities] : shipHullVulnerabilities)
     {
         for (auto stack = vulnerabilities.begin(); stack != vulnerabilities.end();)
@@ -277,7 +266,7 @@ void Retold::RemoveShipVulnerabilityStacks()
             stack->duration -= delta;
             if (stack->duration <= 0.f)
             {
-                if (const auto obj = static_cast<EqObj*>(Fluf::GetObjInspect(id)); obj && stack->fuseId)
+                if (const auto obj = dynamic_cast<EqObj*>(Fluf::GetObjInspect(id)); obj && stack->fuseId)
                 {
                     obj->unlight_fuse(stack->fuseId, stack->hardPoint, 0.f);
                 }

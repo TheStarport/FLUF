@@ -108,11 +108,16 @@ struct CliLauncher
         static constexpr auto PlayFireSound = reinterpret_cast<int(__thiscall*)(CliLauncher*, const Vector& pos, void* unused)>(0x52CED0);
 };
 
-void Retold::OnFixedUpdate(const double delta)
+void Retold::OnFixedUpdate(const float delta, bool gamePaused)
 {
-    ProcessShipDotStacks();
-    RemoveShieldReductionStacks();
-    RemoveShipVulnerabilityStacks();
+    if (gamePaused)
+    {
+        return;
+    }
+
+    ProcessShipDotStacks(delta);
+    RemoveShieldReductionStacks(delta);
+    RemoveShipVulnerabilityStacks(delta);
 
     if (!Fluf::IsRunningOnClient() || !autoTurretsEnabled)
     {

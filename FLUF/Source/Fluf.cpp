@@ -247,6 +247,9 @@ void Fluf::OnGameLoad()
 
 void Fluf::OnUpdateHook(const double delta)
 {
+    using GamePausedFunc = bool (*)();
+    static auto gamePausedFunc = reinterpret_cast<GamePausedFunc>(0x42D740);
+
     constexpr double SixtyFramesPerSecond = 1.0 / 60.0;
     static double timeCounter = 0.0f;
 
@@ -256,7 +259,7 @@ void Fluf::OnUpdateHook(const double delta)
     {
         for (auto& mod : fluf->loadedModules)
         {
-            mod->OnFixedUpdate(SixtyFramesPerSecond);
+            mod->OnFixedUpdate(SixtyFramesPerSecond, gamePausedFunc());
         }
 
         timeCounter -= SixtyFramesPerSecond;

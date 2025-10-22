@@ -91,9 +91,9 @@ class Retold final : public FlufModule, public ImGuiModule
         void ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
         void ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
         void ApplyShieldReductionStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
-        void ProcessShipDotStacks();
-        void RemoveShieldReductionStacks();
-        void RemoveShipVulnerabilityStacks();
+        void ProcessShipDotStacks(float delta);
+        void RemoveShieldReductionStacks(float delta);
+        void RemoveShipVulnerabilityStacks(float delta);
 
         void HookContentDll();
 
@@ -103,7 +103,7 @@ class Retold final : public FlufModule, public ImGuiModule
         void OnServerStart(const SStartupInfo&) override;
         void OnDllLoaded(std::string_view dllName, HMODULE dllPtr) override;
         void OnDllUnloaded(std::string_view dllName, HMODULE dllPtr) override;
-        void OnFixedUpdate(double delta) override;
+        void OnFixedUpdate(float delta, bool gamePaused) override;
         bool OnKeyToggleAutoTurrets(KeyState state);
         void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) override;
         void BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;

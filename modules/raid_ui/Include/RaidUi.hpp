@@ -64,7 +64,7 @@ class RaidUi final : public FlufModule, public ImGuiModule
         static void RadialProgressBar(const std::string& label, float progress, const ImVec2& size, const ImVec4& color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
                                       ImVec2 center = ImVec2(0, 0));
 
-        void OnFixedUpdate(double delta) override;
+        void OnFixedUpdate(float delta, bool gamePaused) override;
         void OnGameLoad() override;
         void Render() override;
 

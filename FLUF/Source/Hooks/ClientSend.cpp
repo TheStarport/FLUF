@@ -135,7 +135,7 @@ int __thiscall ClientSend::Update(IServerImpl* serverImpl)
 
     int retVal = reinterpret_cast<FuncType>(Fluf::instance->serverPatches[static_cast<int>(IServerVTable::Update)].oldFunc)(serverImpl);
 
-    Fluf::instance->CallModuleEvent(&FlufModule::OnFixedUpdate, 1 / 20);
+    Fluf::instance->CallModuleEvent(&FlufModule::OnFixedUpdate, 1 / 20, false);
 
     return retVal;
 }
@@ -206,8 +206,7 @@ void __thiscall ClientSend::RequestRemoveItem(IServerImpl* serverImpl, ushort sl
     }
 }
 
-void __thiscall ClientSend::RequestModifyItem(IServerImpl* serverImpl, ushort slotId, char* hardPoint, int count, float status, bool mounted,
-                                              uint client)
+void __thiscall ClientSend::RequestModifyItem(IServerImpl* serverImpl, ushort slotId, char* hardPoint, int count, float status, bool mounted, uint client)
 {
     Fluf::Log(LogLevel::Trace, __FUNCTION__);
 
