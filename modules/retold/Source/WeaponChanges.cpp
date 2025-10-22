@@ -372,8 +372,18 @@ void Retold::ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const Ex
     }
 
     const auto shipData = extraShipData.find(ship->ceqobj()->archetype->archId);
-    const auto curHullDotMax = (shipData != extraShipData.end() && shipData->second.hullDotMax != 0.f) ? shipData->second.hullDotMax : hullDotMax;
-    if (totalDamage >= curHullDotMax && totalDamage != 0.f)
+    auto curHullDotMax = (shipData != extraShipData.end() && shipData->second.hullDotMax != 0.f) ? shipData->second.hullDotMax : hullDotMax;
+
+    auto& em = ship->cship()->equipManager;
+    CEquipTraverser trav{ static_cast<int>(EquipmentClass::Armor) };
+    CEArmor* armor;
+    float hitPtsScale = 1.f;
+    while ((armor = dynamic_cast<CEArmor*>(em.Traverse(trav))))
+    {
+        hitPtsScale += armor->ArmorArch()->hitPointsScale - 1.f;
+    }
+
+    if (totalDamage >= curHullDotMax * hitPtsScale && totalDamage != 0.f)
     {
         return;
     }
