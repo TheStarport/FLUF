@@ -28,6 +28,7 @@ struct ExtraShipData
 {
         float hullDotMax = 0.f;
         std::list<std::pair<float, Id>> hullVulnerabilityFuses;
+        uint shieldOfflineFuse = 0;
 };
 
 struct ExtraShieldData

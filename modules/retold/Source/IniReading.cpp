@@ -80,23 +80,6 @@ void __declspec(naked) Retold::SystemIniOpenNaked()
     }
 }
 
-void Retold::SetupHooks()
-{
-    const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
-    const auto common = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll"));
-
-    // Hook System INI file Reading
-    static auto systemIniOpenRedirectionAddress = &SystemIniOpenNaked;
-    static auto systemIniOpenRedirectionAddress2 = &systemIniOpenRedirectionAddress;
-    MemUtils::WriteProcMem(fl + 0x15379D, &systemIniOpenRedirectionAddress2, sizeof(systemIniOpenRedirectionAddress2));
-
-    RetoldHooks::gunCanFireDetour.Detour(GunCanFireDetour);
-    RetoldHooks::consumeFireResourcesDetour.Detour(LauncherConsumeFireResourcesDetour);
-    RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
-
-    MemUtils::PatchAssembly(common + 0x3CF06, ShieldRegenerationPatchNaked);
-}
-
 void Retold::ReadUniverseIni()
 {
     INI_Reader ini;
@@ -337,6 +320,10 @@ void Retold::ReadShipArchFile(const std::string& file)
                 {
                     data.hullVulnerabilityFuses.emplace_back(threshold, fuse);
                 }
+            }
+            else if (ini.is_value("shield_offline_fuse"))
+            {
+                data.shieldOfflineFuse = CreateID(ini.get_value_string(0));
             }
         }
 

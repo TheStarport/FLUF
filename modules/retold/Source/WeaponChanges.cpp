@@ -6,9 +6,9 @@
 
 // Reimplementation of common.dll version
 
-FireResult CanGunFire(CEGun* gun, Vector& target)
+FireResult CanGunFire(const CEGun* gun, const Vector& target)
 {
-    auto arch = gun->GunArch();
+    const auto arch = gun->GunArch();
     //
     if (gun->IsDestroyed())
     {
@@ -42,7 +42,7 @@ FireResult CanGunFire(CEGun* gun, Vector& target)
 
     if (gun->owner->objectClass == CObject::CSHIP_OBJECT)
     {
-        auto ship = (CShip*)gun->owner;
+        const auto ship = dynamic_cast<CShip*>(gun->owner);
         if (ship->is_using_tradelane())
         {
             return FireResult::FailureTradelane;
@@ -54,14 +54,14 @@ FireResult CanGunFire(CEGun* gun, Vector& target)
         }
     }
 
-    auto muzzleConeAngle = MUZZLE_CONE_ANGLE * 0.017453292f;
-    auto barrelPos = gun->GetBarrelPosWS(0);
-    auto relativeTargetPos = target - barrelPos;
-    auto mod = 1.0f / sqrtf(relativeTargetPos.length());
+    const auto muzzleConeAngle = MUZZLE_CONE_ANGLE * 0.017453292f;
+    const auto barrelPos = gun->GetBarrelPosWS(0);
+    const auto relativeTargetPos = target - barrelPos;
+    const auto mod = 1.0f / sqrtf(length(relativeTargetPos));
 
-    auto resultAngle = relativeTargetPos * mod;
-    auto direction = gun->GetBarrelDirWS(0);
-    if (cos(muzzleConeAngle) >= (resultAngle * direction).length())
+    const auto resultAngle = relativeTargetPos * mod;
+    const auto direction = gun->GetBarrelDirWS(0);
+    if (cos(muzzleConeAngle) >= length(resultAngle * direction))
     {
         return FireResult::FailureGunAngle;
     }
@@ -71,7 +71,7 @@ FireResult CanGunFire(CEGun* gun, Vector& target)
 
 FireResult __thiscall Retold::GunCanFireDetour(CEGun* gun, Vector& target)
 {
-    auto canFire = CanGunFire(gun, target);
+    const auto canFire = CanGunFire(gun, target);
 
     const auto gunInfo = instance->extraWeaponData.find(gun->archetype->archId);
     if (canFire != FireResult::Success || gunInfo == instance->extraWeaponData.end())
@@ -81,7 +81,7 @@ FireResult __thiscall Retold::GunCanFireDetour(CEGun* gun, Vector& target)
 
     auto& em = gun->owner->equipManager;
 
-    if (const CEShield* shield = static_cast<CEShield*>(em.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
+    if (const CEShield* shield = dynamic_cast<CEShield*>(em.FindFirst(static_cast<uint>(EquipmentClass::Shield)));
         !shield || (shield->IsFunctioning() && shield->currShieldHitPoints < gunInfo->second.shieldPowerUsage))
     {
         return FireResult::PowerRequirementsNotMet;
@@ -103,7 +103,7 @@ void __thiscall Retold::LauncherConsumeFireResourcesDetour(CELauncher* launcher)
     }
 
     auto& em = launcher->owner->equipManager;
-    if (const auto shield = static_cast<CEShield*>(em.FindFirst(static_cast<uint>(EquipmentClass::Shield))))
+    if (const auto shield = dynamic_cast<CEShield*>(em.FindFirst(static_cast<uint>(EquipmentClass::Shield))))
     {
         shield->currShieldHitPoints = std::clamp(shield->currShieldHitPoints - gunInfo->second.shieldPowerUsage, 0.f, shield->maxShieldHitPoints);
     }
@@ -175,7 +175,7 @@ void Retold::BeforeShipColGrpDmg(Ship* ship, CArchGroup* colGrp, float& incDmg, 
 
 void Retold::BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList)
 {
-    if (auto vulnList = shipHullVulnerabilities.find(ship->get_id()); vulnList != shipHullVulnerabilities.end())
+    if (const auto vulnList = shipHullVulnerabilities.find(ship->get_id()); vulnList != shipHullVulnerabilities.end())
     {
         float plasmaModifier = 1.f;
         for (const auto& plasma : vulnList->second)
@@ -202,7 +202,7 @@ void Retold::ProcessShipDotStacks(float delta)
         DamageList list;
         for (auto stack = stacks.begin(); stack != stacks.end();)
         {
-            auto part = agm.FindByID(stack->targetHardpoint);
+            const auto part = agm.FindByID(stack->targetHardpoint);
             if ((!part && stack->targetHardpoint != 1) || stack->timeLeft <= 0.f)
             {
                 stack = stacks.erase(stack);
@@ -284,7 +284,7 @@ void Retold::RemoveShipVulnerabilityStacks(float delta)
 void __fastcall Retold::ShieldRegenerationPatch(CEShieldGenerator* generator, CEShield* shield, float delta)
 {
     float regenRate = 0.f;
-    auto arch = generator->ShieldGenArch();
+    const auto arch = generator->ShieldGenArch();
 
     if (shield->IsFunctioning())
     {
@@ -292,7 +292,7 @@ void __fastcall Retold::ShieldRegenerationPatch(CEShieldGenerator* generator, CE
     }
     else
     {
-        auto customShield = instance->extraShieldData.find(arch->archId);
+        const auto customShield = instance->extraShieldData.find(arch->archId);
         if (customShield != instance->extraShieldData.end() && customShield->second.offlineRegenerationRate != 0.f)
         {
             regenRate = customShield->second.offlineRegenerationRate;
@@ -329,14 +329,14 @@ void __declspec(naked) Retold::ShieldRegenerationPatchNaked()
 
 void __thiscall Retold::ShieldSetHealthDetour(CEShield* shield, float hitPts)
 {
-    auto owner = shield->GetOwner();
-    auto currentHitPts = shield->GetHitPoints();
+    const auto owner = shield->GetOwner();
+    const auto currentHitPts = shield->GetHitPoints();
 
     // We are increasing our shields, lets apply any needed debufs
     if (currentHitPts < hitPts)
     {
         auto diff = hitPts - currentHitPts;
-        auto activeDebuffs = instance->shipShieldRechargeDebuffs.find(owner->id);
+        const auto activeDebuffs = instance->shipShieldRechargeDebuffs.find(owner->id);
         if (activeDebuffs != instance->shipShieldRechargeDebuffs.end())
         {
             float reduction = 1.f;
@@ -351,9 +351,32 @@ void __thiscall Retold::ShieldSetHealthDetour(CEShield* shield, float hitPts)
         }
     }
 
+    auto shieldOnlineState = shield->internalActivationState;
+
     RetoldHooks::shieldSetHealthDetour.UnDetour();
     RetoldHooks::shieldSetHealthDetour.GetOriginalFunc()(shield, hitPts);
     RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
+
+    if (shieldOnlineState != shield->internalActivationState)
+    {
+        const auto data = instance->extraShipData.find(shield->GetOwner()->archetype->archId);
+        const auto inspect = dynamic_cast<EqObj*>(Fluf::GetObjInspect(shield->GetOwner()->id));
+        if (!inspect || data == instance->extraShipData.end() || data->second.shieldOfflineFuse == 0)
+        {
+            return;
+        }
+
+        if (shieldOnlineState)
+        {
+            // Shield was on, now off
+            inspect->light_fuse(0, data->second.shieldOfflineFuse, 0, 0.f, 0.f);
+        }
+        else
+        {
+            // Shield was off, now on
+            inspect->unlight_fuse(data->second.shieldOfflineFuse, 0, 0.f);
+        }
+    }
 }
 
 void Retold::ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData)
@@ -372,7 +395,7 @@ void Retold::ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const Ex
     }
 
     const auto shipData = extraShipData.find(ship->ceqobj()->archetype->archId);
-    auto curHullDotMax = (shipData != extraShipData.end() && shipData->second.hullDotMax != 0.f) ? shipData->second.hullDotMax : hullDotMax;
+    const auto curHullDotMax = (shipData != extraShipData.end() && shipData->second.hullDotMax != 0.f) ? shipData->second.hullDotMax : hullDotMax;
 
     auto& em = ship->cship()->equipManager;
     CEquipTraverser trav{ static_cast<int>(EquipmentClass::Armor) };
@@ -418,7 +441,7 @@ void Retold::ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact
         plasmaModifier /= armor->ArmorArch()->hitPointsScale;
     }
 
-    auto shipModifiers = extraShipData.find(ship->ceqobj()->archetype->archId);
+    const auto shipModifiers = extraShipData.find(ship->ceqobj()->archetype->archId);
     auto& fuses = shipModifiers == extraShipData.end() ? hullVulnerabilityFuses : shipModifiers->second.hullVulnerabilityFuses;
 
     uint fuseId = 0;
