@@ -540,6 +540,9 @@ Fluf::Fluf(const HMODULE dll)
 
 Fluf::~Fluf()
 {
+    thornLoadDetour->UnDetour();
+    frameUpdateDetour->UnDetour();
+
     while (!loadedModules.empty())
     {
         loadedModules.pop_back();

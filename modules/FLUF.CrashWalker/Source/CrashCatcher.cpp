@@ -536,6 +536,10 @@ CrashCatcher::CrashCatcher()
 
 CrashCatcher::~CrashCatcher()
 {
+    fixCommon6341616Detour->Release();
+    fixEngbase12580Detour->Release();
+    fixFreelancer669c0Detour->Release();
+
     const auto engBaseModule = reinterpret_cast<DWORD>(GetModuleHandleA("engbase.dll"));
 
     if (engBaseModule)
