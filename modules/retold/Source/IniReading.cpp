@@ -330,7 +330,7 @@ void Retold::ReadShipArchFile(const std::string& file)
         // Sort so we are high thresholds first
         data.hullVulnerabilityFuses.sort([](const auto& a, const auto& b) { return b.first > a.second; });
 
-        if (!nickname.empty() && (data.hullDotMax || !data.hullVulnerabilityFuses.empty()))
+        if (!nickname.empty() && (data.hullDotMax != 0.f || !data.hullVulnerabilityFuses.empty()))
         {
             Fluf::Debug(std::format("Adding custom ship: {}", nickname));
             extraShipData[CreateID(nickname.c_str())] = data;

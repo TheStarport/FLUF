@@ -19,7 +19,7 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
     return TRUE;
 }
 
-void SmoothStrafing::ReadIniFile(INI_Reader& ini)
+void SmoothStrafing::ReadShipIniFile(INI_Reader& ini)
 {
     while (ini.read_header())
     {
@@ -31,6 +31,7 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
         std::string nickname;
         float strafeAcceleration = 0.f;
         float strafeVerticalMultiplier = 0.1f;
+        float strafeThrusterPenalty = 1.f;
         uint leftFuse = 0;
         uint rightFuse = 0;
         while (ini.read_value())
@@ -52,6 +53,10 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
                 leftFuse = CreateID(ini.get_value_string(0));
                 rightFuse = CreateID(ini.get_value_string(1));
             }
+            else if (ini.is_value("strafe_thruster_penalty_multiplier"))
+            {
+                strafeThrusterPenalty = ini.get_value_float(0);
+            }
         }
 
         if (nickname.empty() || strafeAcceleration == 0.f)
@@ -63,8 +68,39 @@ void SmoothStrafing::ReadIniFile(INI_Reader& ini)
             .acceleration = strafeAcceleration,
             .leftFuse = leftFuse,
             .rightFuse = rightFuse,
-            .verticalMultiplier = strafeVerticalMultiplier //
+            .verticalMultiplier = strafeVerticalMultiplier,
+            .thrusterPenaltyMultiplier = strafeThrusterPenalty //
         };
+    }
+}
+
+void SmoothStrafing::ReadEquipmentIniFile(INI_Reader& ini)
+{
+    while (ini.read_header())
+    {
+        if (!ini.is_header("thruster"))
+        {
+            continue;
+        }
+
+        uint nickname = 0;
+        float thrusterStrafePenaltyReduction = 0.0f;
+        while (ini.read_value())
+        {
+            if (ini.is_value("nickname"))
+            {
+                nickname = CreateID(ini.get_value_string(0));
+            }
+            else if (ini.is_value("strafe_penalty_reduction"))
+            {
+                thrusterStrafePenaltyReduction = ini.get_value_float(0);
+            }
+        }
+
+        if (nickname && thrusterStrafePenaltyReduction != 0.f)
+        {
+            thrusterPenaltyReductions[nickname] = thrusterStrafePenaltyReduction;
+        }
     }
 }
 
@@ -221,7 +257,15 @@ float* __fastcall SmoothStrafing::GetThrusterForce(const Archetype::Thruster* ar
         return &retValue;
     }
 
-    retValue = std::clamp(archetype->maxForce - currentHorizontalStrafeForce, 0.f, archetype->maxForce);
+    const auto data = shipStrafeForces.find(owner->archetype->archId);
+    float modifier = (data != shipStrafeForces.end() ? data->second.thrusterPenaltyMultiplier : 1.f);
+
+    if (const auto penaltyReduction = thrusterPenaltyReductions.find(archetype->archId); penaltyReduction != thrusterPenaltyReductions.end())
+    {
+        modifier *= penaltyReduction->second;
+    }
+
+    retValue = std::clamp(archetype->maxForce - currentHorizontalStrafeForce * modifier, 0.f, archetype->maxForce);
     return &retValue;
 }
 
@@ -291,25 +335,41 @@ void SmoothStrafing::OnGameLoad()
         throw ModuleLoadException("Could not load freelancer.ini or it was malformed");
     }
 
-    std::list<std::string> files;
+    std::list<std::string> ships;
+    std::list<std::string> equipment;
     while (ini.read_value())
     {
         if (ini.is_value("ships"))
         {
-            files.emplace_back(ini.get_value_string());
+            ships.emplace_back(ini.get_value_string());
+        }
+        else if (ini.is_value("equipment"))
+        {
+            equipment.emplace_back(ini.get_value_string());
         }
     }
 
     ini.close();
 
-    for (const auto& file : files)
+    for (const auto& file : ships)
     {
         if (!ini.open((std::string("../DATA/") + file).c_str(), false))
         {
             continue;
         }
 
-        ReadIniFile(ini);
+        ReadShipIniFile(ini);
+        ini.close();
+    }
+
+    for (const auto& file : equipment)
+    {
+        if (!ini.open((std::string("../DATA/") + file).c_str(), false))
+        {
+            continue;
+        }
+
+        ReadEquipmentIniFile(ini);
         ini.close();
     }
 }
