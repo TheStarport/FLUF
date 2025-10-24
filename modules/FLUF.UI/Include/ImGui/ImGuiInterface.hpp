@@ -13,14 +13,14 @@ using OnRenderStatsMenu = ModuleCall;
 using RegisterMenuFunc = ModuleCall;
 using RegisterOptionsFunc = void (FlufModule::*)(bool saveRequested);
 
-enum class FontSize
+namespace FontSize
 {
-    VerySmall = 12,
-    Small = 24,
-    Default = 36,
-    Big = 48,
-    VeryBig = 60
-};
+    constexpr float VerySmall = 12.f;
+    constexpr float Small = 24.f;
+    constexpr float Default = 36.f;
+    constexpr float Big = 48.f;
+    constexpr float VeryBig = 60.f;
+} // namespace FontSize
 
 // Conditional fwd decs
 #ifdef FLUF_UI
@@ -111,16 +111,10 @@ class ImGuiInterface
          * but this font size has not been used previously, it will reload the font in the desired size.
          */
         [[nodiscard]]
-        FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, int fontSize) const;
+        FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName) const;
 
         [[nodiscard]]
-        FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, FontSize fontSize) const;
-
-        [[nodiscard]]
-        FLUF_UI_API ImFont* GetDefaultFont(FontSize fontSize) const;
-
-        [[nodiscard]]
-        FLUF_UI_API ImFont* GetDefaultFont(int fontSize = static_cast<int>(FontSize::Default)) const;
+        FLUF_UI_API ImFont* GetDefaultFont() const;
 
         /**
          * @brief Register a callback that will be called when the custom options menu is visible for the module that calls it.

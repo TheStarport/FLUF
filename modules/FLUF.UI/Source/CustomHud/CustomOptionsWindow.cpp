@@ -8,7 +8,7 @@
 #include "MemoryHelper.hpp"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
-#include "ImGui/IconFontAwesome6.hpp"
+#include "ImGui/Fonts/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiHelper.hpp"
 #include "Utils/StringUtils.hpp"
 

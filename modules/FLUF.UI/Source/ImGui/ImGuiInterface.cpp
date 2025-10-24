@@ -7,7 +7,6 @@
 #include "Fluf.hpp"
 #include "ImGui/ImGuiModule.hpp"
 
-#include "ImGui/FontAwesomeSolid.hpp"
 #include "ImGui/ImGuiNotify.hpp"
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
@@ -23,9 +22,11 @@
 #include "Internal/ImGuiD3D8.hpp"
 #include "Internal/PlayerStatusWindow.hpp"
 #include "Vanilla/HudManager.hpp"
-#
 #include <magic_enum.hpp>
-#include <ImGui/IconFontAwesome6.hpp>
+#include <ImGui/Fonts/IconFontAwesome6.hpp>
+#include "ImGui/Fonts/FontAwesomeSolid.hpp"
+#include "ImGui/Fonts/KeycapFont.hpp"
+#include "ImGui/Fonts/Keycaps.hpp"
 #include <stb_image.h>
 #include <misc/freetype/imgui_freetype.h>
 #include <webp/decode.h>
@@ -178,6 +179,8 @@ void ImGuiInterface::Render()
     // TODO: Potentially re-enable this one when suppressing the tab key in the regular game
     ImGui::SetShortcutRouting(ImGuiKey_Tab, ImGuiInputFlags_None, ImGuiInputFlags_RouteFocused);
 
+    ImGui::PushFont(nullptr, FontSize::Default);
+
     if (showDemoWindow)
     {
         ImGui::ShowDemoWindow(&showDemoWindow);
@@ -193,6 +196,8 @@ void ImGuiInterface::Render()
 
     // Render notifications above all else
     ImGui::RenderNotifications();
+
+    ImGui::PopFont();
 
     ImGui::Render();
 
@@ -362,53 +367,39 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
     io.IniFilename = iniPath.c_str();
 
+    auto addEmbeddedFont = [](const byte* data, size_t dataSize, float scale)
+    {
+        ImFontConfig fontConfig;
+        fontConfig.MergeMode = true;
+        fontConfig.PixelSnapH = true;
+        fontConfig.OversampleH = 1;
+        fontConfig.FontLoaderFlags |= ImGuiFreeTypeLoaderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_ForceAutoHint;
+        ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(data, dataSize, FontSize::Default * scale, &fontConfig);
+    };
+
+#define ADD_FA_FONT addEmbeddedFont(FontAwesomeCompressedData, FontAwesomeCompressedSize, 0.6666666f)
+#define ADD_KI_FONT addEmbeddedFont(KeycapsCompressedData, KeycapsCompressedSize, 1.1f)
+
     for (auto& loadedFont : config->loadedFonts)
     {
-        if (!loadedFont.fontSizes)
+        std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
+        if (!std::filesystem::exists(fontPath) && !std::filesystem::is_regular_file(fontPath))
         {
-            loadedFont.fontSizes = std::set<int>{};
+            Fluf::Warn(std::format("Unable to load font: {}", fontPath));
+            continue;
         }
 
-        // Ensure the default sizes are present
-        for (auto size : magic_enum::enum_values<FontSize>())
+        auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), FontSize::Default);
+        assert(font);
+
+        loadedFont.font = font;
+        if (loadedFont.isDefault)
         {
-            loadedFont.fontSizes->insert(static_cast<int>(size));
+            io.FontDefault = font;
         }
 
-        auto addFa = [](const float fontSize)
-        {
-            static constexpr ImWchar iconRanges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
-
-            ImFontConfig fontConfig;
-            const float iconFontSize = fontSize * 0.666666666f;
-            fontConfig.MergeMode = true;
-            fontConfig.PixelSnapH = true;
-            fontConfig.GlyphMinAdvanceX = iconFontSize;
-            fontConfig.FontLoaderFlags |= ImGuiFreeTypeLoaderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_ForceAutoHint;
-            ImGui::GetIO().Fonts->AddFontFromMemoryCompressedTTF(FontAwesomeCompressedData, FontAwesomeCompressedSize, iconFontSize, &fontConfig, iconRanges);
-        };
-
-        for (auto fontSize : *loadedFont.fontSizes)
-        {
-            std::string fontPath = std::format(R"(..\DATA\FONTS\{})", loadedFont.fontPath);
-            if (!std::filesystem::exists(fontPath) && !std::filesystem::is_regular_file(fontPath))
-            {
-                Fluf::Warn(std::format("Unable to load font: {}", fontPath));
-                continue;
-            }
-
-            auto fontSizeFloat = static_cast<float>(fontSize);
-            auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), fontSizeFloat);
-            assert(font);
-
-            if (loadedFont.isDefault && fontSize == static_cast<int>(FontSize::Default))
-            {
-                io.FontDefault = font;
-            }
-
-            addFa(fontSizeFloat);
-            loadedFont.fontSizesInternal.value()[fontSize] = font;
-        }
+        ADD_FA_FONT;
+        ADD_KI_FONT;
 
         if (loadedFont.isDefault)
         {
@@ -430,25 +421,29 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             if (std::filesystem::exists(lightPath))
             {
                 lightFont = io.Fonts->AddFontFromFileTTF(lightPath.c_str(), fontSize);
-                addFa(fontSize);
+                ADD_FA_FONT;
+                ADD_KI_FONT;
             }
 
             if (std::filesystem::exists(boldPath))
             {
                 boldFont = io.Fonts->AddFontFromFileTTF(boldPath.c_str(), fontSize);
-                addFa(fontSize);
+                ADD_FA_FONT;
+                ADD_KI_FONT;
             }
 
             if (std::filesystem::exists(italicPath))
             {
                 italicFont = io.Fonts->AddFontFromFileTTF(italicPath.c_str(), fontSize);
-                addFa(fontSize);
+                ADD_FA_FONT;
+                ADD_KI_FONT;
             }
 
             if (std::filesystem::exists(boldAndItalicPath))
             {
                 boldItalicFont = io.Fonts->AddFontFromFileTTF(boldAndItalicPath.c_str(), fontSize);
-                addFa(fontSize);
+                ADD_FA_FONT;
+                ADD_KI_FONT;
             }
 
             data = {
@@ -680,7 +675,7 @@ bool ImGuiInterface::UnregisterImGuiModule(ImGuiModule* mod)
     return imguiModules.erase(mod) == 1;
 }
 
-ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int fontSize) const
+ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName) const
 {
     auto& loadedImGuiFonts = config->loadedFonts;
     if (loadedImGuiFonts.empty())
@@ -695,28 +690,11 @@ ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const int font
         return nullptr;
     }
 
-    auto& fontSizes = loadedFont->fontSizesInternal.value();
-    const auto size = fontSizes.find(fontSize);
-    if (size == fontSizes.end())
-    {
-        MessageBoxA(nullptr, std::format("Font {} of size {} not found or failed to load.", fontName, fontSize).c_str(), "Font Error", MB_OK);
-        return nullptr;
-    }
-
-    return size->second;
+    return loadedFont->font.value();
 }
 
-ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, const FontSize fontSize) const { return GetImGuiFont(fontName, static_cast<int>(fontSize)); }
-
-ImFont* ImGuiInterface::GetDefaultFont(FontSize fontSize) const { return GetDefaultFont(static_cast<int>(fontSize)); }
-
-ImFont* ImGuiInterface::GetDefaultFont(int fontSize) const
+ImFont* ImGuiInterface::GetDefaultFont() const
 {
-    if (fontSize <= 0)
-    {
-        fontSize = static_cast<int>(FontSize::Default);
-    }
-
     for (const auto& font : config->loadedFonts)
     {
         if (!font.isDefault)
@@ -724,17 +702,7 @@ ImFont* ImGuiInterface::GetDefaultFont(int fontSize) const
             continue;
         }
 
-        if (!font.fontSizes)
-        {
-            throw std::runtime_error("Trying to access default fonts before initialisation is invalid");
-        }
-
-        if (!font.fontSizes->contains(fontSize))
-        {
-            throw std::runtime_error("Default font doesn't contain specified font size");
-        }
-
-        return font.fontSizesInternal.value().find(fontSize)->second;
+        return font.font.value();
     }
 
     throw std::runtime_error("No font was specified as default");

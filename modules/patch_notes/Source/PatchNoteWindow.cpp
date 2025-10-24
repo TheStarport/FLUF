@@ -3,7 +3,7 @@
 #include "PatchNoteWindow.hpp"
 
 #include "imgui_markdown.h"
-#include "ImGui/IconFontAwesome6.hpp"
+#include "ImGui/Fonts/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiInterface.hpp"
 
 #include <shellapi.h>
@@ -41,11 +41,9 @@ void PatchNoteWindow::RenderWindowContents()
     }
 
     SetOpenState(*openState);
-    for (const auto font = interface->GetImGuiFont("Saira", FontSize::Big); auto& [date, content, preamble, version] : *patches)
+    for (auto& [date, content, preamble, version] : *patches)
     {
-        assert(font);
-
-        ImGui::PushFont(font);
+        ImGui::PushFont(nullptr, FontSize::Big);
         ImGui::SeparatorText(version.c_str());
         ImGui::Text(date.str().c_str());
         ImGui::PopFont();
@@ -69,8 +67,7 @@ void PatchNoteWindow::RenderWindowContents()
 }
 
 PatchNoteWindow::PatchNoteWindow(ImGuiInterface* interface, std::vector<PatchNote>* patches, bool* openState)
-    : FlWindow("Patch Notes", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove), patches(patches), interface(interface),
-      openState(openState)
+    : FlWindow("Patch Notes", ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove), patches(patches), interface(interface), openState(openState)
 {
     CenterWindow();
     SetSize(ImVec2(1024.f, 1024.f));

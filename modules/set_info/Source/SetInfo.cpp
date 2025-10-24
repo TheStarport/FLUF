@@ -12,7 +12,7 @@
 #include "imgui_markdown.h"
 #include "TextEditor.h"
 #include "imgui_internal.h"
-#include "ImGui/IconFontAwesome6.hpp"
+#include "ImGui/Fonts/IconFontAwesome6.hpp"
 
 // ReSharper disable twice CppUseAuto
 const st6_malloc_t st6_malloc = reinterpret_cast<st6_malloc_t>(GetProcAddress(GetModuleHandleA("msvcrt.dll"), "malloc"));
@@ -33,7 +33,8 @@ void SetInfo::OnGameLoad()
 
     const auto imgui = flufUi->GetImGuiInterface();
 
-    // TODO: Standardise font sizes!
+    // TODO: Reimplement with new markdown parser
+    /*// TODO: Standardise font sizes!
     const auto h1 = imgui->GetDefaultFont(FontSize::VeryBig);
     const auto h2 = imgui->GetDefaultFont(FontSize::Big);
     const auto h3 = imgui->GetDefaultFont();
@@ -55,7 +56,7 @@ void SetInfo::OnGameLoad()
 
     editor = std::make_unique<TextEditor>();
 
-    imgui->RegisterStatusMenu(this, static_cast<RegisterMenuFunc>(&SetInfo::Render));
+    imgui->RegisterStatusMenu(this, static_cast<RegisterMenuFunc>(&SetInfo::Render));*/
 }
 
 void SetInfo::Render()

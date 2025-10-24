@@ -7,7 +7,7 @@
 #include "Random.hpp"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
-#include "ImGui/IconFontAwesome6.hpp"
+#include "ImGui/Fonts/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiHelper.hpp"
 #include "Utils/StringUtils.hpp"
 
@@ -150,7 +150,7 @@ void PlayerStatusWindow::RenderIndividualFaction()
         Fluf::GetInfocard(66172, &*renderDisplayList);
     }
 
-    const auto titleFont = imguiInterface->GetDefaultFont(static_cast<int>(FontSize::Big));
+    const auto titleFont = imguiInterface->GetDefaultFont();
     ImGui::PushFont(titleFont);
     ImGuiHelper::CenteredText(currentlySelectedFaction.c_str());
     ImGui::PopFont();

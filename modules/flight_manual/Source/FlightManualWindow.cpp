@@ -6,7 +6,7 @@
 #include "ImGui/ImGuiInterface.hpp"
 #include "Breadcrumb.hpp"
 #include "Utils/StringUtils.hpp"
-#include "ImGui/IconFontAwesome6.hpp"
+#include "ImGui/Fonts/IconFontAwesome6.hpp"
 
 #include <imgui_internal.h>
 

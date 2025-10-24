@@ -12,7 +12,7 @@
 #include "FLCore/Common/Globals.hpp"
 #include "FLCore/FLCoreServer.h"
 #include "FLUF.UI.hpp"
-#include "ImGui/IconFontAwesome6.hpp"
+#include "ImGui/Fonts/IconFontAwesome6.hpp"
 #include "ImGui/ImGuiHelper.hpp"
 #include "ImGui/ImGuiInterface.hpp"
 #include "KeyManager.hpp"
@@ -261,13 +261,10 @@ void RaidUi::Render()
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20.f, 2.f));
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.f);
 
+    ImGui::PushFont(nullptr, FontSize::Small);
+
     ImGui::SetNextWindowSize(ImVec2(400.f, 600.f), ImGuiCond_Always);
     ImGui::Begin("GroupInfo", nullptr, windowFlags);
-
-    const auto font = interface->GetImGuiFont("Saira", 24);
-    assert(font);
-
-    ImGui::PushFont(font);
 
     const bool isWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_Stationary) && !customisationSettings->hideLockSymbol;
     if (!isWindowHovered)
@@ -280,16 +277,10 @@ void RaidUi::Render()
         ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4());
     }
 
-    const auto faFont = interface->GetImGuiFont("FA", 24);
-    assert(faFont);
-
-    ImGui::PushFont(faFont);
     if (ImGui::Button(imguiPanelLocked ? ICON_FA_LOCK : ICON_FA_LOCK_OPEN))
     {
         imguiPanelLocked = !imguiPanelLocked;
     }
-
-    ImGui::PopFont();
 
     if (!isWindowHovered)
     {

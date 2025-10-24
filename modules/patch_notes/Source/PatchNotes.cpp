@@ -200,8 +200,7 @@ void PatchNotes::Render()
     ImGui::Begin("Patch Notes##1", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
     const auto itemSpacing = ImGui::GetStyle().ItemSpacing;
-    auto* font = interface->GetImGuiFont("Saira", FontSize::Big);
-    ImGui::PushFont(font);
+    ImGui::PushFont(nullptr, FontSize::Big);
     ImGui::Text(version.c_str());
     ImGui::SameLine();
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - (ImGui::CalcTextSize(date.str().c_str()).x + itemSpacing.x * 2.0f));

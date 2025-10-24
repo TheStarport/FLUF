@@ -21,7 +21,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#include "IconFontAwesome6.hpp"
+#include "ImGui/Fonts/IconFontAwesome6.hpp"
 #include "rfl/AddStructName.hpp"
 
 /**

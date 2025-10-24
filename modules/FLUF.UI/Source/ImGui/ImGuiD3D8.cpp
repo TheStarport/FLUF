@@ -10,7 +10,6 @@ static LPDIRECT3DVERTEXBUFFER8 vertexBuffer = nullptr;
 static LPDIRECT3DINDEXBUFFER8 indexBuffer = nullptr;
 static LPDIRECT3DVERTEXBUFFER8 maskVertexBuffer = nullptr;
 static LPDIRECT3DINDEXBUFFER8 maskIndexBuffer = nullptr;
-static LPDIRECT3DTEXTURE8 fontTexture = nullptr;
 static int vertexBufferSize = 5000, indexBufferSize = 10000;
 static IDirect3DSurface8* depthBuffer = nullptr;
 IDirect3DSurface8* realDepthStencilBuffer;
@@ -135,6 +134,19 @@ void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
         if (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f)
         {
             return;
+        }
+
+        // Catch up with texture updates. Most of the times, the list will have 1 element with an OK status, aka nothing to do.
+        // (This almost always points to ImGui::GetPlatformIO().Textures[] but is part of ImDrawData to allow overriding or disabling texture updates).
+        if (drawData->Textures != nullptr)
+        {
+            for (ImTextureData* tex : *drawData->Textures)
+            {
+                if (tex->Status != ImTextureStatus_OK)
+                {
+                    ImGui_ImplDX8_UpdateTexture(tex);
+                }
+            }
         }
 
         // Create and grow buffers if needed
@@ -288,7 +300,7 @@ void ImGui_ImplDX8_RenderDrawData(ImDrawData* drawData)
                                      static_cast<LONG>(pcmd->ClipRect.y - clip_off.y),
                                      static_cast<LONG>(pcmd->ClipRect.z - clip_off.x),
                                      static_cast<LONG>(pcmd->ClipRect.w - clip_off.y) };
-                    const LPDIRECT3DTEXTURE8 texture = (LPDIRECT3DTEXTURE8)pcmd->TexRef.GetTexID();
+                    const auto texture = (LPDIRECT3DTEXTURE8)pcmd->TexRef.GetTexID();
                     d3dDevice->SetTexture(0, texture);
                     build_mask_vbuffer(&r);
                     d3dDevice->SetRenderState(D3DRS_COLORWRITEENABLE, 0);
@@ -345,6 +357,10 @@ bool ImGui_ImplDX8_Init(IDirect3DDevice8* device)
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "fld3dx8";
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
+
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    platform_io.Renderer_TextureMaxWidth = platform_io.Renderer_TextureMaxHeight = 4096;
 
     d3dDevice = device;
     d3dDevice->AddRef();
@@ -354,6 +370,9 @@ bool ImGui_ImplDX8_Init(IDirect3DDevice8* device)
 void ImGui_ImplDX8_Shutdown()
 {
     ImGui_ImplDX8_InvalidateDeviceObjects();
+
+    ImGui::GetIO().BackendFlags &= ~(ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures);
+
     if (d3dDevice)
     {
         d3dDevice->Release();
@@ -361,39 +380,117 @@ void ImGui_ImplDX8_Shutdown()
     }
 }
 
-static bool ImGui_ImplDX8_CreateFontsTexture()
+#ifdef IMGUI_USE_BGRA_PACKED_COLOR
+    #define IMGUI_COL_TO_DX9_ARGB(_COL) (_COL)
+#else
+    #define IMGUI_COL_TO_DX9_ARGB(_COL) (((_COL) & 0xFF00FF00) | (((_COL) & 0xFF0000) >> 16) | (((_COL) & 0xFF) << 16))
+#endif
+
+// Convert RGBA32 to BGRA32 (because RGBA32 is not well supported by DX9 devices)
+static void ImGui_ImplDX8_CopyTextureRegion(bool tex_use_colors, const ImU32* src, int src_pitch, ImU32* dst, int dst_pitch, int w, int h)
 {
-    // Build texture atlas
-    const ImGuiIO& io = ImGui::GetIO();
-    unsigned char* pixels;
-    int width, height, BYTEs_per_pixel;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &BYTEs_per_pixel);
-
-    // Upload texture to graphics system
-    fontTexture = nullptr;
-    if (d3dDevice->CreateTexture(width, height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &fontTexture) < 0)
+    const bool convert_rgba_to_bgra = tex_use_colors;
+    for (int y = 0; y < h; y++)
     {
-        return false;
+        auto src_p = reinterpret_cast<ImU32*>((unsigned char*)src + src_pitch * y);
+        auto dst_p = reinterpret_cast<ImU32*>(reinterpret_cast<unsigned char*>(dst) + dst_pitch * y);
+        if (convert_rgba_to_bgra)
+        {
+            for (int x = w; x > 0; x--, src_p++, dst_p++) // Convert copy
+            {
+                *dst_p = IMGUI_COL_TO_DX9_ARGB(*src_p);
+            }
+        }
+        else
+        {
+            memcpy(dst_p, src_p, w * 4); // Raw copy
+        }
     }
+}
 
-    D3DLOCKED_RECT tex_locked_rect;
-    if (fontTexture->LockRect(0, &tex_locked_rect, nullptr, 0) != D3D_OK)
+static void ImGui_ImplDX8_UpdateTexture(ImTextureData* tex)
+{
+    // Create and upload new texture to graphics system
+    //IMGUI_DEBUG_LOG("UpdateTexture #%03d: WantCreate %dx%d\n", tex->UniqueID, tex->Width, tex->Height);
+    IM_ASSERT(tex->TexID == ImTextureID_Invalid && tex->BackendUserData == nullptr);
+    IM_ASSERT(tex->Format == ImTextureFormat_RGBA32);
+
+    if (tex->Status == ImTextureStatus_WantCreate)
     {
-        return false;
-    }
+        LPDIRECT3DTEXTURE8 texture = nullptr;
 
-    for (int y = 0; y < height; y++)
+        const HRESULT hr = d3dDevice->CreateTexture(tex->Width, tex->Height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &texture);
+        if (hr < 0)
+        {
+            IM_ASSERT(hr >= 0 && "Backend failed to create texture!");
+            return;
+        }
+
+        D3DLOCKED_RECT locked_rect;
+
+        if (texture->LockRect(0, &locked_rect, nullptr, 0) == D3D_OK)
+        {
+            ImGui_ImplDX8_CopyTextureRegion(tex->UseColors,
+                                            static_cast<ImU32*>(tex->GetPixels()),
+                                            tex->Width * 4,
+                                            static_cast<ImU32*>(locked_rect.pBits),
+                                            static_cast<ImU32>(locked_rect.Pitch),
+                                            tex->Width,
+                                            tex->Height);
+            texture->UnlockRect(0);
+        }
+
+        // Store identifiers
+        tex->SetTexID(static_cast<ImTextureID>(reinterpret_cast<intptr_t>(texture)));
+        tex->SetStatus(ImTextureStatus_OK);
+    }
+    else if (tex->Status == ImTextureStatus_WantUpdates)
     {
-        memcpy(
-            static_cast<unsigned char*>(tex_locked_rect.pBits) + tex_locked_rect.Pitch * y, pixels + (width * BYTEs_per_pixel) * y, (width * BYTEs_per_pixel));
+        // Update selected blocks. We only ever write to textures regions which have never been used before!
+        // This backend choose to use tex->Updates[] but you can use tex->UpdateRect to upload a single region.
+        const auto backendTex = reinterpret_cast<LPDIRECT3DTEXTURE8>(static_cast<intptr_t>(tex->TexID));
+        const RECT updateRect = { static_cast<LONG>(tex->UpdateRect.x),
+                                  static_cast<LONG>(tex->UpdateRect.y),
+                                  static_cast<LONG>(tex->UpdateRect.x + tex->UpdateRect.w),
+                                  static_cast<LONG>(tex->UpdateRect.y + tex->UpdateRect.h) };
+
+        D3DLOCKED_RECT lockedRect;
+        if (backendTex->LockRect(0, &lockedRect, &updateRect, 0) == D3D_OK)
+        {
+
+            for (const ImTextureRect& r : tex->Updates)
+            {
+
+                ImGui_ImplDX8_CopyTextureRegion(tex->UseColors,
+                                                static_cast<ImU32*>(tex->GetPixelsAt(r.x, r.y)),
+                                                tex->Width * 4,
+
+                                                static_cast<ImU32*>(lockedRect.pBits) + (r.x - updateRect.left) +
+                                                    (r.y - updateRect.top) * (lockedRect.Pitch / 4),
+                                                (int)lockedRect.Pitch,
+                                                r.w,
+                                                r.h);
+            }
+        }
+
+        backendTex->UnlockRect(0);
+        tex->SetStatus(ImTextureStatus_OK);
     }
+    else if (tex->Status == ImTextureStatus_WantDestroy)
+    {
+        const auto backend_tex = reinterpret_cast<LPDIRECT3DTEXTURE8>(tex->TexID);
+        if (backend_tex == nullptr)
+        {
+            return;
+        }
 
-    fontTexture->UnlockRect(0);
+        IM_ASSERT(tex->TexID == (ImTextureID)(intptr_t)backend_tex);
+        backend_tex->Release();
 
-    // Store our identifier
-    io.Fonts->TexID = (ImTextureID)fontTexture;
-
-    return true;
+        // Clear identifiers and mark as destroyed (in order to allow e.g. calling InvalidateDeviceObjects while running)
+        tex->SetTexID(ImTextureID_Invalid);
+        tex->SetStatus(ImTextureStatus_Destroyed);
+    }
 }
 
 static bool ImGui_ImplD3D8_CreateDepthStencilBuffer()
@@ -430,11 +527,6 @@ static bool ImGui_ImplD3D8_CreateDepthStencilBuffer()
 bool ImGui_ImplDX8_CreateDeviceObjects()
 {
     if (!d3dDevice)
-    {
-        return false;
-    }
-
-    if (!ImGui_ImplDX8_CreateFontsTexture())
     {
         return false;
     }
@@ -490,18 +582,19 @@ void ImGui_ImplDX8_InvalidateDeviceObjects()
         realDepthStencilBuffer = nullptr;
     }
 
-    if (fontTexture)
+    for (ImTextureData* tex : ImGui::GetPlatformIO().Textures)
     {
-        fontTexture->Release();
-        fontTexture = nullptr;
-        ImGui::GetIO().Fonts->TexID._TexData = nullptr;
-        ImGui::GetIO().Fonts->TexID._TexID = 0;
+        if (tex->RefCount == 1)
+        {
+            tex->SetStatus(ImTextureStatus_WantDestroy);
+            ImGui_ImplDX8_UpdateTexture(tex);
+        }
     }
 }
 
 void ImGui_ImplDX8_NewFrame()
 {
-    if (!fontTexture || !depthBuffer)
+    if (!depthBuffer)
     {
         ImGui_ImplDX8_CreateDeviceObjects();
     }
