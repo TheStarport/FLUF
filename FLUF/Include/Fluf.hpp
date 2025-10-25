@@ -93,6 +93,8 @@ class Fluf
         static void OnPhysicsUpdateDetour(uint system, float delta);
         using RPCLocalDetourType = bool(__fastcall*)(void* _this, void* edx, void* dunno1, void* dunno2);
         inline static std::unique_ptr<FunctionDetour<RPCLocalDetourType>> delayedRPCLocalDetour;
+        using SolarInitDetourType = void(__thiscall*)(CSolar* _this, CSolar::CreateParms*);
+        FunctionDetour<SolarInitDetourType> solarInitDetour{ reinterpret_cast<SolarInitDetourType>(DWORD(GetModuleHandleA("common")) + 0x57560) };
         static BOOL __stdcall FreeLibraryDetour(HMODULE module);
         static bool GetUserDataPathDetour(char* path);
 

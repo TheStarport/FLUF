@@ -181,10 +181,11 @@ void __fastcall IEngineHook::CShipInit(CShip* ship, void* edx, CShip::CreateParm
     Fluf::instance->CallModuleEvent(&FlufModule::OnCShipInit, ship);
 }
 
-void __fastcall IEngineHook::CSolarInit(CSolar* solar, void* edx, CSolar::CreateParms* creationParams)
+void __thiscall IEngineHook::CSolarInit(CSolar* solar, CSolar::CreateParms* creationParams)
 {
-    using CSolarInitType = void(__thiscall*)(CSolar*, CSolar::CreateParms*);
-    static_cast<CSolarInitType>(cSolarVTable.GetOriginal(static_cast<ushort>(CSolarVTable::InitCSolar)))(solar, creationParams);
+    Fluf::instance->solarInitDetour.UnDetour();
+    Fluf::instance->solarInitDetour.GetOriginalFunc()(solar, creationParams);
+    Fluf::instance->solarInitDetour.Detour(IEngineHook::CSolarInit);
 
     Fluf::instance->CallModuleEvent(&FlufModule::OnCSolarInit, solar);
 }

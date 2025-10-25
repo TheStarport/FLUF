@@ -821,7 +821,7 @@ enum class CSolarVTable
     UnmakePhysicals,
     RemakePhysicals,
     BeamObject,
-    InitCSolar,
+    InitCSimple,
     CachePhysicalProps,
     GetName,
     IsTargetable,

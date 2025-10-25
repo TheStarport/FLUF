@@ -123,7 +123,7 @@ class IEngineHook
         static void __fastcall ShipEnergyDmg(Ship* ship, void* edx, float incDmg, DamageList* dmgList);
 
         static void __fastcall CShipInit(CShip* ship, void* edx, CShip::CreateParms* creationParams);
-        static void __fastcall CSolarInit(CSolar* solar, void* edx, CSolar::CreateParms* creationParams);
+        static void __thiscall CSolarInit(CSolar* solar, CSolar::CreateParms* creationParams);
         static void __fastcall CLootInit(CLoot* loot, void* edx, CLoot::CreateParms* createParams);
         static void __fastcall CGuidedInit(CGuided* guided, void* edx, CGuided::CreateParms* creationParams);
 

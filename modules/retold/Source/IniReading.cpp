@@ -34,6 +34,9 @@ DWORD Retold::OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk)
     static std::string systemBuffer;
     systemBuffer.clear();
 
+    Fluf::Info(file);
+    ini_parse(file, reinterpret_cast<ini_handler>(IniHandler), &systemBuffer);
+
     for (auto& overrideFile : systemFileOverrides)
     {
         if (_strcmpi(file, overrideFile.first.c_str()) == 0)
@@ -42,9 +45,6 @@ DWORD Retold::OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk)
             break;
         }
     }
-
-    Fluf::Info(file);
-    ini_parse(file, reinterpret_cast<ini_handler>(IniHandler), &systemBuffer);
 
     systemIniBuffer = systemBuffer.c_str();
     return systemBuffer.size();

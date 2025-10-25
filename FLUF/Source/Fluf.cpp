@@ -157,8 +157,9 @@ void Fluf::LoadCommonHooks()
 #define VTablePtr(x) static_cast<unsigned short>(x)
     const void* ptr = &IEngineHook::CShipInit;
     IEngineHook::cShipVTable.Hook(VTablePtr(CShipVTable::InitCShip), &ptr);
-    ptr = &IEngineHook::CSolarInit;
-    IEngineHook::cSolarVTable.Hook(VTablePtr(CSolarVTable::InitCSolar), &ptr);
+
+    instance->solarInitDetour.Detour(IEngineHook::CSolarInit);
+
     ptr = &IEngineHook::CLootInit;
     IEngineHook::cLootVTable.Hook(VTablePtr(CLootVTable::InitCLoot), &ptr);
     ptr = &IEngineHook::CGuidedInit;
