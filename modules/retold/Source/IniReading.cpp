@@ -7,15 +7,20 @@
 #include "Retold.hpp"
 
 // ReSharper disable once CppDFAConstantFunctionResult
-static int IniHandler(std::string& iniBuffer, const char* section, const char* name, const char* value)
+static int IniHandler(std::string& iniBuffer, const char* section, const char* key, const char* value)
 {
-    if (!name && !value)
+    if (!key && !value)
     {
         iniBuffer += std::format("[{}]\n", section);
         return 1;
     }
 
-    iniBuffer += std::format("{} = {}\n", name, value);
+    if (_strcmpi(section, "object") == 0 && _strcmpi(key, "nickname") == 0)
+    {
+        Reputation::Vibe::EnsureExists(static_cast<int>(CreateID(value)));
+    }
+
+    iniBuffer += std::format("{} = {}\n", key, value);
 
     return 1;
 }
@@ -31,20 +36,34 @@ DWORD Retold::OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk)
 
     iniReader.close();
 
-    static std::string systemBuffer;
-    systemBuffer.clear();
+    const auto sz = std::filesystem::file_size(file);
+    std::string tempBuffer;
+    tempBuffer.resize(sz);
+    std::ifstream stream(file, std::ios::in | std::ios::binary);
+    stream.read(tempBuffer.data(), sz);
+    stream.close();
 
-    Fluf::Info(file);
-    ini_parse(file, reinterpret_cast<ini_handler>(IniHandler), &systemBuffer);
-
-    for (auto& overrideFile : systemFileOverrides)
+    for (auto& [originalFilePath, overrideFileContents] : systemFileOverrides)
     {
-        if (_strcmpi(file, overrideFile.first.c_str()) == 0)
+        if (_strcmpi(file, originalFilePath.c_str()) == 0)
         {
-            systemBuffer += overrideFile.second;
+            tempBuffer += overrideFileContents;
             break;
         }
     }
+
+    static std::string systemBuffer;
+    systemBuffer.clear();
+
+    ini_parse_string(tempBuffer.c_str(), reinterpret_cast<ini_handler>(IniHandler), &systemBuffer);
+
+    // We now process the file AGAIN, this time with INI reader to ensure all objects are initialised correctly
+    // This does mean we end up reading the file 4 times in total, but should be no problem for modern hardware
+    iniReader.open_memory(systemBuffer.c_str(), systemBuffer.size());
+    using IniObjReader = bool (*)(INI_Reader*);
+    static auto iniObjReaderFunc = reinterpret_cast<IniObjReader>(0x62B8DE0);
+    iniObjReaderFunc(&iniReader);
+    iniReader.close();
 
     systemIniBuffer = systemBuffer.c_str();
     return systemBuffer.size();

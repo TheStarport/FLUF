@@ -378,7 +378,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     };
 
 #define ADD_FA_FONT addEmbeddedFont(FontAwesomeCompressedData, FontAwesomeCompressedSize, 0.6666666f)
-#define ADD_KI_FONT addEmbeddedFont(KeycapsCompressedData, KeycapsCompressedSize, 1.1f)
+#define ADD_KI_FONT addEmbeddedFont(KeycapsCompressedData, KeycapsCompressedSize, 1.4f)
 
     for (auto& loadedFont : config->loadedFonts)
     {
@@ -398,8 +398,8 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             io.FontDefault = font;
         }
 
-        ADD_FA_FONT;
         ADD_KI_FONT;
+        ADD_FA_FONT;
 
         if (loadedFont.isDefault)
         {
@@ -421,29 +421,29 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             if (std::filesystem::exists(lightPath))
             {
                 lightFont = io.Fonts->AddFontFromFileTTF(lightPath.c_str(), fontSize);
-                ADD_FA_FONT;
                 ADD_KI_FONT;
+                ADD_FA_FONT;
             }
 
             if (std::filesystem::exists(boldPath))
             {
                 boldFont = io.Fonts->AddFontFromFileTTF(boldPath.c_str(), fontSize);
-                ADD_FA_FONT;
                 ADD_KI_FONT;
+                ADD_FA_FONT;
             }
 
             if (std::filesystem::exists(italicPath))
             {
                 italicFont = io.Fonts->AddFontFromFileTTF(italicPath.c_str(), fontSize);
-                ADD_FA_FONT;
                 ADD_KI_FONT;
+                ADD_FA_FONT;
             }
 
             if (std::filesystem::exists(boldAndItalicPath))
             {
                 boldItalicFont = io.Fonts->AddFontFromFileTTF(boldAndItalicPath.c_str(), fontSize);
-                ADD_FA_FONT;
                 ADD_KI_FONT;
+                ADD_FA_FONT;
             }
 
             data = {
