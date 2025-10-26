@@ -84,6 +84,7 @@ class IEngineHook
         inline static VTableHook<VTablePtr(CELauncherVTable::Start), VTablePtr(CELauncherVTable::End)> ceLauncherVTable{ "common" };
 
         inline static VTableHook<VTablePtr(IShipInspectVTable::Start), VTablePtr(IShipInspectVTable::End)> iShipVTable{ "server" };
+        inline static VTableHook<VTablePtr(IShipAffectVTable::Start), VTablePtr(IShipAffectVTable::End)> iShipAffectVTable{ "server" };
         inline static VTableHook<VTablePtr(ISolarInspectVTable::Start), VTablePtr(ISolarInspectVTable::End)> iSolarVTable{ "server" };
         inline static VTableHook<VTablePtr(ILootInspectVTable::Start), VTablePtr(ILootInspectVTable::End)> iLootVTable{ "server" };
         inline static VTableHook<VTablePtr(IGuidedInspectVTable::Start), VTablePtr(IGuidedInspectVTable::End)> iGuidedVTable{ "server" };
@@ -109,6 +110,8 @@ class IEngineHook
         static void __fastcall ShipColGrpDmg(Ship*, void* edx, CArchGroup* colGrp, float incDmg, DamageList* dmg);
         static void __fastcall ShipColGrpDestroy(Ship* ship, void* edx, CArchGroup* colGrp, DamageEntry::SubObjFate fate, DamageList* dmgList,
                                                  bool killLinkedElements);
+
+        static void __fastcall ShipUseItem(Ship* ship, void* edx, ushort sId, uint count, uint clientId);
 
         static void __fastcall ShipDropAllCargo(Ship* ship, void* edx, const char* hardPoint, DamageList* dmgList);
 

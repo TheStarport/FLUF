@@ -165,6 +165,20 @@ void __fastcall IEngineHook::ShipColGrpDestroy(Ship* ship, void* edx, CArchGroup
         ship, colGrp, fate, dmgList, killLinkedElements);
 }
 
+
+void __fastcall IEngineHook::ShipUseItem(Ship* ship, void* edx, ushort sId, uint count, uint clientId)
+{
+    Ship* shipAdjusted = (Ship*)(DWORD(ship) - 4);
+    if (Fluf::instance->CallModuleEvent(&FlufModule::BeforeShipUseItem, shipAdjusted, sId, count, clientId))
+    {
+        return;
+    }
+
+    using IShipUseItemType = void(__thiscall*)(Ship*, ushort, uint, uint);
+    static_cast<IShipUseItemType>(iShipAffectVTable.GetOriginal(static_cast<ushort>(IShipAffectVTable::UseItem)))(
+        ship, sId, count, clientId);
+}
+
 void __fastcall IEngineHook::ShipDropAllCargo(Ship* ship, void* edx, const char* hardPoint, DamageList* dmgList)
 {
     Fluf::instance->CallModuleEvent(&FlufModule::BeforeShipDropAllCargo, ship, hardPoint, dmgList);

@@ -154,6 +154,42 @@ enum class IShipInspectVTable
     End = 0x87368
 };
 
+enum class IShipAffectVTable
+{
+    SetThrottle,
+    SetAxisThrottle,
+    SetNudgeVec,
+    SetStrafeDir,
+    BasewatcherSetPointer,
+    BasewatcherRemovePointer,
+    AddFormationFollower,
+    RemoveFormationFollower,
+    GetFormationFollowerCount,
+    SetFollowLeader,
+    SetFollowOffset,
+    AddFollowFollower,
+    RemoveFollowFollower,
+    FireWeapons,
+    JettisonCargo,
+    TractorAll,
+    TractorSingle,
+    SetGunTarget,
+    SetTarget,
+    Dunno,
+    ToggleCruise,
+    Dunno2,
+    UseItem,
+    RequestEvent,
+    RequestCancel,
+    GoTradelane,
+    StopTradelane,
+    Dunno3,
+    Dunno4,
+    Dunno5,
+    Start = 0x8709C,
+    End = 0x87110
+};
+
 enum class ISolarInspectVTable
 {
     GetPosition,

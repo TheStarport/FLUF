@@ -218,6 +218,9 @@ void Fluf::LoadServerHooks()
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageColGrp), &ptr);
     ptr = &IEngineHook::ShipColGrpDestroy;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::ColGrpDeath), &ptr);
+
+    ptr = &IEngineHook::ShipUseItem;
+    IEngineHook::iShipAffectVTable.Hook(VTablePtr(IShipAffectVTable::UseItem), &ptr);
 #undef VtablePtr
 }
 

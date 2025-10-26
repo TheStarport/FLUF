@@ -187,6 +187,30 @@ void Retold::BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList
     }
 }
 
+bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId)
+{
+    static auto NANOBOT_ARCH = CreateID("ge_s_repair_01");
+    static auto BATTERY_ARCH = CreateID("ge_s_battery_01");
+
+    auto cship = ship->cship();
+
+    auto cargo = CECargo::cast(cship->equipManager.FindByID(sId));
+    if (!cargo || (cargo->archetype->archId != NANOBOT_ARCH && cargo->archetype->archId != BATTERY_ARCH))
+    {
+        return false;
+    }
+
+    cargo->RemoveFromStack(1);
+
+    //TODO: make this work when server.dll reloads at the different address
+    using BroadcastRemovalOfItemType = void (__thiscall*)(StarSystem* starSystem, Ship* ship, ushort sId, uint count);
+    static BroadcastRemovalOfItemType broadcastRemovalOfItemFunc = (BroadcastRemovalOfItemType)(DWORD(GetModuleHandleA("server")) + 0x2EFE0);
+
+    broadcastRemovalOfItemFunc(ship->starSystem, ship, sId, 1);
+
+    return true;
+}
+
 void Retold::ProcessShipDotStacks(float delta)
 {
     for (auto& [id, stacks] : shipDots)

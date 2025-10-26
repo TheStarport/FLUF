@@ -112,6 +112,7 @@ class Retold final : public FlufModule, public ImGuiModule
         void BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList) override;
         void BeforeShipColGrpDmg(Ship*, CArchGroup* colGrp, float& incDmg, DamageList* dmg) override;
         void BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList) override;
+        bool BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId) override;
 
         // INI Reading
         DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);

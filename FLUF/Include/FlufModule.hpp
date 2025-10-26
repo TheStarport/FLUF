@@ -149,6 +149,8 @@ class FLUF_API FlufModule
         virtual void BeforeShipEnergyDmg(Ship* ship, float& incDmg, DamageList* dmgList) {}
         virtual void BeforeShipFuse(Ship* ship, uint fuseCause, uint& fuseId, ushort sId, float radius, float lifetime) {}
 
+        virtual bool BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId) { return true; }
+
         virtual void OnCShipInit(CShip* ship) {}
         virtual void OnCSolarInit(CSolar* solar) {}
         virtual void OnCLootInit(CLoot* loot) {}
