@@ -118,7 +118,7 @@ void QolPatcher::Option::Unpatch() const
     }
 }
 
-QolPatcher::Option::Option(const std::string& name, const std::string& description, bool* configFlag, bool requiresRestart,
+QolPatcher::Option::Option(const std::string& name, const std::string& description, bool* configFlag, bool requiresRestart, bool renderCheckbox,
                            std::initializer_list<MemoryPatch*> patches)
 {
     this->name = name;
@@ -126,10 +126,13 @@ QolPatcher::Option::Option(const std::string& name, const std::string& descripti
     flag = configFlag;
     this->requiresRestart = requiresRestart;
     this->patches = patches;
+    this->renderCheckbox = renderCheckbox;
 }
 
 void QolPatcher::Render(bool saveRequested)
 {
+    ImGui::PushStyleVarX(ImGuiStyleVar_CellPadding, 20.f);
+    ImGui::PushStyleVarX(ImGuiStyleVar_ItemInnerSpacing, 15.f);
     ImGui::BeginTable("##qol-patcher-table", 2);
 
     for (auto& [category, patches] : memoryPatches)
@@ -139,9 +142,16 @@ void QolPatcher::Render(bool saveRequested)
 
         for (auto& option : patches)
         {
-            ImGui::Checkbox(option.name.c_str(), option.flag);
-            ImGui::TextWrapped(option.description.c_str());
+            if (option.renderCheckbox)
+            {
+                ImGui::Checkbox(option.name.c_str(), option.flag);
+            }
+            else
+            {
+                ImGui::NewLine();
+            }
 
+            ImGui::TextWrapped(option.description.c_str());
             if (option.requiresRestart)
             {
                 ImGui::SameLine();
@@ -154,6 +164,8 @@ void QolPatcher::Render(bool saveRequested)
                 patch->RenderComponent();
                 ImGui::PopID();
             }
+
+            ImGui::NewLine();
         }
     }
 
@@ -165,6 +177,8 @@ void QolPatcher::Render(bool saveRequested)
         TogglePatches(false);
         TogglePatches(true);
     }
+
+    ImGui::PopStyleVar(2);
 }
 
 void QolPatcher::TogglePatches(bool state)
@@ -243,6 +257,7 @@ QolPatcher::QolPatcher()
     RegisterHudPatches();
     RegisterChatPatches();
     RegisterControlPatches();
+    RegisterColorPatches();
 
     TogglePatches(true);
 };

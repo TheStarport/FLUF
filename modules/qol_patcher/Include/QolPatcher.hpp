@@ -41,6 +41,9 @@ class QolPatcher final : public FlufModule
             public:
                 ColorPatch(const std::string& moduleName, std::initializer_list<DWORD> offsets, DWORD* newColor, bool isBgr = true, bool includeAlpha = false);
                 void RenderComponent() override;
+                static void ReturnShieldState(CEqObj* eqObj, float& currHP, float& maxHP, bool& shieldUp);
+
+                inline static ColorPatch* shieldColorPatch;
         };
 
         class OptionPatch final : public MemoryPatch
@@ -156,16 +159,17 @@ class QolPatcher final : public FlufModule
                 std::string description;
                 std::vector<MemoryPatch*> patches;
                 bool requiresRestart = false;
+                bool renderCheckbox = true;
                 bool* flag = nullptr;
 
                 void Patch() const;
                 void Unpatch() const;
-                Option(const std::string& name, const std::string& description, bool* configFlag, bool requiresRestart,
+                Option(const std::string& name, const std::string& description, bool* configFlag, bool requiresRestart, bool renderCheckbox,
                        std::initializer_list<MemoryPatch*> patches);
         };
 
         std::shared_ptr<FlufUi> flufUi;
-        rfl::Box<PatcherConfig> config;
+        inline static rfl::Box<PatcherConfig> config;
         std::unordered_map<std::string, std::vector<Option>> memoryPatches; // Patches split by category
 
         void Render(bool saveRequested);
@@ -179,6 +183,7 @@ class QolPatcher final : public FlufModule
         void RegisterDisplayPatches();
         void RegisterChatPatches();
         void RegisterControlPatches();
+        void RegisterColorPatches();
 
     public:
         static constexpr std::string_view moduleName = "QoL Patcher";
@@ -193,5 +198,8 @@ class QolPatcher final : public FlufModule
     {                                                                                                                  \
         module, offset, std::initializer_list<byte>{ __VA_ARGS__ }.size(), std::initializer_list<byte> { __VA_ARGS__ } \
     }
-#define OPTION(name, description, flag, restart, ...) \
+#define OPTION(name, description, flag, restart, renderCheckbox, ...) \
+    category.emplace_back(name, description, flag, restart, renderCheckbox, std::initializer_list<MemoryPatch*>{ __VA_ARGS__ })
+
+#define OPTIONVAL(name, description, flag, restart, ...) \
     category.emplace_back(name, description, flag, restart, std::initializer_list<MemoryPatch*>{ __VA_ARGS__ })

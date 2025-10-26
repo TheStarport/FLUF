@@ -10,18 +10,21 @@ void QolPatcher::RegisterChatPatches()
            "Disables the messages that appear when a player joins the server",
            &config->disableNewPlayerMessages,
            false,
+           true,
            PATCH("", { 0x06AAF8 }, 0x90, 0xE9));
 
     OPTION("Disable Player Departing Messages",
            "Disables the messages that appear when a player leaves the server",
            &config->disableDepartingPlayerMessages,
            false,
+           true,
            PATCH("", { 0x06AF1E }, 0x90, 0xE9));
 
     OPTION("New/Departing Player Color",
            "Customise the color of the the new / departing player messages",
            &config->customNewDepartingPlayerColor,
            false,
+           true,
            new ColorPatch{ "", { 0x05E01B }, &config->newPlayerColor });
 
     OPTION("Disable Multiplayer Chat",
@@ -29,5 +32,6 @@ void QolPatcher::RegisterChatPatches()
            "Please ensure that this is allowed on the server you are connected to.",
            &config->disableMultiplayerChat,
            false,
+           true,
            PATCH("", { 0x1A6250 }, 0xC2, 0x10, 0x00));
 }

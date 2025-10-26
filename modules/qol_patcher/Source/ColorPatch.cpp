@@ -58,3 +58,73 @@ void QolPatcher::ColorPatch::RenderComponent()
         memcpy(patchedData.data(), &color, sizeof(DWORD));
     }
 }
+
+void QolPatcher::ColorPatch::ReturnShieldState(CEqObj* eqObj, float& maxHP, float& currHP, bool& shieldUp)
+{
+    static int counter = 0;
+
+    currHP = 0.0f;
+    maxHP = 0.0f;
+    CEquipTraverser tr((int)EquipmentClass::Shield, true);
+    CEShield* shield = nullptr;
+    while (shield = reinterpret_cast<CEShield*>(eqObj->equipManager.Traverse(tr)))
+    {
+        if (++counter == 600)
+        {
+            counter = 0;
+            shield->Activate(!shield->IsActive());
+        }
+
+        if (!config->showInactiveShield && !shield->IsFunctioning())
+        {
+            continue;
+        }
+
+        if (config->showInactiveShield)
+        {
+            bool isShieldGenActive = false;
+            for (auto& shieldGen : shield->linkedShieldGen)
+            {
+                if (shieldGen->isActive)
+                {
+                    isShieldGenActive = true;
+                    break;
+                }
+            }
+            DWORD newShieldColor;
+            
+            if (!isShieldGenActive)
+            {
+                newShieldColor = config->frozenShieldBarColor;
+            }
+            else if (shield->IsFunctioning())
+            {
+                if (config->customShieldBarColor)
+                {
+                    newShieldColor = config->newShieldColor;
+                }
+                else
+                {
+                    newShieldColor = *reinterpret_cast<DWORD*>(ColorPatch::shieldColorPatch->oldData.data());
+                }
+            }
+            else
+            {
+                newShieldColor = config->inactiveShieldColor;
+            }
+
+            static DWORD shieldColorAddr = DWORD(GetModuleHandleA(nullptr)) + 0x0D5843;
+            MemUtils::WriteProcMem(shieldColorAddr, &newShieldColor, sizeof(DWORD));
+        }
+
+        float offlineThresholdSize = shield->GetMaxHitPoints() * shield->GetOfflineThreshold();
+        float maxActiveHP = std::max(0.0f, shield->GetMaxHitPoints() - offlineThresholdSize);
+        float currActiveHP = std::max(0.0f, shield->GetHitPoints() - offlineThresholdSize);
+
+        maxHP += maxActiveHP;
+        currHP += currActiveHP;
+    }
+
+}
+
+void QolPatcher::RegisterColorPatches() { MemUtils::PatchCallAddr(GetModuleHandleA(nullptr), 0xD57FB, (void*)ColorPatch::ReturnShieldState); }

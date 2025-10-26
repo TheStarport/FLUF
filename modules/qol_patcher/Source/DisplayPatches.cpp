@@ -10,6 +10,7 @@ void QolPatcher::RegisterDisplayPatches()
            "Removes the window borders when in windowed mode",
            &config->borderlessWindow,
            true,
+           true,
            PATCH("", { 0x02477A }, 0x00, 0x00),
            PATCH("", { 0x002490D }, 0x00, 0x00));
 
@@ -17,18 +18,21 @@ void QolPatcher::RegisterDisplayPatches()
            "The maximum rendering distance for small solar objects like trade lanes and battleships",
            &config->customSolarRendering,
            false,
+           true,
            new ValuePatch{ "", { 0x213EC8 }, &config->customSolarRenderDistance, 5'000.f, 100'000.0f });
 
     OPTION("Rendering Distance (Ships)",
            "The maximum rendering distance for small objects like ships and storage wrecks",
            &config->customShipRendering,
            false,
+           true,
            new ValuePatch{ "", { 0x1C8910 }, &config->customShipRenderDistance, 10'000.f, 100'000.0f });
 
     OPTION("LOD Ranges",
            "Configure the 'Level Of Detail' for game assets with a flat multiplier",
            &config->customLod,
            false,
+           true,
            // clang-format off
            PATCH("", { 0x2389 }, 0xE8, 0x7B, 0xFF, 0xFF, 0xFF),
            // clang-format on
@@ -54,6 +58,7 @@ void QolPatcher::RegisterDisplayPatches()
            "How frequently the contact window should be updated",
            &config->customWindowRefreshRate,
            false,
+           true,
            new ValuePatch{ "", { 0x1D7964 }, &config->windowRefreshRate, 0.0f, 5.0f });
 
     auto gameRefreshRatePatch = new OptionPatch{
@@ -77,6 +82,7 @@ void QolPatcher::RegisterDisplayPatches()
            "Use Freelancer's inbuilt framerate limiter to cap your framerate",
            &config->customFramerateFlag,
            false,
+           true,
            PATCH("common.dll", { 0x01A892 }, 0x4C, 0xA7, 0x27),
            gameRefreshRatePatch,
            new ReusablePatch{ "common.dll", { 0x01A74C }, gameRefreshRatePatch });

@@ -46,4 +46,12 @@ struct PatcherConfig
         float shieldScreenShakeValue = 0.005f;
         bool disableDefaultAutoLevel = false;
         bool backgroundAudio = false;
+
+        // Color
+        bool showInactiveShield = true;
+        DWORD inactiveShieldColor = 0xFF2E2D85;
+
+        bool customFrozenShieldBarColor = false;
+        DWORD frozenShieldBarColor = 0xFFEAEAEA;
+
 };
