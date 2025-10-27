@@ -6,34 +6,139 @@
 
 #include "Retold.hpp"
 
+struct IniUserData
+{
+        inline static const std::unordered_map<std::string, std::unordered_set<std::string>> multiKeySections{
+            {      "zone", { "faction", "encounter", "density_restriction" } },
+            { "archetype", { "ship", "snd", "simple", "equipment", "solar" } },
+        };
+
+        inline static const std::unordered_set<std::string> sectionsWithoutNickname{ "archetype", "systeminfo", "texturepanels", "dust",      "music",
+                                                                                     "asteroids", "nebula",     "ambient",       "background" };
+
+        struct IniSection
+        {
+                std::string name;
+                std::string nickname = "empty";
+                std::unordered_map<std::string, std::string> singleKeys;
+                std::list<std::pair<std::string, std::string>> multiKeys;
+        };
+
+        std::list<IniSection> sections;
+        IniSection* currentSection;
+
+        std::string currentNickname;
+        uint minLevel = 0;
+        uint maxLevel = 0;
+        bool remove = false;
+
+        uint currentLevel = 0;
+};
+
 // ReSharper disable once CppDFAConstantFunctionResult
-static int IniHandler(std::string& iniBuffer, const char* section, const char* key, const char* value)
+static int IniHandler(IniUserData& data, const char* section, const char* key, const char* value)
 {
     if (!key && !value)
     {
-        iniBuffer += std::format("[{}]\n", section);
+        if (!data.sections.empty() && !data.currentNickname.empty())
+        {
+            // If section was marked for removal, or level requirement is not met,
+            // we remove all sections with the specified nickname
+            if (data.remove || (data.minLevel != 0 && data.currentLevel < data.minLevel) || (data.maxLevel != 0 && data.currentLevel > data.maxLevel))
+            {
+                data.sections.remove_if([&data](const IniUserData::IniSection& it) { return it.nickname == data.currentNickname; });
+            }
+            else
+            {
+                // Otherwise we look for existing sections to merge as needed
+                for (auto existingSection = data.sections.begin(); existingSection != data.sections.end(); ++existingSection)
+                {
+                    if (&*existingSection == data.currentSection || _strcmpi(data.currentNickname.c_str(), existingSection->nickname.c_str()) != 0)
+                    {
+                        continue;
+                    }
+
+                    for (auto& [multiKey, values] : data.currentSection->multiKeys)
+                    {
+                        existingSection->multiKeys.emplace_back(multiKey, values);
+                    }
+
+                    for (auto& [key, value] : data.currentSection->singleKeys)
+                    {
+                        existingSection->singleKeys[key] = value;
+                    }
+
+                    // Now remove this current section, as it has been merged
+                    data.sections.pop_back();
+                    data.currentSection = nullptr;
+                    break;
+                }
+            }
+        }
+
+        // If we encounter the 'null' section, we return and stop
+        if (_strcmpi(section, "null") == 0)
+        {
+            return 0;
+        }
+
+        data.currentSection = &data.sections.emplace_back();
+        data.currentSection->name = section;
+        data.minLevel = 0;
+        data.maxLevel = 0;
+        data.currentNickname = "";
+        data.remove = false;
         return 1;
     }
 
-    if (_strcmpi(section, "object") == 0 && _strcmpi(key, "nickname") == 0)
+    if (_strcmpi(key, "min_level") == 0)
     {
-        Reputation::Vibe::EnsureExists(static_cast<int>(CreateID(value)));
+        data.minLevel = std::stoi(value);
     }
+    else if (_strcmpi(key, "max_level") == 0)
+    {
+        data.maxLevel = std::stoi(value);
+    }
+    else if (_strcmpi(key, "remove") == 0)
+    {
+        data.remove = _strcmpi(value, "true") == 0 || _strcmpi(value, "1") == 0;
+    }
+    else
+    {
+        bool found = false;
+        for (const auto& [mkSection, mkKey] : IniUserData::multiKeySections)
+        {
+            if (_strcmpi(mkSection.c_str(), section) == 0 && mkKey.contains(key))
+            {
+                found = true;
+                data.currentSection->multiKeys.emplace_back(key, value);
+                break;
+            }
+        }
 
-    iniBuffer += std::format("{} = {}\n", key, value);
+        if (!found)
+        {
+            if (_strcmpi(key, "nickname") == 0)
+            {
+                data.currentNickname = value;
+                data.currentSection->nickname = data.currentNickname;
+            }
+
+            data.currentSection->singleKeys[key] = value;
+        }
+    }
 
     return 1;
 }
 
 bool __thiscall Retold::IniReaderOpenDetour(INI_Reader* ini, const char* path, bool unk)
 {
-    const std::string tempPath = path;
     // ReSharper disable once CppDFANullDereference
-    auto overrides = instance->systemFileOverrides.find(tempPath);
+    const auto overrides = instance->systemFileOverrides.find(std::string(path));
     if (overrides == instance->systemFileOverrides.end())
     {
         instance->iniReaderOpenDetour.UnDetour();
-        auto res = instance->iniReaderOpenDetour.GetOriginalFunc()(ini, path, unk);
+        const auto res = instance->iniReaderOpenDetour.GetOriginalFunc()(ini, path, unk);
         instance->iniReaderOpenDetour.Detour(IniReaderOpenDetour);
         return res;
     }
@@ -46,11 +151,51 @@ bool __thiscall Retold::IniReaderOpenDetour(INI_Reader* ini, const char* path, b
     stream.close();
 
     tempBuffer += overrides->second;
+    tempBuffer += "\n[null]\n"; // A dummy section at the end to ensure we process the last section in the document
+
+    IniUserData data;
+
+    ini_parse_string(tempBuffer.c_str(), reinterpret_cast<ini_handler>(IniHandler), &data);
+    data.sections.remove_if(
+        [](const IniUserData::IniSection& it)
+        {
+            if (it.nickname != "empty")
+            {
+                return false;
+            }
+
+            for (const auto& header : IniUserData::sectionsWithoutNickname)
+            {
+                if (_strcmpi(header.c_str(), it.name.c_str()) == 0)
+                {
+                    return false;
+                }
+            }
+
+            Fluf::Info("Removing section (missing nickname) " + it.nickname);
+            return true;
+        });
 
     static std::string systemBuffer;
     systemBuffer.clear();
 
-    ini_parse_string(tempBuffer.c_str(), reinterpret_cast<ini_handler>(IniHandler), &systemBuffer);
+    for (const auto& [name, nickname, singleKeys, multiKeys] : data.sections)
+    {
+        systemBuffer += std::format("[{}]\n", name);
+        for (auto [k, v] : singleKeys)
+        {
+            systemBuffer += std::format("{} = {}\n", k, v);
+        }
+
+        for (auto [k, v] : multiKeys)
+        {
+            systemBuffer += std::format("{} = {}\n", k, v);
+        }
+    }
+
+    std::ofstream temp{ "_test.ini", std::ios::trunc };
+    temp << systemBuffer;
+    temp.close();
 
     // We now process the file AGAIN, this time with INI reader to ensure all objects are initialised correctly
     // This does mean we end up reading the file 4 times in total, but should be no problem for modern hardware
