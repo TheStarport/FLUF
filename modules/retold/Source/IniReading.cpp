@@ -28,11 +28,11 @@ struct IniUserData
         IniSection* currentSection;
 
         std::string currentNickname;
-        uint minLevel = 0;
-        uint maxLevel = 0;
+        uint minStage = 0;
+        uint maxStage = 0;
         bool remove = false;
 
-        uint currentLevel = 0;
+        uint currentStage = 0;
 };
 
 // ReSharper disable once CppDFAConstantFunctionResult
@@ -44,7 +44,7 @@ static int IniHandler(IniUserData& data, const char* section, const char* key, c
         {
             // If section was marked for removal, or level requirement is not met,
             // we remove all sections with the specified nickname
-            if (data.remove || (data.minLevel != 0 && data.currentLevel < data.minLevel) || (data.maxLevel != 0 && data.currentLevel > data.maxLevel))
+            if (data.remove || (data.minStage != 0 && data.currentStage < data.minStage) || (data.maxStage != 0 && data.currentStage > data.maxStage))
             {
                 data.sections.remove_if([&data](const IniUserData::IniSection& it) { return it.nickname == data.currentNickname; });
             }
@@ -84,20 +84,20 @@ static int IniHandler(IniUserData& data, const char* section, const char* key, c
 
         data.currentSection = &data.sections.emplace_back();
         data.currentSection->name = section;
-        data.minLevel = 0;
-        data.maxLevel = 0;
+        data.minStage = 0;
+        data.maxStage = 0;
         data.currentNickname = "";
         data.remove = false;
         return 1;
     }
 
-    if (_strcmpi(key, "min_level") == 0)
+    if (_strcmpi(key, "min_stage") == 0)
     {
-        data.minLevel = std::stoi(value);
+        data.minStage = std::stoi(value);
     }
-    else if (_strcmpi(key, "max_level") == 0)
+    else if (_strcmpi(key, "max_stage") == 0)
     {
-        data.maxLevel = std::stoi(value);
+        data.maxStage = std::stoi(value);
     }
     else if (_strcmpi(key, "remove") == 0)
     {
@@ -154,6 +154,11 @@ bool __thiscall Retold::IniReaderOpenDetour(INI_Reader* ini, const char* path, b
     tempBuffer += "\n[null]\n"; // A dummy section at the end to ensure we process the last section in the document
 
     IniUserData data;
+
+    if (instance->contentStory)
+    {
+        data.currentStage = instance->contentStory->missionStage;
+    }
 
     ini_parse_string(tempBuffer.c_str(), reinterpret_cast<ini_handler>(IniHandler), &data);
     data.sections.remove_if(
