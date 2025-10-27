@@ -381,7 +381,7 @@ void __thiscall Retold::ShieldSetHealthDetour(CEShield* shield, float hitPts)
     RetoldHooks::shieldSetHealthDetour.GetOriginalFunc()(shield, hitPts);
     RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
 
-     //TODO: Move to client specific function
+    //TODO: Move to client specific function
     if (Fluf::GetPlayerIObj() && shieldOnlineState != shield->internalActivationState)
     {
         const auto data = instance->extraShipData.find(shield->GetOwner()->archetype->archId);

@@ -81,6 +81,9 @@ class Retold final : public FlufModule, public ImGuiModule
 
         // Hooks
 
+        using IniReaderOpenDetourType = bool(__thiscall*)(INI_Reader* ini, const char* path, bool unk);
+        FunctionDetour<IniReaderOpenDetourType> iniReaderOpenDetour{ reinterpret_cast<IniReaderOpenDetourType>(0x630F9B0) };
+        static bool __thiscall IniReaderOpenDetour(INI_Reader* ini, const char* path, bool unk);
         static FireResult __thiscall GunCanFireDetour(CEGun* gun, Vector& target);
         static void __thiscall LauncherConsumeFireResourcesDetour(CELauncher* launcher);
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
@@ -115,8 +118,6 @@ class Retold final : public FlufModule, public ImGuiModule
         bool BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId) override;
 
         // INI Reading
-        DWORD OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk);
-        static void SystemIniOpenNaked();
         void SetupHooks();
         void ReadUniverseIni();
         void ReadFreelancerIni();

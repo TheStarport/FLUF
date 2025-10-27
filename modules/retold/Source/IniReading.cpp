@@ -25,32 +25,27 @@ static int IniHandler(std::string& iniBuffer, const char* section, const char* k
     return 1;
 }
 
-const char* systemIniBuffer;
-DWORD systemReturnAddress;
-DWORD Retold::OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk)
+bool __thiscall Retold::IniReaderOpenDetour(INI_Reader* ini, const char* path, bool unk)
 {
-    if (!iniReader.open(file, unk))
+    const std::string tempPath = path;
+    // ReSharper disable once CppDFANullDereference
+    auto overrides = instance->systemFileOverrides.find(tempPath);
+    if (overrides == instance->systemFileOverrides.end())
     {
-        return 0;
+        instance->iniReaderOpenDetour.UnDetour();
+        auto res = instance->iniReaderOpenDetour.GetOriginalFunc()(ini, path, unk);
+        instance->iniReaderOpenDetour.Detour(IniReaderOpenDetour);
+        return res;
     }
 
-    iniReader.close();
-
-    const auto sz = std::filesystem::file_size(file);
+    const auto sz = std::filesystem::file_size(path);
     std::string tempBuffer;
     tempBuffer.resize(sz);
-    std::ifstream stream(file, std::ios::in | std::ios::binary);
+    std::ifstream stream(path, std::ios::in | std::ios::binary);
     stream.read(tempBuffer.data(), sz);
     stream.close();
 
-    for (auto& [originalFilePath, overrideFileContents] : systemFileOverrides)
-    {
-        if (_strcmpi(file, originalFilePath.c_str()) == 0)
-        {
-            tempBuffer += overrideFileContents;
-            break;
-        }
-    }
+    tempBuffer += overrides->second;
 
     static std::string systemBuffer;
     systemBuffer.clear();
@@ -59,44 +54,14 @@ DWORD Retold::OnSystemIniOpen(INI_Reader& iniReader, const char* file, bool unk)
 
     // We now process the file AGAIN, this time with INI reader to ensure all objects are initialised correctly
     // This does mean we end up reading the file 4 times in total, but should be no problem for modern hardware
-    iniReader.open_memory(systemBuffer.c_str(), systemBuffer.size());
+    ini->open_memory(systemBuffer.c_str(), systemBuffer.size());
     using IniObjReader = bool (*)(INI_Reader*);
     static auto iniObjReaderFunc = reinterpret_cast<IniObjReader>(0x62B8DE0);
-    iniObjReaderFunc(&iniReader);
-    iniReader.close();
+    iniObjReaderFunc(ini);
+    ini->reset();
 
-    systemIniBuffer = systemBuffer.c_str();
-    return systemBuffer.size();
-}
-
-void __declspec(naked) Retold::SystemIniOpenNaked()
-{
-    constexpr static DWORD openMemory = 0x0630FC50;
-    constexpr static DWORD open = 0x630F9B0;
-    __asm
-    {
-        mov eax, [esp]
-        mov systemReturnAddress, eax
-        push ecx // Store for restoration
-        push [esp+12] // bool unk
-        push [esp+12] // const char* path
-        push ecx // INI_Reader
-        mov ecx, Retold::instance
-        call OnSystemIniOpen // should pop 12
-        test eax, eax
-        jz normal_operation
-
-        pop ecx
-        add esp, 12 // Remove the previous two parameters + return address
-        push eax
-        push systemIniBuffer
-        push systemReturnAddress
-        jmp openMemory
-
-        normal_operation:
-            pop ecx
-            jmp open
-    }
+    ini->open_memory(systemBuffer.c_str(), systemBuffer.size());
+    return true;
 }
 
 void Retold::ReadUniverseIni()

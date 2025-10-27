@@ -28,10 +28,7 @@ void Retold::SetupHooks()
     const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
     const auto common = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll"));
 
-    // Hook System INI file Reading
-    static auto systemIniOpenRedirectionAddress = &SystemIniOpenNaked;
-    static auto systemIniOpenRedirectionAddress2 = &systemIniOpenRedirectionAddress;
-    MemUtils::WriteProcMem(fl + 0x15379D, &systemIniOpenRedirectionAddress2, sizeof(systemIniOpenRedirectionAddress2));
+    iniReaderOpenDetour.Detour(IniReaderOpenDetour);
 
     RetoldHooks::gunCanFireDetour.Detour(GunCanFireDetour);
     RetoldHooks::consumeFireResourcesDetour.Detour(LauncherConsumeFireResourcesDetour);
