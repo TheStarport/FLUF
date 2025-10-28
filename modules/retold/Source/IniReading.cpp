@@ -44,9 +44,14 @@ static int IniHandler(IniUserData& data, const char* section, const char* key, c
         {
             // If section was marked for removal, or level requirement is not met,
             // we remove all sections with the specified nickname
-            if (data.remove || (data.minStage != 0 && data.currentStage < data.minStage) || (data.maxStage != 0 && data.currentStage > data.maxStage))
+            if (data.remove)
             {
                 data.sections.remove_if([&data](const IniUserData::IniSection& it) { return it.nickname == data.currentNickname; });
+            }
+            else if ((data.minStage != 0 && data.currentStage < data.minStage) || (data.maxStage != 0 && data.currentStage > data.maxStage))
+            {
+                // Not meeting the level requirement, ignore it for now
+                data.sections.pop_back();
             }
             else
             {
@@ -65,7 +70,20 @@ static int IniHandler(IniUserData& data, const char* section, const char* key, c
 
                     for (auto& [key, value] : data.currentSection->singleKeys)
                     {
-                        existingSection->singleKeys[key] = value;
+                        bool found = false;
+                        for (const auto& existingKey : existingSection->singleKeys | std::views::keys)
+                        {
+                            if (_strcmpi(existingKey.c_str(), key.c_str()) == 0)
+                            {
+                                existingSection->singleKeys[existingKey] = value;
+                                found = true;
+                            }
+                        }
+
+                        if (!found)
+                        {
+                            existingSection->singleKeys[key] = value;
+                        }
                     }
 
                     // Now remove this current section, as it has been merged
