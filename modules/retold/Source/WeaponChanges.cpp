@@ -203,7 +203,7 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
     cargo->RemoveFromStack(1);
 
     //TODO: make this work when server.dll reloads at the different address
-    using BroadcastRemovalOfItemType = void (__thiscall*)(StarSystem* starSystem, Ship* ship, ushort sId, uint count);
+    using BroadcastRemovalOfItemType = void(__thiscall*)(StarSystem * starSystem, Ship * ship, ushort sId, uint count);
     static BroadcastRemovalOfItemType broadcastRemovalOfItemFunc = (BroadcastRemovalOfItemType)(DWORD(GetModuleHandleA("server")) + 0x2EFE0);
 
     broadcastRemovalOfItemFunc(ship->starSystem, ship, sId, 1);
@@ -224,6 +224,7 @@ void Retold::ProcessShipDotStacks(float delta)
         std::unordered_map<uint, std::pair<float, CArchGroup*>> groupDamage;
         auto& agm = obj->ceqobj()->archGroupManager;
         DamageList list;
+        list.set_cause(DamageCause::Gun);
         for (auto stack = stacks.begin(); stack != stacks.end();)
         {
             const auto part = agm.FindByID(stack->targetHardpoint);
@@ -240,6 +241,7 @@ void Retold::ProcessShipDotStacks(float delta)
             }
 
             data.first += stack->damageToApply * delta;
+            list.inflictorId = stack->inflicterId;
 
             stack->timeLeft -= delta;
             ++stack;
@@ -447,7 +449,7 @@ void Retold::ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const Ex
 
     const auto maxStackDamage = curHullDotMax - totalDamage;
     float damage = std::clamp(munitionData.hullDot, 0.f, maxStackDamage);
-    dotInfo.emplace_back(hullDotDuration, damage, impact->subObjId);
+    dotInfo.emplace_back(hullDotDuration, damage, impact->subObjId, impact->attackerId);
 }
 
 void Retold::ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData)

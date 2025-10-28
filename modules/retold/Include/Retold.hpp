@@ -42,6 +42,7 @@ struct ShipDotData
         float timeLeft = 0.f;
         float damageToApply = 0.f;
         ushort targetHardpoint = 0;
+        uint inflicterId = 0;
 };
 
 struct ShipHullVulnerability
