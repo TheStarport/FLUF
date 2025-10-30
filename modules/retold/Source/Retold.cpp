@@ -70,6 +70,7 @@ bool Retold::OnKeyToggleAutoTurrets(const KeyState state)
 
 void Retold::OnGameLoad()
 {
+    defaultMuzzleCone = MUZZLE_CONE_ANGLE * (std::numbers::pi_v<float> / 180.f);
     HookContentDll();
 
     auto* km = Fluf::GetKeyManager();
@@ -87,7 +88,12 @@ void Retold::OnGameLoad()
     //equipmentDealerWindow = std::make_unique<EquipmentDealerWindow>(imgui);
 }
 
-void Retold::OnServerStart(const SStartupInfo& startup_info) { HookContentDll(); }
+void Retold::OnServerStart(const SStartupInfo& startup_info)
+{
+    defaultMuzzleCone = MUZZLE_CONE_ANGLE * (std::numbers::pi_v<float> / 180.f);
+
+    HookContentDll();
+}
 
 void Retold::Render() { equipmentDealerWindow->Render(); }
 
@@ -108,20 +114,6 @@ void Retold::OnDllUnloaded(std::string_view dllName, HMODULE dllPtr)
     }
 }
 
-struct CliLauncher
-{
-        virtual void dunno0();
-        virtual void dunno4();
-        virtual void dunno8();
-        virtual bool fire(const Vector& pos);
-        virtual bool fireForward();
-
-        CELauncher* launcher;
-        Ship* owner;
-
-        static constexpr auto PlayFireSound = reinterpret_cast<int(__thiscall*)(CliLauncher*, const Vector& pos, void* unused)>(0x52CED0);
-};
-
 void Retold::OnFixedUpdate(const float delta, bool gamePaused)
 {
     if (gamePaused)
@@ -133,53 +125,7 @@ void Retold::OnFixedUpdate(const float delta, bool gamePaused)
     RemoveShieldReductionStacks(delta);
     RemoveShipVulnerabilityStacks(delta);
 
-    if (!Fluf::IsRunningOnClient() || !autoTurretsEnabled)
-    {
-        return;
-    }
-
-    auto iObj = Fluf::GetPlayerIObj();
-    if (!iObj)
-    {
-        return;
-    }
-
-    auto* equipList = reinterpret_cast<st6::list<CliLauncher*>*>(reinterpret_cast<DWORD>(iObj) + (4 * 45));
-
-    IObjRW* target = nullptr;
-    iObj->get_target(target);
-    if (!target)
-    {
-        return;
-    }
-
-    float attitude = 0.0f;
-    target->get_attitude_towards(attitude, reinterpret_cast<const IObjInspect*>(iObj));
-
-    if (attitude > -0.6f)
-    {
-        return;
-    }
-
-    for (const auto equip : *equipList)
-    {
-        if (equip->launcher->archetype->get_class_type() == Archetype::ClassType::Gun && equip->launcher->IsActive())
-        {
-            const auto gun = dynamic_cast<CEGun*>(equip->launcher);
-            if (!gun->GunArch()->autoTurret)
-            {
-                continue;
-            }
-
-            if (Vector targetPos{}; iObj->cship()->get_tgt_lead_fire_pos(targetPos) && equip->fire(targetPos))
-            {
-                auto pos = gun->GetBarrelPosWS(0);
-                const auto mult = 1.0f / static_cast<float>(gun->GetProjectilesPerFire());
-                pos *= mult;
-                CliLauncher::PlayFireSound(equip, pos, nullptr);
-            }
-        }
-    }
+    ProcessAutoTurrets(delta);
 }
 
 Retold::Retold()

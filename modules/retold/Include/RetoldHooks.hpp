@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Utils/Detour.hpp>
+
 struct ContentStory
 {
         void* vtable00;

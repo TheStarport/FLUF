@@ -6,7 +6,7 @@
 
 // Reimplementation of common.dll version
 
-FireResult CanGunFire(const CEGun* gun, const Vector& target)
+FireResult Retold::CanGunFire(const CEGun* gun, const Vector& target)
 {
     const auto arch = gun->GunArch();
     //
@@ -54,7 +54,7 @@ FireResult CanGunFire(const CEGun* gun, const Vector& target)
         }
     }
 
-    const auto muzzleConeAngle = MUZZLE_CONE_ANGLE * 0.017453292f;
+    const auto muzzleConeAngle = instance->defaultMuzzleCone;
     const auto barrelPos = gun->GetBarrelPosWS(0);
     const auto relativeTargetPos = target - barrelPos;
     const auto mod = 1.0f / sqrtf(length(relativeTargetPos));
@@ -116,6 +116,8 @@ void Retold::BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType dest
     shipHullVulnerabilities.erase(id);
     shipShieldRechargeDebuffs.erase(id);
     shipDots.erase(id);
+
+    autoTurretTargets.remove(ship);
 }
 
 void Retold::BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)

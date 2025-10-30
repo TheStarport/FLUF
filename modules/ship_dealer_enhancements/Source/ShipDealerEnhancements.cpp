@@ -26,6 +26,15 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void ShipDealerEnhancements::OnGameLoad()
 {
+    const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
+    if (weakPtr.expired())
+    {
+        throw ModuleLoadException("Ship Dealer Enhancements was loaded, but FLUF UI was not loaded.");
+    }
+
+    const auto module = std::static_pointer_cast<FlufUi>(weakPtr.lock());
+    flufUi = module;
+
     InitShipDealerHooks();
 
     INI_Reader ini;
@@ -109,20 +118,7 @@ void ShipDealerEnhancements::OnGameLoad()
     lockHudMng->RegisterHud(shipDealerInterface.get());
 }
 
-ShipDealerEnhancements::ShipDealerEnhancements()
-{
-    AssertRunningOnClient;
-
-    const auto weakPtr = Fluf::GetModule(FlufUi::moduleName);
-    if (weakPtr.expired())
-    {
-        Fluf::Log(LogLevel::Error, "Ship Dealer Enhancements was loaded, but FLUF UI was not loaded. Crashes are likely.");
-        return;
-    }
-
-    const auto module = std::static_pointer_cast<FlufUi>(weakPtr.lock());
-    flufUi = module;
-}
+ShipDealerEnhancements::ShipDealerEnhancements() { AssertRunningOnClient; }
 
 std::string_view ShipDealerEnhancements::GetModuleName() { return moduleName; }
 

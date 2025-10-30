@@ -53,8 +53,24 @@ struct ShipHullVulnerability
         ushort hardPoint = 0;
 };
 
+struct CliLauncher
+{
+        virtual void dunno0();
+        virtual void dunno4();
+        virtual void dunno8();
+        virtual bool fire(const Vector& pos);
+        virtual bool fireForward();
+
+        CELauncher* launcher;
+        Ship* owner;
+
+        static constexpr auto PlayFireSound = reinterpret_cast<int(__thiscall*)(CliLauncher*, const Vector& pos, void* unused)>(0x52CED0);
+};
+
 class Retold final : public FlufModule, public ImGuiModule
 {
+        float defaultMuzzleCone;
+
         std::shared_ptr<FlufUi> flufUi = nullptr;
         std::shared_ptr<EquipmentDealerWindow> equipmentDealerWindow = nullptr;
         DWORD contentDll = 0;
@@ -85,6 +101,7 @@ class Retold final : public FlufModule, public ImGuiModule
         using IniReaderOpenDetourType = bool(__thiscall*)(INI_Reader* ini, const char* path, bool unk);
         FunctionDetour<IniReaderOpenDetourType> iniReaderOpenDetour{ reinterpret_cast<IniReaderOpenDetourType>(0x630F9B0) };
         static bool __thiscall IniReaderOpenDetour(INI_Reader* ini, const char* path, bool unk);
+        static FireResult CanGunFire(const CEGun* gun, const Vector& target);
         static FireResult __thiscall GunCanFireDetour(CEGun* gun, Vector& target);
         static void __thiscall LauncherConsumeFireResourcesDetour(CELauncher* launcher);
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
@@ -93,12 +110,19 @@ class Retold final : public FlufModule, public ImGuiModule
         static void ShieldRegenerationPatchNaked();
 
         // Weapons
+
         void ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
         void ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
         void ApplyShieldReductionStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
         void ProcessShipDotStacks(float delta);
         void RemoveShieldReductionStacks(float delta);
         void RemoveShipVulnerabilityStacks(float delta);
+
+        // Autoturrets
+
+        std::list<EqObj*> autoTurretTargets;
+        std::list<CliLauncher*> autoTurrets;
+        void ProcessAutoTurrets(float delta);
 
         void HookContentDll();
 
