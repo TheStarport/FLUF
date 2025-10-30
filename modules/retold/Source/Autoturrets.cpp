@@ -41,7 +41,7 @@ void Retold::ProcessAutoTurrets(float delta)
 
             autoTurrets.emplace_back(equip);
 
-            if (const float range = equip->launcher->ProjectileArch()->lifeTime * equip->launcher->LauncherArch()->muzzleVelocity; range > maxRange)
+            if (const float range = equip->launcher->GetEffectiveRange(); range > maxRange)
             {
                 maxRange = range;
             }
@@ -92,6 +92,8 @@ void Retold::ProcessAutoTurrets(float delta)
         return;
     }
 
+    auto& gunStats = const_cast<ShipGunStats&>(iObj->cship()->get_gun_stats());
+    const auto originalGunStats = gunStats;
     for (const auto equip : autoTurrets)
     {
         if (equip->launcher->IsFunctioning())
@@ -99,6 +101,10 @@ void Retold::ProcessAutoTurrets(float delta)
             // We only want auto turrets to fire when they are offline (not in active weapon group)
             continue;
         }
+
+        gunStats.activeGunCount = 1;
+        gunStats.maxGunRange = equip->launcher->GetEffectiveRange();
+        gunStats.avgGunSpeed = equip->launcher->LauncherArch()->muzzleVelocity;
 
         // Cycle through the possible targets and see if they are in range, and if so, try attack
         for (const EqObj* target : autoTurretTargets)
@@ -131,4 +137,6 @@ void Retold::ProcessAutoTurrets(float delta)
             break;
         }
     }
+
+    gunStats = originalGunStats;
 }
