@@ -19,8 +19,17 @@ namespace FontSize
     constexpr float Small = 24.f;
     constexpr float Default = 36.f;
     constexpr float Big = 48.f;
-    constexpr float VeryBig = 60.f;
+    constexpr float VeryBig = 56.f;
+    constexpr float ExtremelyBig = 72.f;
 } // namespace FontSize
+
+namespace FontStyle
+{
+    constexpr uint DefaultStyle = 0;
+    constexpr uint ItalicStyle = 1;
+    constexpr uint BoldStyle = 2;
+    constexpr uint BoldItalicStyle = 4;
+} // namespace FontStyle
 
 // Conditional fwd decs
 #ifdef FLUF_UI
@@ -118,12 +127,14 @@ class ImGuiInterface
         /**
          * @brief Gets a loaded font with the provided name and size. If the font has been loaded,
          * but this font size has not been used previously, it will reload the font in the desired size.
+         * @param fontName The name of the desired font
+         * @param fontStyle Whether the font should have italic or bold styling, use FontStyle::* to select
          */
         [[nodiscard]]
-        FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName) const;
+        FLUF_UI_API ImFont* GetImGuiFont(const std::string& fontName, uint fontStyle = FontStyle::DefaultStyle) const;
 
         [[nodiscard]]
-        FLUF_UI_API ImFont* GetDefaultFont() const;
+        FLUF_UI_API ImFont* GetDefaultFont(uint fontStyle = FontStyle::DefaultStyle) const;
 
         /**
          * @brief Register a callback that will be called when the custom options menu is visible for the module that calls it.

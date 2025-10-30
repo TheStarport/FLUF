@@ -36,12 +36,13 @@ class ImGuiInterface;
 class FLUF_UI_API ImguiMarkdown
 {
         int Text(MD_TEXTTYPE type, const char* str, const char* str_end);
-        int Block(MD_BLOCKTYPE type, void* d, bool e);
-        int Span(MD_SPANTYPE type, void* d, bool e);
+        int Block(MD_BLOCKTYPE type, void* d, bool enter);
+        int Span(MD_SPANTYPE type, void* d, bool enter);
 
-        void SetFont(bool e);
-        void SetColor(bool e);
-        void SetHRef(bool e, const MD_ATTRIBUTE& src);
+        void SetFontSize(bool enter);
+        void SetFontStyle(bool enter);
+        void SetColor(bool enter);
+        void SetHRef(bool enter, const MD_ATTRIBUTE& src);
 
         static void Line(ImColor c, bool under);
 
@@ -67,25 +68,25 @@ class FLUF_UI_API ImguiMarkdown
         void RenderText(const char* str, const char* str_end);
 
         MD_PARSER parser;
-        virtual void BLOCK_DOC(bool);
-        virtual void BLOCK_QUOTE(bool);
-        virtual void BLOCK_UL(const MD_BLOCK_UL_DETAIL*, bool);
-        virtual void BLOCK_OL(const MD_BLOCK_OL_DETAIL*, bool);
-        virtual void BLOCK_LI(const MD_BLOCK_LI_DETAIL*, bool);
-        virtual void BLOCK_HR(bool e);
-        virtual void BLOCK_H(const MD_BLOCK_H_DETAIL* d, bool e);
-        virtual void BLOCK_CODE(const MD_BLOCK_CODE_DETAIL*, bool);
-        virtual void BLOCK_HTML(bool);
-        virtual void BLOCK_P(bool);
-        virtual void BLOCK_TABLE(const MD_BLOCK_TABLE_DETAIL*, bool);
-        virtual void BLOCK_THEAD(bool);
-        virtual void BLOCK_TBODY(bool);
-        virtual void BLOCK_TR(bool);
-        virtual void BLOCK_TH(const MD_BLOCK_TD_DETAIL*, bool);
-        virtual void BLOCK_TD(const MD_BLOCK_TD_DETAIL*, bool);
+        virtual void BLOCK_DOC(bool enter);
+        virtual void BLOCK_QUOTE(bool enter);
+        virtual void BLOCK_UL(const MD_BLOCK_UL_DETAIL*, bool enter);
+        virtual void BLOCK_OL(const MD_BLOCK_OL_DETAIL*, bool enter);
+        virtual void BLOCK_LI(const MD_BLOCK_LI_DETAIL*, bool enter);
+        virtual void BLOCK_HR(bool enter);
+        virtual void BLOCK_H(const MD_BLOCK_H_DETAIL* d, bool enter);
+        virtual void BLOCK_CODE(const MD_BLOCK_CODE_DETAIL*, bool enter);
+        virtual void BLOCK_HTML(bool enter);
+        virtual void BLOCK_P(bool enter);
+        virtual void BLOCK_TABLE(const MD_BLOCK_TABLE_DETAIL*, bool enter);
+        virtual void BLOCK_THEAD(bool enter);
+        virtual void BLOCK_TBODY(bool enter);
+        virtual void BLOCK_TR(bool enter);
+        virtual void BLOCK_TH(const MD_BLOCK_TD_DETAIL*, bool enter);
+        virtual void BLOCK_TD(const MD_BLOCK_TD_DETAIL*, bool enter);
 
-        virtual void SPAN_EM(bool e);
-        virtual void SPAN_STRONG(bool e);
+        virtual void SPAN_EM(bool enter);
+        virtual void SPAN_STRONG(bool enter);
         virtual void SPAN_A(const MD_SPAN_A_DETAIL* d, bool e);
         virtual void SPAN_IMG(const MD_SPAN_IMG_DETAIL*, bool);
         virtual void SPAN_CODE(bool);
@@ -110,7 +111,6 @@ class FLUF_UI_API ImguiMarkdown
         //use m_href to identify image
         virtual bool GetImage(image_info& nfo) const;
 
-        virtual ImFont* GetFont() const;
         virtual ImVec4 GetColor() const;
 
         //url == m_href

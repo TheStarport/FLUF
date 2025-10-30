@@ -4,6 +4,9 @@
 
 #include "ImGui/ImGuiInterface.hpp"
 
+#include <imgui_internal.h>
+#include <misc/freetype/imgui_freetype.h>
+
 /*
  * imgui_md: Markdown for Dear ImGui using MD4C
  * (http://https://github.com/mekhontsev/imgui_md)
@@ -35,15 +38,15 @@ ImguiMarkdown::ImguiMarkdown(ImGuiInterface* imguiInterface) : imguiInterface(im
 
     parser.flags = MD_FLAG_TABLES | MD_FLAG_UNDERLINE | MD_FLAG_STRIKETHROUGH;
 
-    parser.enter_block = [](MD_BLOCKTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Block(t, d, true); };
+    parser.enter_block = [](const MD_BLOCKTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Block(t, d, true); };
 
-    parser.leave_block = [](MD_BLOCKTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Block(t, d, false); };
+    parser.leave_block = [](const MD_BLOCKTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Block(t, d, false); };
 
-    parser.enter_span = [](MD_SPANTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Span(t, d, true); };
+    parser.enter_span = [](const MD_SPANTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Span(t, d, true); };
 
-    parser.leave_span = [](MD_SPANTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Span(t, d, false); };
+    parser.leave_span = [](const MD_SPANTYPE t, void* d, void* u) { return ((ImguiMarkdown*)u)->Span(t, d, false); };
 
-    parser.text = [](MD_TEXTTYPE t, const MD_CHAR* text, MD_SIZE size, void* u) { return ((ImguiMarkdown*)u)->Text(t, text, text + size); };
+    parser.text = [](const MD_TEXTTYPE t, const MD_CHAR* text, const MD_SIZE size, void* u) { return ((ImguiMarkdown*)u)->Text(t, text, text + size); };
 
     parser.debug_log = nullptr;
 
@@ -54,7 +57,7 @@ ImguiMarkdown::ImguiMarkdown(ImGuiInterface* imguiInterface) : imguiInterface(im
     tableLastPos = ImVec2(0, 0);
 }
 
-void ImguiMarkdown::BLOCK_UL(const MD_BLOCK_UL_DETAIL* d, bool e)
+void ImguiMarkdown::BLOCK_UL(const MD_BLOCK_UL_DETAIL* d, const bool e)
 {
     if (e)
     {
@@ -70,7 +73,7 @@ void ImguiMarkdown::BLOCK_UL(const MD_BLOCK_UL_DETAIL* d, bool e)
     }
 }
 
-void ImguiMarkdown::BLOCK_OL(const MD_BLOCK_OL_DETAIL* d, bool e)
+void ImguiMarkdown::BLOCK_OL(const MD_BLOCK_OL_DETAIL* d, const bool e)
 {
     if (e)
     {
@@ -86,7 +89,7 @@ void ImguiMarkdown::BLOCK_OL(const MD_BLOCK_OL_DETAIL* d, bool e)
     }
 }
 
-void ImguiMarkdown::BLOCK_LI(const MD_BLOCK_LI_DETAIL*, bool e)
+void ImguiMarkdown::BLOCK_LI(const MD_BLOCK_LI_DETAIL*, const bool e)
 {
     if (e)
     {
@@ -122,18 +125,18 @@ void ImguiMarkdown::BLOCK_LI(const MD_BLOCK_LI_DETAIL*, bool e)
     }
 }
 
-void ImguiMarkdown::BLOCK_HR(bool e)
+void ImguiMarkdown::BLOCK_HR(const bool enter)
 {
-    if (!e)
+    if (!enter)
     {
         ImGui::NewLine();
         ImGui::Separator();
     }
 }
 
-void ImguiMarkdown::BLOCK_H(const MD_BLOCK_H_DETAIL* d, bool e)
+void ImguiMarkdown::BLOCK_H(const MD_BLOCK_H_DETAIL* d, const bool enter)
 {
-    if (e)
+    if (enter)
     {
         headingLevel = d->level;
         ImGui::NewLine();
@@ -143,9 +146,9 @@ void ImguiMarkdown::BLOCK_H(const MD_BLOCK_H_DETAIL* d, bool e)
         headingLevel = 0;
     }
 
-    SetFont(e);
+    //SetFont(enter);
 
-    if (!e)
+    if (!enter)
     {
         if (d->level <= 2)
         {
@@ -155,9 +158,9 @@ void ImguiMarkdown::BLOCK_H(const MD_BLOCK_H_DETAIL* d, bool e)
     }
 }
 
-void ImguiMarkdown::BLOCK_DOC(bool) {}
-void ImguiMarkdown::BLOCK_QUOTE(bool) {}
-void ImguiMarkdown::BLOCK_CODE(const MD_BLOCK_CODE_DETAIL*, bool e) { isCode = e; }
+void ImguiMarkdown::BLOCK_DOC(bool enter) {}
+void ImguiMarkdown::BLOCK_QUOTE(bool enter) {}
+void ImguiMarkdown::BLOCK_CODE(const MD_BLOCK_CODE_DETAIL*, const bool enter) { isCode = enter; }
 
 void ImguiMarkdown::BLOCK_HTML(bool) {}
 
@@ -170,7 +173,7 @@ void ImguiMarkdown::BLOCK_P(bool)
     ImGui::NewLine();
 }
 
-void ImguiMarkdown::BLOCK_TABLE(const MD_BLOCK_TABLE_DETAIL*, bool e)
+void ImguiMarkdown::BLOCK_TABLE(const MD_BLOCK_TABLE_DETAIL*, const bool e)
 {
     if (e)
     {
@@ -232,22 +235,22 @@ void ImguiMarkdown::BLOCK_TABLE(const MD_BLOCK_TABLE_DETAIL*, bool e)
     }
 }
 
-void ImguiMarkdown::BLOCK_THEAD(bool e)
+void ImguiMarkdown::BLOCK_THEAD(const bool enter)
 {
-    isTableHeader = e;
+    isTableHeader = enter;
     if (tableHeaderHighlight)
     {
-        SetFont(e);
+        //SetFont(enter);
     }
 }
 
-void ImguiMarkdown::BLOCK_TBODY(bool e) { isTableBody = e; }
+void ImguiMarkdown::BLOCK_TBODY(const bool enter) { isTableBody = enter; }
 
-void ImguiMarkdown::BLOCK_TR(bool e)
+void ImguiMarkdown::BLOCK_TR(const bool enter)
 {
     ImGui::SetCursorPosY(tableLastPos.y);
 
-    if (e)
+    if (enter)
     {
         tableNextColumn = 0;
         ImGui::NewLine();
@@ -255,11 +258,11 @@ void ImguiMarkdown::BLOCK_TR(bool e)
     }
 }
 
-void ImguiMarkdown::BLOCK_TH(const MD_BLOCK_TD_DETAIL* d, bool e) { BLOCK_TD(d, e); }
+void ImguiMarkdown::BLOCK_TH(const MD_BLOCK_TD_DETAIL* d, const bool enter) { BLOCK_TD(d, enter); }
 
-void ImguiMarkdown::BLOCK_TD(const MD_BLOCK_TD_DETAIL*, bool e)
+void ImguiMarkdown::BLOCK_TD(const MD_BLOCK_TD_DETAIL*, const bool enter)
 {
-    if (e)
+    if (enter)
     {
 
         if (tableNextColumn < tableColPos.size())
@@ -288,7 +291,7 @@ void ImguiMarkdown::BLOCK_TD(const MD_BLOCK_TD_DETAIL*, bool e)
     }
     ImGui::TextUnformatted("");
 
-    if (!tableBorder && e && tableNextColumn == 1)
+    if (!tableBorder && enter && tableNextColumn == 1)
     {
         ImGui::SameLine(0.0f, 0.0f);
     }
@@ -299,9 +302,9 @@ void ImguiMarkdown::BLOCK_TD(const MD_BLOCK_TD_DETAIL*, bool e)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void ImguiMarkdown::SetHRef(bool e, const MD_ATTRIBUTE& src)
+void ImguiMarkdown::SetHRef(const bool enter, const MD_ATTRIBUTE& src)
 {
-    if (e)
+    if (enter)
     {
         href.assign(src.text, src.size);
     }
@@ -311,19 +314,7 @@ void ImguiMarkdown::SetHRef(bool e, const MD_ATTRIBUTE& src)
     }
 }
 
-void ImguiMarkdown::SetFont(bool e)
-{
-    if (e)
-    {
-        ImGui::PushFont(GetFont());
-    }
-    else
-    {
-        ImGui::PopFont();
-    }
-}
-
-void ImguiMarkdown::SetColor(bool e)
+void ImguiMarkdown::SetColor(const bool e)
 {
     if (e)
     {
@@ -335,7 +326,7 @@ void ImguiMarkdown::SetColor(bool e)
     }
 }
 
-void ImguiMarkdown::Line(ImColor c, bool under)
+void ImguiMarkdown::Line(ImColor c, const bool under)
 {
     ImVec2 mi = ImGui::GetItemRectMin();
     ImVec2 ma = ImGui::GetItemRectMax();
@@ -350,25 +341,25 @@ void ImguiMarkdown::Line(ImColor c, bool under)
     ImGui::GetWindowDrawList()->AddLine(mi, ma, c, 1.0f);
 }
 
-void ImguiMarkdown::SPAN_A(const MD_SPAN_A_DETAIL* d, bool e)
+void ImguiMarkdown::SPAN_A(const MD_SPAN_A_DETAIL* d, const bool e)
 {
     SetHRef(e, d->href);
     SetColor(e);
 }
 
-void ImguiMarkdown::SPAN_EM(bool e)
+void ImguiMarkdown::SPAN_EM(const bool enter)
 {
-    isEm = e;
-    SetFont(e);
+    isEm = enter;
+    SetFontStyle(enter);
 }
 
-void ImguiMarkdown::SPAN_STRONG(bool e)
+void ImguiMarkdown::SPAN_STRONG(const bool enter)
 {
-    isStrong = e;
-    SetFont(e);
+    isStrong = enter;
+    SetFontStyle(enter);
 }
 
-void ImguiMarkdown::SPAN_IMG(const MD_SPAN_IMG_DETAIL* d, bool e)
+void ImguiMarkdown::SPAN_IMG(const MD_SPAN_IMG_DETAIL* d, const bool e)
 {
     isImage = e;
 
@@ -419,9 +410,9 @@ void ImguiMarkdown::SPAN_LATEXMATH_DISPLAY(bool) {}
 
 void ImguiMarkdown::SPAN_WIKILINK(const MD_SPAN_WIKILINK_DETAIL*, bool) {}
 
-void ImguiMarkdown::SPAN_U(bool e) { isUnderline = e; }
+void ImguiMarkdown::SPAN_U(const bool e) { isUnderline = e; }
 
-void ImguiMarkdown::SPAN_DEL(bool e) { isStrikethrough = e; }
+void ImguiMarkdown::SPAN_DEL(const bool e) { isStrikethrough = e; }
 
 void ImguiMarkdown::RenderText(const char* str, const char* str_end)
 {
@@ -610,7 +601,7 @@ static std::string get_div_class(const char* str, const char* str_end)
     return d.substr(p, pe - p);
 }
 
-bool ImguiMarkdown::CheckHtml(const std::string_view html, std::string_view nodeName, bool isEndNode, bool isSelfClosing)
+bool ImguiMarkdown::CheckHtml(const std::string_view html, const std::string_view nodeName, const bool isEndNode, bool isSelfClosing)
 {
     if (html == "<br/>" || html == "<br/>")
     {
@@ -666,7 +657,7 @@ void ImguiMarkdown::HtmlDiv(const std::string& dclass, bool e)
 #endif
 }
 
-int ImguiMarkdown::Text(MD_TEXTTYPE type, const char* str, const char* str_end)
+int ImguiMarkdown::Text(const MD_TEXTTYPE type, const char* str, const char* str_end)
 {
     switch (type)
     {
@@ -749,7 +740,7 @@ int ImguiMarkdown::Text(MD_TEXTTYPE type, const char* str, const char* str_end)
     return 0;
 }
 
-int ImguiMarkdown::Block(MD_BLOCKTYPE type, void* d, bool e)
+int ImguiMarkdown::Block(const MD_BLOCKTYPE type, void* d, const bool e)
 {
     switch (type)
     {
@@ -775,7 +766,7 @@ int ImguiMarkdown::Block(MD_BLOCKTYPE type, void* d, bool e)
     return 0;
 }
 
-int ImguiMarkdown::Span(MD_SPANTYPE type, void* d, bool e)
+int ImguiMarkdown::Span(const MD_SPANTYPE type, void* d, const bool e)
 {
     switch (type)
     {
@@ -795,6 +786,50 @@ int ImguiMarkdown::Span(MD_SPANTYPE type, void* d, bool e)
     return 0;
 }
 
+void ImguiMarkdown::SetFontStyle(bool enter)
+{
+    if (enter)
+    {
+        uint fontStyle = 0;
+        if (isEm)
+        {
+            fontStyle |= FontStyle::ItalicStyle;
+        }
+
+        if (isStrong)
+        {
+            fontStyle |= FontStyle::BoldStyle;
+        }
+
+        ImGui::PushFont(imguiInterface->GetDefaultFont(fontStyle), 0.f);
+    }
+    else
+    {
+        ImGui::PopFont();
+    }
+}
+
+void ImguiMarkdown::SetFontSize(bool enter)
+{
+    if (enter)
+    {
+        float fontSize;
+        switch (headingLevel)
+        {
+            case 3: fontSize = FontSize::VeryBig; break;
+            case 2: fontSize = FontSize::Big; break;
+            case 1: fontSize = FontSize::ExtremelyBig; break;
+            default: fontSize = FontSize::Default;
+        }
+
+        ImGui::PushFont(nullptr, fontSize);
+    }
+    else
+    {
+        ImGui::PopFont();
+    }
+}
+
 int ImguiMarkdown::Render(const std::string_view str)
 {
     if (str.empty())
@@ -807,30 +842,6 @@ int ImguiMarkdown::Render(const std::string_view str)
     DocumentEnd(str.data() + str.size());
     return result;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-ImFont* ImguiMarkdown::GetFont() const
-{
-    return nullptr; //default font
-
-    //Example:
-#if 0
-	if (m_is_table_header) {
-		return g_font_bold;
-	}
-
-	switch (m_hlevel)
-	{
-	case 0:
-		return m_is_strong ? g_font_bold : g_font_regular;
-	case 1:
-		return g_font_bold_large;
-	default:
-		return g_font_bold;
-	}
-#endif
-};
 
 ImVec4 ImguiMarkdown::GetColor() const
 {

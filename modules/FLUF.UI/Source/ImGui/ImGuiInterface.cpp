@@ -384,17 +384,39 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             continue;
         }
 
-        auto* font = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), FontSize::Default);
-        assert(font);
+        auto* defaultFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), FontSize::Default);
 
-        loadedFont.font = font;
-        if (loadedFont.isDefault)
-        {
-            io.FontDefault = font;
-        }
+        assert(defaultFont);
+        ADD_KI_FONT;
+        ADD_FA_FONT;
+
+        ImFontConfig fontConfig;
+        fontConfig.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_Bold;
+        auto* boldFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), FontSize::Default, &fontConfig);
 
         ADD_KI_FONT;
         ADD_FA_FONT;
+
+        fontConfig.FontLoaderFlags |= ImGuiFreeTypeBuilderFlags_Oblique;
+        auto* boldItalicFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), FontSize::Default, &fontConfig);
+
+        ADD_KI_FONT;
+        ADD_FA_FONT;
+
+        fontConfig.FontLoaderFlags &= ~ImGuiFreeTypeBuilderFlags_Bold;
+        auto* italicFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), FontSize::Default, &fontConfig);
+
+        ADD_KI_FONT;
+        ADD_FA_FONT;
+
+        loadedFont.defaultFont = defaultFont;
+        loadedFont.boldFont = boldFont;
+        loadedFont.boldItalicFont = boldItalicFont;
+        loadedFont.italicFont = italicFont;
+        if (loadedFont.isDefault)
+        {
+            io.FontDefault = defaultFont;
+        }
 
         if (loadedFont.isDefault)
         {
@@ -674,7 +696,7 @@ bool ImGuiInterface::UnregisterImGuiModule(ImGuiModule* mod)
     return imguiModules.erase(mod) == 1;
 }
 
-ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName) const
+ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName, uint fontStyle) const
 {
     auto& loadedImGuiFonts = config->loadedFonts;
     if (loadedImGuiFonts.empty())
@@ -689,10 +711,25 @@ ImFont* ImGuiInterface::GetImGuiFont(const std::string& fontName) const
         return nullptr;
     }
 
-    return loadedFont->font.value();
+    if (fontStyle == FontStyle::BoldStyle)
+    {
+        return loadedFont->boldFont.value();
+    }
+
+    if (fontStyle == FontStyle::BoldItalicStyle)
+    {
+        return loadedFont->boldItalicFont.value();
+    }
+
+    if (fontStyle == FontStyle::ItalicStyle)
+    {
+        return loadedFont->italicFont.value();
+    }
+
+    return loadedFont->defaultFont.value();
 }
 
-ImFont* ImGuiInterface::GetDefaultFont() const
+ImFont* ImGuiInterface::GetDefaultFont(const uint fontStyle) const
 {
     for (const auto& font : config->loadedFonts)
     {
@@ -701,7 +738,22 @@ ImFont* ImGuiInterface::GetDefaultFont() const
             continue;
         }
 
-        return font.font.value();
+        if (fontStyle == FontStyle::BoldStyle)
+        {
+            return font.boldFont.value();
+        }
+
+        if (fontStyle == FontStyle::BoldItalicStyle)
+        {
+            return font.boldItalicFont.value();
+        }
+
+        if (fontStyle == FontStyle::ItalicStyle)
+        {
+            return font.italicFont.value();
+        }
+
+        return font.defaultFont.value();
     }
 
     throw std::runtime_error("No font was specified as default");

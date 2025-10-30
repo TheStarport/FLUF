@@ -20,7 +20,10 @@ struct LoadedFont
         std::string fontName;
         std::string fontPath;
         bool isDefault = false;
-        rfl::Skip<ImFont*> font = nullptr;
+        rfl::Skip<ImFont*> defaultFont = nullptr;
+        rfl::Skip<ImFont*> italicFont = nullptr;
+        rfl::Skip<ImFont*> boldFont = nullptr;
+        rfl::Skip<ImFont*> boldItalicFont = nullptr;
 };
 
 struct FlufUiConfig
