@@ -166,6 +166,8 @@ void Fixes::AllowNegativeDamage()
         *ADDR_EXP2NEG =                                                                               //  testing abs(damage) <= 0.0001
         *ADDR_EXP3NEG = *ADDR_EXPaNEG = *ADDR_EXPbNEG = *ADDR_EXPcNEG = *ADDR_EXPdNEG = *ADDR_EXPeNEG = *ADDR_ZONENEG = 0x40; // <= 0 --> != 0
 
+    MemUtils::NopAddress(DWORD(serverDll) + 0xA7C2, 6); // Remove negative shield damage clamp
+
     ADDR_ZONEMIN[-5] = 0x15; // fcomp --> fcom
     MemUtils::PatchAssembly(reinterpret_cast<DWORD>(ADDR_ZONEMIN), MinDamageHook, true);
 

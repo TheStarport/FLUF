@@ -41,8 +41,14 @@ struct ShipDotData
 {
         float timeLeft = 0.f;
         float damageToApply = 0.f;
-        ushort targetHardpoint = 0;
+        ushort targetSId = 0;
         uint inflicterId = 0;
+};
+
+struct ShipHealingData
+{
+        float timeLeft = 0.f;
+        bool isShield = false;
 };
 
 struct ShipHullVulnerability
@@ -85,6 +91,7 @@ class Retold final : public FlufModule, public ImGuiModule
         std::unordered_map<ShipId, std::list<std::pair<float, float>>> shipShieldRechargeDebuffs;
         std::unordered_map<ShipId, std::list<ShipHullVulnerability>> shipHullVulnerabilities;
         std::unordered_map<ShipId, std::list<ShipDotData>> shipDots;
+        std::unordered_map<ShipId, std::list<ShipHealingData>> shipHealing;
 
         float hullVulnerabilityDuration = 5.f;
         float hullVulnerabilityMax = 1.5f;
@@ -115,6 +122,7 @@ class Retold final : public FlufModule, public ImGuiModule
         void ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
         void ApplyShieldReductionStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
         void ProcessShipDotStacks(float delta);
+        void ProcessShipHealingStacks(float delta);
         void RemoveShieldReductionStacks(float delta);
         void RemoveShipVulnerabilityStacks(float delta);
 

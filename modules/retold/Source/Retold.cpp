@@ -122,6 +122,7 @@ void Retold::OnFixedUpdate(const float delta, bool gamePaused)
     }
 
     ProcessShipDotStacks(delta);
+    ProcessShipHealingStacks(delta);
     RemoveShieldReductionStacks(delta);
     RemoveShipVulnerabilityStacks(delta);
 

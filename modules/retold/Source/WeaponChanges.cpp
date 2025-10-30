@@ -197,7 +197,29 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
     auto cship = ship->cship();
 
     auto cargo = CECargo::cast(cship->equipManager.FindByID(sId));
-    if (!cargo || (cargo->archetype->archId != NANOBOT_ARCH && cargo->archetype->archId != BATTERY_ARCH))
+    if (!cargo)
+    {
+        return false;
+    }
+
+    if (cargo->archetype->archId == NANOBOT_ARCH)
+    {
+        if (cship->hitPoints > (cship->archetype->hitPoints * 0.95f))
+        {
+            return false;
+        }
+        shipHealing[ship->get_id()].push_back({ 10.f, false });
+    }
+    else if (cargo->archetype->archId == BATTERY_ARCH)
+    {
+        CEShield* shield = reinterpret_cast<CEShield*>(cship->equipManager.FindFirst((int)EquipmentClass::Shield));
+        if (!shield || (shield->currShieldHitPoints > shield->maxShieldHitPoints * 0.95f))
+        {
+            return false;
+        }
+        shipHealing[ship->get_id()].push_back({ 10.f, true });
+    }
+    else
     {
         return false;
     }
@@ -215,41 +237,37 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
 
 void Retold::ProcessShipDotStacks(float delta)
 {
-    for (auto& [id, stacks] : shipDots)
+    for (auto dots = shipDots.begin(); dots != shipDots.end();)
     {
-        const auto obj = static_cast<EqObj*>(Fluf::GetObjInspect(id));
+        const auto obj = static_cast<EqObj*>(Fluf::GetObjInspect(dots->first));
         if (!obj)
         {
             continue;
         }
 
-        std::unordered_map<uint, std::pair<float, CArchGroup*>> groupDamage;
+        std::unordered_map<CArchGroup*, float> groupDamage;
         auto& agm = obj->ceqobj()->archGroupManager;
         DamageList list;
         list.set_cause(DamageCause::Gun);
-        for (auto stack = stacks.begin(); stack != stacks.end();)
+        for (auto stack = dots->second.begin(); stack != dots->second.end();)
         {
-            const auto part = agm.FindByID(stack->targetHardpoint);
-            if ((!part && stack->targetHardpoint != 1) || stack->timeLeft <= 0.f)
+            const auto part = agm.FindByID(stack->targetSId);
+            if ((!part && stack->targetSId != 1) || stack->timeLeft <= 0.f)
             {
-                stack = stacks.erase(stack);
+                stack = dots->second.erase(stack);
                 continue;
             }
 
-            auto& data = groupDamage[stack->targetHardpoint];
-            if (stack->targetHardpoint != 1)
-            {
-                data.second = part;
-            }
+            auto& entry = groupDamage[part];
 
-            data.first += stack->damageToApply * delta;
+            entry += stack->damageToApply * std::min(delta, stack->timeLeft);
             list.inflictorId = stack->inflicterId;
 
             stack->timeLeft -= delta;
             ++stack;
         }
 
-        for (auto& [damage, part] : groupDamage | std::views::values)
+        for (auto& [part, damage] : groupDamage)
         {
             if (!part)
             {
@@ -262,6 +280,85 @@ void Retold::ProcessShipDotStacks(float delta)
         }
 
         obj->apply_damage_list(&list);
+
+        if (dots->second.empty())
+        {
+            dots = shipDots.erase(dots);
+            continue;
+        }
+
+        dots++;
+    }
+}
+
+void Retold::ProcessShipHealingStacks(float delta)
+{
+    for (auto healingData = shipHealing.begin(); healingData != shipHealing.end();)
+    {
+        const auto obj = static_cast<EqObj*>(Fluf::GetObjInspect(healingData->first));
+        if (!obj)
+        {
+            continue;
+        }
+
+        float healingHull = 0.0f;
+        float healingShield = 0.0f;
+
+        for (auto stackIter = healingData->second.begin(); stackIter != healingData->second.end();)
+        {
+            float timeToHeal = std::min(delta, stackIter->timeLeft);
+
+            if (!stackIter->isShield)
+            {
+                healingHull += delta * obj->ceqobj()->archetype->hitPoints * 0.01f;
+            }
+            else
+            {
+                CEShield* shield = reinterpret_cast<CEShield*>(obj->ceqobj()->equipManager.FindFirst((int)EquipmentClass::Shield));
+                if (!shield)
+                {
+                    stackIter = healingData->second.erase(stackIter);
+                    continue;
+                }
+                healingShield += delta * shield->maxShieldHitPoints * 0.15f;
+            }
+
+            stackIter->timeLeft -= delta;
+            if (stackIter->timeLeft <= 0.0f)
+            {
+                stackIter = healingData->second.erase(stackIter);
+                continue;
+            }
+            stackIter++;
+        }
+
+        if (healingHull || healingShield)
+        {
+            DamageList dmg;
+            if (healingHull)
+            {
+                obj->damage_hull(-healingHull, &dmg);
+            }
+
+            if (healingShield)
+            {
+                CEShield* shield = reinterpret_cast<CEShield*>(obj->ceqobj()->equipManager.FindFirst((int)EquipmentClass::Shield));
+                if (shield)
+                {
+                    obj->damage_shield_direct(shield, -healingShield, &dmg);
+                }
+            }
+
+            obj->apply_damage_list(&dmg);
+        }
+
+        if (healingData->second.empty())
+        {
+            healingData = shipHealing.erase(healingData);
+            continue;
+        }
+
+        healingData++;
     }
 }
 
