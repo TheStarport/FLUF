@@ -61,19 +61,12 @@ void QolPatcher::ColorPatch::RenderComponent()
 
 void QolPatcher::ColorPatch::ReturnShieldState(CEqObj* eqObj, float& maxHP, float& currHP, bool& shieldUp)
 {
-    static int counter = 0;
-
     currHP = 0.0f;
     maxHP = 0.0f;
     CEquipTraverser tr((int)EquipmentClass::Shield, true);
     CEShield* shield = nullptr;
     while (shield = reinterpret_cast<CEShield*>(eqObj->equipManager.Traverse(tr)))
     {
-        if (++counter == 600)
-        {
-            counter = 0;
-            shield->Activate(!shield->IsActive());
-        }
 
         if (!config->showInactiveShield && !shield->IsFunctioning())
         {
