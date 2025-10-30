@@ -418,6 +418,7 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
             io.FontDefault = defaultFont;
         }
 
+        // TODO: Remove this and text utils, replace with base imgui helper functions
         if (loadedFont.isDefault)
         {
             static UImGui::TextUtilsData data;

@@ -353,19 +353,18 @@ void Retold::ReadEquipmentIni(const std::string& file)
         {
             std::string nickname;
             ExtraWeaponData data{};
+            bool found = false;
             while (ini.read_value())
             {
                 if (ini.is_value("nickname"))
                 {
                     nickname = ini.get_value_string();
                 }
-                else if (ini.is_value("shield_power_usage"))
-                {
-                    data.shieldPowerUsage = ini.get_value_float(0);
-                }
+
+                data.shieldPowerUsage = ini.GetFloat("shield_power_usage", found);
             }
 
-            if (!nickname.empty() && data.shieldPowerUsage != 0.f)
+            if (!nickname.empty() && found)
             {
                 Fluf::Debug(std::format("Adding custom equipment: {}", nickname));
                 extraWeaponData[CreateID(nickname.c_str())] = data;
@@ -375,32 +374,21 @@ void Retold::ReadEquipmentIni(const std::string& file)
         {
             std::string nickname;
             ExtraMunitionData data{};
+            bool found = false;
             while (ini.read_value())
             {
                 if (ini.is_value("nickname"))
                 {
                     nickname = ini.get_value_string();
                 }
-                else if (ini.is_value("equipment_multiplier"))
-                {
-                    data.equipmentMultiplier = ini.get_value_float(0);
-                }
-                else if (ini.is_value("hull_dot"))
-                {
-                    data.hullDot = ini.get_value_float(0);
-                }
-                else if (ini.is_value("shield_recharge_reduction"))
-                {
-                    data.shieldRechargeReduction = ini.get_value_float(0);
-                }
-                else if (ini.is_value("hull_vulnerability"))
-                {
-                    data.hullVulnerability = ini.get_value_float(0);
-                }
+
+                data.equipmentMultiplier = ini.GetFloat("equipment_multiplier", found);
+                data.hullDot = ini.GetFloat("hull_dot", found);
+                data.shieldRechargeReduction = ini.GetFloat("shield_recharge_reduction", found);
+                data.hullVulnerability = ini.GetFloat("hull_vulnerability", found);
             }
 
-            if (!nickname.empty() &&
-                (data.equipmentMultiplier != 0.f || data.hullDot != 0.f || data.shieldRechargeReduction != 0.f || data.hullVulnerability != 0.f))
+            if (!nickname.empty() && found)
             {
                 Fluf::Debug(std::format("Adding custom munition: {}", nickname));
                 extraMunitionData[CreateID(nickname.c_str())] = data;
@@ -410,24 +398,19 @@ void Retold::ReadEquipmentIni(const std::string& file)
         {
             std::string nickname;
             ExtraShieldData data{};
-
+            bool found = false;
             while (ini.read_value())
             {
                 if (ini.is_value("nickname"))
                 {
                     nickname = ini.get_value_string();
                 }
-                else if (ini.is_value("shield_strength"))
-                {
-                    data.shieldStrength = ini.get_value_float(0);
-                }
-                else if (ini.is_value("offline_regeneration_rate"))
-                {
-                    data.offlineRegenerationRate = ini.get_value_float(0);
-                }
+
+                data.shieldStrength = ini.GetFloat("shield_strength", found);
+                data.offlineRegenerationRate = ini.GetFloat("offline_regeneration_rate", found);
             }
 
-            if (!nickname.empty() && (data.shieldStrength != 0.f || data.offlineRegenerationRate != 0.f))
+            if (!nickname.empty() && found)
             {
                 Fluf::Debug(std::format("Adding custom shield: {}", nickname));
                 extraShieldData[CreateID(nickname.c_str())] = data;

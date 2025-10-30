@@ -146,7 +146,7 @@ void ImguiMarkdown::BLOCK_H(const MD_BLOCK_H_DETAIL* d, const bool enter)
         headingLevel = 0;
     }
 
-    //SetFont(enter);
+    SetFontSize(enter);
 
     if (!enter)
     {
@@ -816,8 +816,8 @@ void ImguiMarkdown::SetFontSize(bool enter)
         float fontSize;
         switch (headingLevel)
         {
-            case 3: fontSize = FontSize::VeryBig; break;
-            case 2: fontSize = FontSize::Big; break;
+            case 3: fontSize = FontSize::Big; break;
+            case 2: fontSize = FontSize::VeryBig; break;
             case 1: fontSize = FontSize::ExtremelyBig; break;
             default: fontSize = FontSize::Default;
         }
