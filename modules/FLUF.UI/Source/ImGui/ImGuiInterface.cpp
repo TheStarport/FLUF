@@ -224,20 +224,15 @@ ImGuiInterface::MouseState ImGuiInterface::ConvertState(const DWORD state)
 
 void ImGuiInterface::PollInput()
 {
-    static auto* mouseX = reinterpret_cast<PDWORD>(0x616840);
-    static auto* mouseY = reinterpret_cast<PDWORD>(0x616844);
-    static auto* mouseStateRaw = reinterpret_cast<PDWORD>(0x616850);
-    static auto* mouseZ = reinterpret_cast<int*>(0x616848);
-
     constexpr int left = 0, right = 1, middle = 2, x1 = 3, x2 = 4;
 
     ImGuiIO& io = ImGui::GetIO();
 
-    const DWORD xPos = *mouseX;
-    const DWORD yPos = *mouseY;
-    const int scroll = *mouseZ;
+    const DWORD xPos = *mouseInfo.x;
+    const DWORD yPos = *mouseInfo.y;
+    const int scroll = *mouseInfo.z;
 
-    const auto [leftDown, rightDown, middleDown, mouse4Down, mouse5Down] = ConvertState(*mouseStateRaw);
+    const auto [leftDown, rightDown, middleDown, mouse4Down, mouse5Down] = ConvertState(*mouseInfo.stateRaw);
 
     // Position before anything else
     io.AddMousePosEvent(static_cast<float>(xPos), static_cast<float>(yPos));
@@ -250,7 +245,7 @@ void ImGuiInterface::PollInput()
     if (scroll)
     {
         io.AddMouseWheelEvent(0.f, static_cast<float>(scroll));
-        *mouseZ = 0;
+        *mouseInfo.z = 0;
     }
 }
 
@@ -482,6 +477,10 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     Fluf::GetKeyManager()->RegisterKey(flufUi, "FLUF_OPEN_EXTENDED_OPTIONS_MENU", Key::USER_NO_OVERRIDE, reinterpret_cast<KeyFunc>(&FlufUi::OpenOptionsMenu));
     Fluf::GetKeyManager()->RegisterKey(flufUi, "USER_CANCEL", Key::USER_CANCEL, reinterpret_cast<KeyFunc>(&FlufUi::ProcessEscapeKey));
+    Fluf::GetKeyManager()->RegisterKey(flufUi, "USER_BUTTON0", Key::USER_BUTTON0, reinterpret_cast<KeyFunc>(&FlufUi::ShouldSuppressMouseButton)); // Mouse Left
+    Fluf::GetKeyManager()->RegisterKey(flufUi, "USER_BUTTON1", Key::USER_BUTTON1, reinterpret_cast<KeyFunc>(&FlufUi::ShouldSuppressMouseButton)); // Mouse Right
+    Fluf::GetKeyManager()->RegisterKey(
+        flufUi, "USER_BUTTON2", Key::USER_BUTTON2, reinterpret_cast<KeyFunc>(&FlufUi::ShouldSuppressMouseButton)); // Middle Mouse
 }
 
 void ImGuiInterface::PushNewWindow(FlWindow* newWindow) { flWindowStack.push_back(newWindow); }

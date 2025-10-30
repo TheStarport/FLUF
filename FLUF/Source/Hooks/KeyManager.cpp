@@ -82,7 +82,7 @@ void KeyManager::GenerateKeyMap()
             {
                 for (auto key = keyCmd.start; key != keyCmd.end; key++)
                 {
-                    KeyMapping::KeyMod mod = KeyMapping::KeyMod::None;
+                    auto mod = KeyMapping::KeyMod::None;
                     switch (key->mod)
                     {
                         case KeyMapping::KeyMod::SHIFT:

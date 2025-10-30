@@ -3,6 +3,7 @@
 #include "FLUF.UI.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <string>
 
 class FLUF_UI_API FlWindow
@@ -19,6 +20,7 @@ class FLUF_UI_API FlWindow
         void* dxDevice;
         bool isEscapeCloseable;
         bool isOpen = false;
+        ImGuiWindow* imguiWindow = nullptr;
 
         void DrawScrollbars() const;
         static void DrawWindowDecorations(ImVec2 startingPos, ImVec2 windowSize);
@@ -29,6 +31,7 @@ class FLUF_UI_API FlWindow
         virtual void RenderWindowContents() = 0;
 
     public:
+        ImGuiWindow* GetImGuiWindow() const;
         void SetOpenState(bool newState);
         bool IsOpen() { return isOpen; }
         bool IsEscapeCloseable() { return isEscapeCloseable; }

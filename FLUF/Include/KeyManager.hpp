@@ -17,11 +17,11 @@ enum class Key
     USER_BUTTON_OVERRIDE, // 00614DE4
     USER_WHEEL,
     USER_MOVE,
-    USER_BUTTON0,
-    USER_BUTTON1,
-    USER_BUTTON2,
-    USER_BUTTON3,
-    USER_BUTTON4,
+    USER_BUTTON0, // Mouse Left
+    USER_BUTTON1, // Mouse Right
+    USER_BUTTON2, // Middle Mouse
+    USER_BUTTON3, // Mouse 4
+    USER_BUTTON4, // Mouse 5
     USER_BUTTON5,
     USER_BUTTON6,
     USER_BUTTON7,

@@ -58,6 +58,7 @@ class FlufUi final : public FlufModule
                                                          D3DPRESENT_PARAMETERS* presentationParameters, IDirect3DDevice8** returnedDeviceInterface);
         bool OpenOptionsMenu(KeyState state) const;
         bool ProcessEscapeKey(KeyState state) const;
+        bool ShouldSuppressMouseButton(KeyState state) const;
 
         ModuleProcessCode OnPayloadReceived(uint sourceClientId, const FlufPayload& payload) override;
 

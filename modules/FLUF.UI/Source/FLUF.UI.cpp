@@ -1,3 +1,4 @@
+// ReSharper disable CppDFAUnreachableCode
 #include "PCH.hpp"
 
 #include "FLUF.UI.hpp"
@@ -171,6 +172,44 @@ bool FlufUi::ProcessEscapeKey(KeyState state) const
         if (window->IsEscapeCloseable())
         {
             window->SetOpenState(false);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ReSharper disable once CppDFAConstantFunctionResult
+// ReSharper disable once CppMemberFunctionMayBeStatic
+bool FlufUi::ShouldSuppressMouseButton(KeyState state) const // NOLINT(*-convert-member-functions-to-static)
+{
+    const auto context = ImGui::GetCurrentContext();
+    if (!context || context->Windows.empty())
+    {
+        return false;
+    }
+
+    const ImVec2 mouse = { static_cast<float>(*ImGuiInterface::mouseInfo.x), static_cast<float>(*ImGuiInterface::mouseInfo.y) };
+
+    for (const auto window : context->Windows)
+    {
+        bool isFlWindow = false;
+        for (const auto flWindow : imguiInterface->flWindowStack)
+        {
+            if (flWindow->GetImGuiWindow() == window)
+            {
+                isFlWindow = true;
+            }
+        }
+
+        if (!window->Active || (window->Flags & ImGuiWindowFlags_NoBackground != 0 && !isFlWindow))
+        {
+            continue;
+        }
+
+        if (auto windowRect = ImRect{ window->Pos.x, window->Pos.y, window->Pos.x + window->Size.x, window->Pos.y + window->Size.y };
+            windowRect.Contains(mouse))
+        {
             return true;
         }
     }

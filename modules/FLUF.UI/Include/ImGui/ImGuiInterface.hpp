@@ -70,8 +70,17 @@ class ImGuiInterface
 
         void InitSubmenus();
         void Render();
+
+        inline static struct MouseInfo
+        {
+                const uint* x = reinterpret_cast<uint*>(0x616840);
+                const uint* y = reinterpret_cast<uint*>(0x616844);
+                const uint* stateRaw = reinterpret_cast<uint*>(0x616850);
+                int* z = reinterpret_cast<int*>(0x616848);
+        } mouseInfo;
         static void PollInput();
         static MouseState ConvertState(DWORD state);
+
         static bool WndProc(FlufUiConfig* config, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
         void UnloadTextures();
         void ResetTextures();

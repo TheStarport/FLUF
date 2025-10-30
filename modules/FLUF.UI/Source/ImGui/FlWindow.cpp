@@ -183,6 +183,8 @@ void FlWindow::DrawWindowDecorations(const ImVec2 startingPos, const ImVec2 wind
     ImGui::PopClipRect();
 }
 
+ImGuiWindow* FlWindow::GetImGuiWindow() const { return imguiWindow; }
+
 void FlWindow::SetOpenState(bool newState)
 {
     if (isOpen == newState)
@@ -234,6 +236,7 @@ void FlWindow::SetPivot(const ImVec2 pivot) { this->pivot = pivot; }
 
 void FlWindow::Render()
 {
+    imguiWindow = nullptr;
     if (!isOpen)
     {
         return;
@@ -253,6 +256,8 @@ void FlWindow::Render()
     ImGui::PushStyleVarX(ImGuiStyleVar_WindowPadding, 30.f);
     ImGui::PushStyleVarY(ImGuiStyleVar_WindowPadding, 30.f);
     ImGui::Begin(title.c_str(), &isOpen, windowFlags | ImGuiWindowFlags_NoTitleBar);
+
+    imguiWindow = ImGui::GetCurrentWindow();
 
     if (ImGui::IsWindowFocused() && isEscapeCloseable)
     {
