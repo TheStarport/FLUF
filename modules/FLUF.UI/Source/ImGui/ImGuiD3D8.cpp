@@ -410,11 +410,6 @@ static void ImGui_ImplDX8_CopyTextureRegion(bool tex_use_colors, const ImU32* sr
 
 static void ImGui_ImplDX8_UpdateTexture(ImTextureData* tex)
 {
-    // Create and upload new texture to graphics system
-    //IMGUI_DEBUG_LOG("UpdateTexture #%03d: WantCreate %dx%d\n", tex->UniqueID, tex->Width, tex->Height);
-    IM_ASSERT(tex->TexID == ImTextureID_Invalid && tex->BackendUserData == nullptr);
-    IM_ASSERT(tex->Format == ImTextureFormat_RGBA32);
-
     if (tex->Status == ImTextureStatus_WantCreate)
     {
         LPDIRECT3DTEXTURE8 texture = nullptr;
@@ -584,11 +579,8 @@ void ImGui_ImplDX8_InvalidateDeviceObjects()
 
     for (ImTextureData* tex : ImGui::GetPlatformIO().Textures)
     {
-        if (tex->RefCount == 1)
-        {
-            tex->SetStatus(ImTextureStatus_WantDestroy);
-            ImGui_ImplDX8_UpdateTexture(tex);
-        }
+        tex->SetStatus(ImTextureStatus_WantDestroy);
+        ImGui_ImplDX8_UpdateTexture(tex);
     }
 }
 
