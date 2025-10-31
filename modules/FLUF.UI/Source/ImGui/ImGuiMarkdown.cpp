@@ -366,41 +366,19 @@ void ImguiMarkdown::SPAN_IMG(const MD_SPAN_IMG_DETAIL* d, const bool e)
 
     SetHRef(e, d->src);
 
-    if (e)
+    if (!e)
     {
-
-        image_info nfo;
-        if (GetImage(nfo))
-        {
-
-            const float scale = ImGui::GetIO().FontGlobalScale;
-            nfo.size.x *= scale;
-            nfo.size.y *= scale;
-
-            const ImVec2 csz = ImGui::GetContentRegionAvail();
-            if (nfo.size.x > csz.x)
-            {
-                const float r = nfo.size.y / nfo.size.x;
-                nfo.size.x = csz.x;
-                nfo.size.y = csz.x * r;
-            }
-
-            ImGui::Image(nfo.textureId, nfo.size, nfo.uv0, nfo.uv1, nfo.colTint, nfo.colBorder);
-
-            if (ImGui::IsItemHovered())
-            {
-
-                //if (d->title.size) {
-                //	ImGui::SetTooltip("%.*s", (int)d->title.size, d->title.text);
-                //}
-
-                if (ImGui::IsMouseReleased(0))
-                {
-                    OpenUrl();
-                }
-            }
-        }
+        return;
     }
+
+    image_info nfo;
+    nfo.title = { d->title.text, d->title.size };
+    if (!GetImage(nfo))
+    {
+        return;
+    }
+
+    RenderImage(nfo);
 }
 
 void ImguiMarkdown::SPAN_CODE(bool) {}
@@ -869,7 +847,7 @@ ImVec4 ImguiMarkdown::GetColor() const
     return ImGui::GetStyle().Colors[ImGuiCol_Text];
 }
 
-bool ImguiMarkdown::GetImage(image_info& nfo) const
+bool ImguiMarkdown::GetImage(image_info& nfo)
 {
     if (href.find("..") != std::string::npos)
     {
@@ -894,6 +872,40 @@ bool ImguiMarkdown::GetImage(image_info& nfo) const
 
     return true;
 };
+
+void ImguiMarkdown::RenderImage(image_info& nfo)
+{
+    const float scale = ImGui::GetIO().FontGlobalScale;
+    nfo.size.x *= scale;
+    nfo.size.y *= scale;
+
+    float spaceLeft = 0.f;
+    const ImVec2 csz = ImGui::GetContentRegionAvail();
+    if (nfo.size.x > csz.x)
+    {
+        const float ratio = nfo.size.y / nfo.size.x;
+        nfo.size.x = csz.x;
+        nfo.size.y = csz.x * ratio;
+    }
+    else
+    {
+        spaceLeft = csz.x - nfo.size.x;
+    }
+
+    // Align center
+    if (spaceLeft > 0.f)
+    {
+        auto pos = ImGui::GetCursorScreenPos();
+        ImGui::SetCursorScreenPos({ pos.x + spaceLeft * 0.5f, pos.y });
+    }
+
+    ImGui::Image(nfo.textureId, nfo.size, nfo.uv0, nfo.uv1, nfo.colTint, nfo.colBorder);
+
+    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(0))
+    {
+        OpenUrl();
+    }
+}
 
 void ImguiMarkdown::OpenUrl() const
 {

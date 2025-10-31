@@ -64,7 +64,7 @@ class FLUF_UI_API ImguiMarkdown
         std::vector<std::string> divStack;
 
     protected:
-        void RenderText(const char* str, const char* str_end);
+        virtual void RenderText(const char* str, const char* str_end);
 
         MD_PARSER parser;
         virtual void BLOCK_DOC(bool enter);
@@ -105,10 +105,13 @@ class FLUF_UI_API ImguiMarkdown
                 ImVec2 uv1;
                 ImVec4 colTint;
                 ImVec4 colBorder;
+                std::string title;
         };
 
         //use m_href to identify image
-        virtual bool GetImage(image_info& nfo) const;
+        virtual bool GetImage(image_info& nfo);
+
+        virtual void RenderImage(image_info& nfo);
 
         virtual ImVec4 GetColor() const;
 

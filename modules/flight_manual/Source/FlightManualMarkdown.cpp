@@ -236,33 +236,84 @@ void FlightManualMarkdown::OpenUrl() const
     onPageSelected(StringUtils::ReplaceStr(href, "_"sv, " "sv));
 }
 
-bool FlightManualMarkdown::GetImage(image_info& nfo) const
+void FlightManualMarkdown::RenderText(const char* str, const char* str_end)
 {
-    if (const auto success = ImguiMarkdown::GetImage(nfo); !success)
+    if (currentlyInInlineImage && ImGui::GetCursorScreenPos().y >= desiredEndHeight)
     {
-        constexpr std::string_view badPath = "IMAGE NOT FOUND";
-        const auto badImageSize = ImGui::CalcTextSize(badPath.data());
-
-        const auto imageSize = ImVec2{ 200.f, 200.f };
-
-        auto textPos = ImGui::GetCursorScreenPos();
-        ImGui::ImageWithBg({}, imageSize, {}, {}, { 1.f, 1.f, 1.f, 1.f });
-        auto nextElPos = ImGui::GetCursorScreenPos();
-
-        textPos += imageSize * 0.5f;
-        textPos.x -= badImageSize.x * 0.5f;
-        ImGui::SetCursorScreenPos(textPos);
-        ImGui::Text(badPath.data());
-
-        ImGui::SetCursorScreenPos({ nextElPos.x, nextElPos.y + badImageSize.y });
-        return false;
+        currentlyInInlineImage = false;
+        ImGui::EndChild();
+        ImGui::EndGroup();
     }
 
-    return true;
+    ImguiMarkdown::RenderText(str, str_end);
+}
+
+bool FlightManualMarkdown::GetImage(image_info& nfo)
+{
+    if (currentlyInInlineImage)
+    {
+        currentlyInInlineImage = false;
+        ImGui::EndChild();
+        ImGui::EndGroup();
+    }
+
+    if (const auto success = ImguiMarkdown::GetImage(nfo); success)
+    {
+        return true;
+    }
+
+    constexpr std::string_view badPath = "IMAGE NOT FOUND";
+    const auto badImageSize = ImGui::CalcTextSize(badPath.data());
+
+    constexpr auto imageSize = ImVec2{ 200.f, 200.f };
+
+    auto textPos = ImGui::GetCursorScreenPos();
+    ImGui::ImageWithBg({}, imageSize, {}, {}, { 1.f, 1.f, 1.f, 1.f });
+    auto nextElPos = ImGui::GetCursorScreenPos();
+
+    textPos += imageSize * 0.5f;
+    textPos.x -= badImageSize.x * 0.5f;
+    ImGui::SetCursorScreenPos(textPos);
+    ImGui::Text(badPath.data());
+
+    ImGui::SetCursorScreenPos({ nextElPos.x, nextElPos.y + badImageSize.y });
+    return false;
+}
+
+void FlightManualMarkdown::RenderImage(image_info& nfo)
+{
+    if (nfo.title.find("#inline") == std::string_view::npos)
+    {
+        ImguiMarkdown::RenderImage(nfo);
+        return;
+    }
+
+    auto space = ImGui::GetContentRegionAvail();
+    const float ratio = nfo.size.y / nfo.size.x;
+    nfo.size = { space.x * 0.3f, space.y };
+    nfo.size.y = nfo.size.x * ratio;
+
+    auto currentPos = ImGui::GetCursorScreenPos();
+    ImGui::BeginGroup();
+
+    ImGui::Image(nfo.textureId, nfo.size, nfo.uv0, nfo.uv1, nfo.colTint, nfo.colBorder);
+
+    const auto newPos = ImVec2{ currentPos.x + currentPos.x * 0.2f, currentPos.y - nfo.size.y * 0.5f };
+    ImGui::SetCursorScreenPos(newPos);
+    ImGui::BeginChild("InlineImage##", { space.x * 0.68f, 0.0f }, ImGuiChildFlags_AutoResizeY);
+    desiredEndHeight = newPos.y + nfo.size.y;
+    currentlyInInlineImage = true;
 }
 
 void FlightManualMarkdown::DocumentEnd(const char* end)
 {
+    if (currentlyInInlineImage)
+    {
+        currentlyInInlineImage = false;
+        ImGui::EndChild();
+        ImGui::EndGroup();
+    }
+
     infoboxId = 0;
 
     if (tooltipContent)
