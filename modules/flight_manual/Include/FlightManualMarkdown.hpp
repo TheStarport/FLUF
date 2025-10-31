@@ -7,12 +7,15 @@
 
 class FlightManualMarkdown final : public ImguiMarkdown
 {
+        int infoboxId = 0;
+
         std::function<void(std::string_view)> onPageSelected;
         rfl::Ref<FlightManualConfig> config;
         std::string* tooltipContent = nullptr;
 
         bool HandleKeyCode(std::string_view html);
-        bool HandleToolTip(std::string_view html, std::string_view nodeName, bool isEndNode);
+        bool HandleToolTip(std::string_view html, bool isEndNode);
+        bool HandleInfoBox(std::string_view html, bool isEndNode);
         bool CheckHtml(std::string_view html, std::string_view nodeName, bool isEndNode, bool isSelfClosing) override;
 
         void OpenUrl() const override;

@@ -7,8 +7,10 @@
 #include <Fluf.hpp>
 #include <KeyManager.hpp>
 #include <utility>
+#include <ImGui/ImGuiInterface.hpp>
+#include <ImGui/Fonts/IconFontAwesome6.hpp>
 
-bool FlightManualMarkdown::HandleKeyCode(std::string_view html)
+bool FlightManualMarkdown::HandleKeyCode(const std::string_view html)
 {
     pugi::xml_document topLevelDoc;
     const auto result = topLevelDoc.load_buffer(html.data(), html.size(), pugi::parse_default | pugi::parse_fragment);
@@ -45,7 +47,7 @@ bool FlightManualMarkdown::HandleKeyCode(std::string_view html)
     return false;
 }
 
-bool FlightManualMarkdown::HandleToolTip(std::string_view html, std::string_view nodeName, bool isEndNode)
+bool FlightManualMarkdown::HandleToolTip(const std::string_view html, const bool isEndNode)
 {
     if (tooltipContent)
     {
@@ -91,13 +93,120 @@ bool FlightManualMarkdown::HandleToolTip(std::string_view html, std::string_view
     return true;
 }
 
-bool FlightManualMarkdown::CheckHtml(std::string_view html, std::string_view nodeName, bool isEndNode, bool isSelfClosing)
+bool FlightManualMarkdown::HandleInfoBox(std::string_view html, const bool isEndNode)
 {
-    // Due to how pugixml parses, it requires an end node to parse correctly,
-    // but we do not care for the content in the middle, we just inject one here.
-    // We will need to do this for anything that isn't self-closing
-    const std::string completeNode = std::format("{}</{}>", html, nodeName);
+    suppressingText = !isEndNode;
+    if (isEndNode)
+    {
+        return true;
+    }
 
+    pugi::xml_document topLevelDoc;
+    const auto result = topLevelDoc.load_buffer(html.data(), html.size(), pugi::parse_default | pugi::parse_fragment);
+    if (result.status != pugi::status_ok)
+    {
+        return false;
+    }
+
+    auto node = topLevelDoc.document_element();
+    auto backColor = 0xFF808080;
+    auto stripeColor = 0xFFA0A0A0;
+    auto textColor = ImGui::GetColorU32(ImGuiCol_Text);
+
+#define HANDLE_COLOR(str, var)                                                                                         \
+    if (auto attr = node.attribute(str); !attr.empty() && strlen(attr.as_string()) == 7 && attr.as_string()[0] == '#') \
+    {                                                                                                                  \
+        auto num = strtoul(attr.as_string() + 1, nullptr, 16);                                                         \
+        const int r = (int)(num >> IM_COL32_R_SHIFT) & 0xFF;                                                           \
+        const int g = (int)(num >> IM_COL32_G_SHIFT) & 0xFF;                                                           \
+        const int b = (int)(num >> IM_COL32_B_SHIFT) & 0xFF;                                                           \
+        var = r | (g << IM_COL32_G_SHIFT) | (b << IM_COL32_B_SHIFT) | (0xFF << IM_COL32_A_SHIFT);                      \
+    }
+
+    HANDLE_COLOR("background", backColor);
+    HANDLE_COLOR("text", textColor);
+    HANDLE_COLOR("stripe", stripeColor);
+
+    std::string icon;
+    std::string title;
+    if (auto attr = node.attribute("icon"); !attr.empty())
+    {
+        if (_strcmpi("bell", attr.as_string()) == 0)
+        {
+            icon = ICON_FA_BELL "  ";
+        }
+        else if (_strcmpi("radiation", attr.as_string()) == 0)
+        {
+            icon = ICON_FA_RADIATION "  ";
+        }
+        else if (_strcmpi("triangle-exclamation", attr.as_string()) == 0)
+        {
+            icon = ICON_FA_TRIANGLE_EXCLAMATION "  ";
+        }
+        else if (_strcmpi("skull-crossbones", attr.as_string()) == 0)
+        {
+            icon = ICON_FA_SKULL_CROSSBONES "  ";
+        }
+        else if (_strcmpi("circle-exclamation", attr.as_string()) == 0)
+        {
+            icon = ICON_FA_CIRCLE_EXCLAMATION "  ";
+        }
+        else if (_strcmpi("book", attr.as_string()) == 0)
+        {
+            icon = ICON_FA_BOOK "  ";
+        }
+        else if (_strcmpi("book-open", attr.as_string()) == 0)
+        {
+            icon = ICON_FA_BOOK_OPEN "  ";
+        }
+    }
+
+    if (auto attr = node.attribute("title"); !attr.empty())
+    {
+        title = attr.as_string();
+    }
+
+    float titleSize = 0.0f;
+    if (auto attr = node.attribute("title_size"); !attr.empty())
+    {
+        titleSize = attr.as_float();
+    }
+
+    auto possibleWidth = ImGui::GetContentRegionAvail().x * 0.8f;
+    auto currentPos = ImGui::GetCursorScreenPos();
+
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, backColor);
+    ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+    ImGui::SetCursorScreenPos({ currentPos.x + possibleWidth * 0.1f, currentPos.y });
+    ImGui::BeginChild(std::format("##infobox-{}", infoboxId++).c_str(), { possibleWidth, 0.f }, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders);
+
+    if (!icon.empty())
+    {
+        ImGui::Text(icon.c_str());
+    }
+
+    if (!title.empty())
+    {
+        if (!icon.empty())
+        {
+            ImGui::SameLine();
+        }
+
+        ImGui::PushFont(imguiInterface->GetDefaultFont(FontStyle::BoldStyle), titleSize == 0.0f ? FontSize::Big : titleSize);
+        ImGui::Text(title.c_str());
+        ImGui::PopFont();
+    }
+
+    ImGui::Text(node.child_value());
+
+    ImGui::EndChild();
+    ImGui::PopStyleColor(2);
+
+    return true;
+}
+
+bool FlightManualMarkdown::CheckHtml(const std::string_view html, const std::string_view nodeName, const bool isEndNode, const bool isSelfClosing)
+{
     if (nodeName == "kc" || nodeName == "keycode")
     {
         return HandleKeyCode(html);
@@ -105,7 +214,12 @@ bool FlightManualMarkdown::CheckHtml(std::string_view html, std::string_view nod
 
     if (nodeName == "tooltip" || nodeName == "tt")
     {
-        return HandleToolTip(completeNode, nodeName, isEndNode);
+        return HandleToolTip(html, isEndNode);
+    }
+
+    if (nodeName == "infobox" || nodeName == "info")
+    {
+        return HandleInfoBox(html, isEndNode);
     }
 
     return ImguiMarkdown::CheckHtml(html, nodeName, isEndNode, isSelfClosing);
@@ -149,6 +263,8 @@ bool FlightManualMarkdown::GetImage(image_info& nfo) const
 
 void FlightManualMarkdown::DocumentEnd(const char* end)
 {
+    infoboxId = 0;
+
     if (tooltipContent)
     {
         ImGui::EndGroup();

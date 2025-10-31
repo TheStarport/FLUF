@@ -4,6 +4,7 @@
 
 #include "ImGui/ImGuiInterface.hpp"
 
+#include <Fluf.hpp>
 #include <imgui_internal.h>
 #include <misc/freetype/imgui_freetype.h>
 
@@ -416,6 +417,11 @@ void ImguiMarkdown::SPAN_DEL(const bool e) { isStrikethrough = e; }
 
 void ImguiMarkdown::RenderText(const char* str, const char* str_end)
 {
+    if (suppressingText)
+    {
+        return;
+    }
+
     const float scale = ImGui::GetIO().FontGlobalScale;
     const ImGuiStyle& s = ImGui::GetStyle();
     bool is_lf = false;
@@ -674,7 +680,8 @@ int ImguiMarkdown::Text(const MD_TEXTTYPE type, const char* str, const char* str
             break;
         case MD_TEXT_HTML:
             {
-                const std::string_view html = std::string_view(str, str_end);
+                const std::string_view htmlUntilNull(str);
+                std::string_view html = std::string_view(str, str_end);
                 if (html.size() < 2 || html.front() != '<' || html.back() != '>')
                 {
                     RenderText(str, str_end);
@@ -715,6 +722,15 @@ int ImguiMarkdown::Text(const MD_TEXTTYPE type, const char* str, const char* str
                         nextCh == ' ' || nextCh == '>' || nextCh == '\t' || nextCh == '\n' || nextCh == '\r' || nextCh == ',' || nextCh == '.' || nextCh == '"')
                     {
                         nodeNameEnded = true;
+                    }
+                }
+
+                if (!isSelfClosing && !isEnd)
+                {
+                    const auto endTag = std::format("</{}>", nodeName);
+                    if (const auto offset = htmlUntilNull.find(endTag, nodeName.size() + 2); offset != std::string::npos)
+                    {
+                        html = htmlUntilNull.substr(0, offset + endTag.size());
                     }
                 }
 

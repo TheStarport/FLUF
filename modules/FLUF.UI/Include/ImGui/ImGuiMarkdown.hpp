@@ -51,7 +51,6 @@ class FLUF_UI_API ImguiMarkdown
         ImVec2 tableLastPos;
         std::vector<float> tableColPos;
         std::vector<float> tableRowPos;
-        ImGuiInterface* imguiInterface;
 
         //list state
         struct ListInfo
@@ -145,6 +144,9 @@ class FLUF_UI_API ImguiMarkdown
         bool isImage = false;
         bool isCode = false;
         unsigned headingLevel = 0; //0 - no heading
+
+        bool suppressingText = false;
+        ImGuiInterface* imguiInterface;
 
     public:
         ImguiMarkdown(ImGuiInterface* imguiInterface);
