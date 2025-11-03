@@ -80,6 +80,7 @@ class Retold final : public FlufModule, public ImGuiModule
         std::shared_ptr<FlufUi> flufUi = nullptr;
         std::shared_ptr<EquipmentDealerWindow> equipmentDealerWindow = nullptr;
         DWORD contentDll = 0;
+        DWORD serverDll = 0;
         inline static Retold* instance = nullptr;
         ContentStory* contentStory = nullptr;
 
@@ -133,6 +134,7 @@ class Retold final : public FlufModule, public ImGuiModule
         void ProcessAutoTurrets(float delta);
 
         void HookContentDll();
+        void HookServerDll();
 
         void Render() override;
 

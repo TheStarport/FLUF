@@ -59,6 +59,19 @@ void Retold::HookContentDll()
     RetoldHooks::contentStoryCreateDetour->Detour(ContentStoryCreateDetour);
 }
 
+void Retold::HookServerDll()
+{
+    serverDll = reinterpret_cast<DWORD>(GetModuleHandleA("server.dll"));
+    if (!serverDll)
+    {
+        return;
+    }
+
+    // patch Iobject->get_id() to return a nullptr instead of crashing, also speed it up a lot
+    BYTE patch[]{ 0x8B, 0x80, 0xB0, 0x00, 0x00, 0x00, 0xC3 };
+    MemUtils::WriteProcMem(DWORD(GetModuleHandleA("server")) + 0x61D3, patch, sizeof(patch));
+}
+
 bool Retold::OnKeyToggleAutoTurrets(const KeyState state)
 {
     if (state == KeyState::Released)
@@ -72,6 +85,7 @@ void Retold::OnGameLoad()
 {
     defaultMuzzleCone = MUZZLE_CONE_ANGLE * (std::numbers::pi_v<float> / 180.f);
     HookContentDll();
+    HookServerDll();
 
     auto* km = Fluf::GetKeyManager();
     km->RegisterKey(this, "FLUF_TOGGLE_AUTO_TURRETS", Key::USER_WARP_OVERRIDE, static_cast<KeyFunc>(&Retold::OnKeyToggleAutoTurrets));
@@ -93,6 +107,7 @@ void Retold::OnServerStart(const SStartupInfo& startup_info)
     defaultMuzzleCone = MUZZLE_CONE_ANGLE * (std::numbers::pi_v<float> / 180.f);
 
     HookContentDll();
+    HookServerDll();
 }
 
 void Retold::Render() { equipmentDealerWindow->Render(); }
@@ -102,6 +117,11 @@ void Retold::OnDllLoaded(std::string_view dllName, HMODULE dllPtr)
     if (dllName.ends_with("content.dll") || dllName.ends_with("Content.dll"))
     {
         HookContentDll();
+    }
+
+    if (dllName.ends_with("server.dll") || dllName.ends_with("Server.dll"))
+    {
+        HookServerDll();
     }
 }
 
