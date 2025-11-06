@@ -118,6 +118,13 @@ void Retold::BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType dest
     shipDots.erase(id);
 
     autoTurretTargets.remove(ship);
+
+    objectShieldHitEffectMap.erase(id);
+}
+
+void Retold::BeforeSolarDestroy(Solar* solar, DestroyType destroyType, Id killerId)
+{
+    objectShieldHitEffectMap.erase(solar->get_id());
 }
 
 void Retold::BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)
@@ -199,14 +206,14 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
     auto cargo = CECargo::cast(cship->equipManager.FindByID(sId));
     if (!cargo)
     {
-        return false;
+        return true;
     }
 
     if (cargo->archetype->archId == NANOBOT_ARCH)
     {
         if (cship->hitPoints > (cship->archetype->hitPoints * 0.95f))
         {
-            return false;
+            return true;
         }
         shipHealing[ship->get_id()].push_back({ 10.f, false });
     }
@@ -215,13 +222,13 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
         CEShield* shield = reinterpret_cast<CEShield*>(cship->equipManager.FindFirst((int)EquipmentClass::Shield));
         if (!shield || (shield->currShieldHitPoints > shield->maxShieldHitPoints * 0.95f))
         {
-            return false;
+            return true;
         }
         shipHealing[ship->get_id()].push_back({ 10.f, true });
     }
     else
     {
-        return false;
+        return true;
     }
 
     cargo->RemoveFromStack(1);
@@ -231,6 +238,16 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
     static BroadcastRemovalOfItemType broadcastRemovalOfItemFunc = (BroadcastRemovalOfItemType)(DWORD(GetModuleHandleA("server")) + 0x2EFE0);
 
     broadcastRemovalOfItemFunc(ship->starSystem, ship, sId, 1);
+
+    return false;
+}
+
+bool Retold::BeforeBaseEnter(uint baseId, uint client) { 
+
+    if (SinglePlayer())
+    {
+        objectShieldHitEffectMap.clear();
+    }
 
     return true;
 }

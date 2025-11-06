@@ -73,6 +73,37 @@ struct CliLauncher
         static constexpr auto PlayFireSound = reinterpret_cast<int(__thiscall*)(CliLauncher*, const Vector& pos, void* unused)>(0x52CED0);
 };
 
+constexpr uint MAX_COUNT_SHIELD_EFFECT = 10;
+struct AleObject
+{
+        virtual void dunno();
+        virtual void dunno2();
+        uint data[0x20];
+};
+struct CustomShieldHitArray
+{
+        uint counter = -1;
+        std::array<AleObject*, MAX_COUNT_SHIELD_EFFECT> shieldHitArray;
+
+        ~CustomShieldHitArray()
+        {
+            for (AleObject* ptr : shieldHitArray)
+            {
+                if (!ptr)
+                {
+                    continue;
+                }
+
+                static auto AleCleanup1 = reinterpret_cast<void(__thiscall*)(void*)>(0x4F8110);
+                static auto AleCleanup2 = reinterpret_cast<void(__thiscall*)(void*)>(0x4F7A90);
+                AleCleanup1(ptr);
+                ptr->dunno2();
+                AleCleanup2(ptr);
+
+            }
+        }
+};
+
 class Retold final : public FlufModule, public ImGuiModule
 {
         float defaultMuzzleCone;
@@ -93,6 +124,8 @@ class Retold final : public FlufModule, public ImGuiModule
         std::unordered_map<ShipId, std::list<ShipHullVulnerability>> shipHullVulnerabilities;
         std::unordered_map<ShipId, std::list<ShipDotData>> shipDots;
         std::unordered_map<ShipId, std::list<ShipHealingData>> shipHealing;
+
+        inline static std::unordered_map<uint, CustomShieldHitArray> objectShieldHitEffectMap;
 
         float hullVulnerabilityDuration = 5.f;
         float hullVulnerabilityMax = 1.5f;
@@ -145,12 +178,16 @@ class Retold final : public FlufModule, public ImGuiModule
         void OnFixedUpdate(float delta, bool gamePaused) override;
         bool OnKeyToggleAutoTurrets(KeyState state);
         void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) override;
+        void BeforeSolarDestroy(Solar* ship, DestroyType destroyType, Id killerId) override;
         void BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
         void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
         void BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList) override;
         void BeforeShipColGrpDmg(Ship*, CArchGroup* colGrp, float& incDmg, DamageList* dmg) override;
         void BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList) override;
         bool BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId) override;
+        bool BeforeBaseEnter(uint baseId, uint client) override;
+
+        inline static void* __stdcall GetShieldHitEffectArray(uint id);
 
         // INI Reading
         void SetupHooks();
