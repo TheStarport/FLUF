@@ -169,7 +169,7 @@ void __fastcall IEngineHook::ShipColGrpDestroy(Ship* ship, void* edx, CArchGroup
 void __fastcall IEngineHook::ShipUseItem(Ship* ship, void* edx, ushort sId, uint count, uint clientId)
 {
     Ship* shipAdjusted = (Ship*)(DWORD(ship) - 4);
-    if (Fluf::instance->CallModuleEvent(&FlufModule::BeforeShipUseItem, shipAdjusted, sId, count, clientId))
+    if (!Fluf::instance->CallModuleEvent(&FlufModule::BeforeShipUseItem, shipAdjusted, sId, count, clientId))
     {
         return;
     }
