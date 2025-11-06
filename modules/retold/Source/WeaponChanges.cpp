@@ -215,7 +215,7 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
         {
             return true;
         }
-        shipHealing[ship->get_id()].push_back({ 10.f, false });
+        shipHealing[ship->get_id()].push_back({ nanobotHealingDuration, false });
     }
     else if (cargo->archetype->archId == BATTERY_ARCH)
     {
@@ -224,7 +224,7 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
         {
             return true;
         }
-        shipHealing[ship->get_id()].push_back({ 10.f, true });
+        shipHealing[ship->get_id()].push_back({ batteryHealingDuration, true });
     }
     else
     {
@@ -327,7 +327,7 @@ void Retold::ProcessShipHealingStacks(float delta)
 
             if (!stackIter->isShield)
             {
-                healingHull += delta * obj->ceqobj()->archetype->hitPoints * 0.01f;
+                healingHull += delta * obj->ceqobj()->archetype->hitPoints * nanobotHealingPerSecond;
             }
             else
             {
@@ -337,7 +337,7 @@ void Retold::ProcessShipHealingStacks(float delta)
                     stackIter = healingData->second.erase(stackIter);
                     continue;
                 }
-                healingShield += delta * shield->maxShieldHitPoints * 0.15f;
+                healingShield += delta * shield->maxShieldHitPoints * batteryHealingPerSecond;
             }
 
             stackIter->timeLeft -= delta;

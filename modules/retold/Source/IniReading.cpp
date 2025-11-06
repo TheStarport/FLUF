@@ -529,6 +529,38 @@ void Retold::ReadConstantsIni(const std::string& file)
                 hullVulnerabilityFuses.emplace_back(threshold, fuse);
             }
         }
+        else if (ini.is_value("NANOBOT_HEAL_PER_SECOND"))
+        {
+            nanobotHealingPerSecond = ini.get_value_float(0);
+            if (nanobotHealingPerSecond < 0.f)
+            {
+                nanobotHealingPerSecond = 0.12f;
+            }
+        }
+        else if (ini.is_value("NANOBOT_HEAL_DURATION"))
+        {
+            nanobotHealingDuration = ini.get_value_float(0);
+            if (nanobotHealingDuration < 0.f)
+            {
+                nanobotHealingDuration = 10.f;
+            }
+        }
+        else if (ini.is_value("BATTERY_HEAL_PER_SECOND"))
+        {
+            batteryHealingPerSecond = ini.get_value_float(0);
+            if (batteryHealingPerSecond < 0.f)
+            {
+                batteryHealingPerSecond = 0.12f;
+            }
+        }
+        else if (ini.is_value("BATTERY_HEAL_DURATION"))
+        {
+            batteryHealingDuration = ini.get_value_float(0);
+            if (batteryHealingDuration < 0.f)
+            {
+                batteryHealingDuration = 0.10f;
+            }
+        }
     }
 
     // Sort so we are high thresholds first
