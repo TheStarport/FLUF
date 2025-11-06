@@ -73,7 +73,7 @@ struct CliLauncher
         static constexpr auto PlayFireSound = reinterpret_cast<int(__thiscall*)(CliLauncher*, const Vector& pos, void* unused)>(0x52CED0);
 };
 
-constexpr uint MAX_COUNT_SHIELD_EFFECT = 10;
+constexpr uint MAX_COUNT_SHIELD_EFFECT = 100;
 struct AleObject
 {
         virtual void dunno();
@@ -136,6 +136,11 @@ class Retold final : public FlufModule, public ImGuiModule
         float shieldRechargeReductionMax = 0.f;
 
         bool autoTurretsEnabled = true;
+
+        float nanobotHealingPerSecond = 0.12f;
+        float nanobotHealingDuration = 10.f;
+        float batteryHealingPerSecond = 0.1f;
+        float batteryHealingDuration = 8.0f;
 
         // Hooks
 
