@@ -257,8 +257,9 @@ void Retold::ProcessShipDotStacks(float delta)
     for (auto dots = shipDots.begin(); dots != shipDots.end();)
     {
         const auto obj = static_cast<EqObj*>(Fluf::GetObjInspect(dots->first));
-        if (!obj)
+        if (!obj || obj->ceqobj()->hitPoints == 0.0f)
         {
+            dots = shipDots.erase(dots);
             continue;
         }
 
