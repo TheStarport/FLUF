@@ -361,7 +361,10 @@ void Retold::ReadEquipmentIni(const std::string& file)
                     nickname = ini.get_value_string();
                 }
 
-                data.shieldPowerUsage = ini.GetFloat("shield_power_usage", found);
+                if (ini.GetFloat("shield_power_usage", data.shieldPowerUsage, found))
+                {
+                    break;
+                }
             }
 
             if (!nickname.empty() && found)
@@ -382,10 +385,10 @@ void Retold::ReadEquipmentIni(const std::string& file)
                     nickname = ini.get_value_string();
                 }
 
-                data.equipmentMultiplier = ini.GetFloat("equipment_multiplier", found);
-                data.hullDot = ini.GetFloat("hull_dot", found);
-                data.shieldRechargeReduction = ini.GetFloat("shield_recharge_reduction", found);
-                data.hullVulnerability = ini.GetFloat("hull_vulnerability", found);
+                ini.GetFloat("equipment_multiplier", data.equipmentMultiplier, found);
+                ini.GetFloat("hull_dot", data.hullDot, found);
+                ini.GetFloat("shield_recharge_reduction", data.shieldRechargeReduction, found);
+                ini.GetFloat("hull_vulnerability", data.hullVulnerability, found);
             }
 
             if (!nickname.empty() && found)
@@ -406,8 +409,8 @@ void Retold::ReadEquipmentIni(const std::string& file)
                     nickname = ini.get_value_string();
                 }
 
-                data.shieldStrength = ini.GetFloat("shield_strength", found);
-                data.offlineRegenerationRate = ini.GetFloat("offline_regeneration_rate", found);
+                ini.GetFloat("shield_strength", data.shieldStrength, found);
+                ini.GetFloat("offline_regeneration_rate", data.offlineRegenerationRate, found);
             }
 
             if (!nickname.empty() && found)
