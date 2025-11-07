@@ -74,20 +74,20 @@ struct CliLauncher
 };
 
 constexpr uint MAX_COUNT_SHIELD_EFFECT = 100;
-struct AleObject
+struct ParticleEffect
 {
-        virtual void dunno();
-        virtual void dunno2();
+        virtual void StartEffect(struct ParticleDefinition*);
+        virtual void StopEffect();
         uint data[0x20];
 };
 struct CustomShieldHitArray
 {
         uint counter = -1;
-        std::array<AleObject*, MAX_COUNT_SHIELD_EFFECT> shieldHitArray;
+        std::array<ParticleEffect*, MAX_COUNT_SHIELD_EFFECT> shieldHitArray;
 
         ~CustomShieldHitArray()
         {
-            for (AleObject* ptr : shieldHitArray)
+            for (ParticleEffect* ptr : shieldHitArray)
             {
                 if (!ptr)
                 {
@@ -97,7 +97,7 @@ struct CustomShieldHitArray
                 static auto AleCleanup1 = reinterpret_cast<void(__thiscall*)(void*)>(0x4F8110);
                 static auto AleCleanup2 = reinterpret_cast<void(__thiscall*)(void*)>(0x4F7A90);
                 AleCleanup1(ptr);
-                ptr->dunno2();
+                ptr->StopEffect();
                 AleCleanup2(ptr);
 
             }
