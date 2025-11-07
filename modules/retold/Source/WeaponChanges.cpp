@@ -115,7 +115,6 @@ void Retold::BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType dest
 
     shipHullVulnerabilities.erase(id);
     shipShieldRechargeDebuffs.erase(id);
-    shipDots.erase(id);
 
     autoTurretTargets.remove(ship);
 
