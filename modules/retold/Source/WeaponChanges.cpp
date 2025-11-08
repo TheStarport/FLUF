@@ -121,10 +121,7 @@ void Retold::BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType dest
     objectShieldHitEffectMap.erase(id);
 }
 
-void Retold::BeforeSolarDestroy(Solar* solar, DestroyType destroyType, Id killerId)
-{
-    objectShieldHitEffectMap.erase(solar->get_id());
-}
+void Retold::BeforeSolarDestroy(Solar* solar, DestroyType destroyType, Id killerId) { objectShieldHitEffectMap.erase(solar->get_id()); }
 
 void Retold::BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)
 {
@@ -241,7 +238,8 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
     return false;
 }
 
-bool Retold::BeforeBaseEnter(uint baseId, uint client) { 
+bool Retold::BeforeBaseEnter(uint baseId, uint client)
+{
 
     if (SinglePlayer())
     {
@@ -493,32 +491,36 @@ void __thiscall Retold::ShieldSetHealthDetour(CEShield* shield, float hitPts)
         }
     }
 
-    auto shieldOnlineState = shield->internalActivationState;
+    const auto shieldOnlineState = shield->IsFunctioning();
 
     RetoldHooks::shieldSetHealthDetour.UnDetour();
     RetoldHooks::shieldSetHealthDetour.GetOriginalFunc()(shield, hitPts);
     RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
 
-    //TODO: Move to client specific function
-    if (Fluf::GetPlayerIObj() && shieldOnlineState != shield->internalActivationState)
+    const auto arch = shield->ShieldGenArch();
+    // Arch will be nullptr on the frame where a ship is despawned
+    if (!arch)
     {
-        const auto data = instance->extraShipData.find(shield->GetOwner()->archetype->archId);
-        const auto inspect = dynamic_cast<EqObj*>(Fluf::GetObjInspect(shield->GetOwner()->id));
-        if (!inspect || data == instance->extraShipData.end() || data->second.shieldOfflineFuse == 0)
-        {
-            return;
-        }
+        return;
+    }
 
+    const auto inspect = dynamic_cast<EqObj*>(Fluf::GetObjInspect(shield->GetOwner()->id));
+    const auto data = instance->extraShieldData.find(arch->archId);
+    if (!inspect || data == instance->extraShieldData.end() || data->second.shieldOfflineFuse == 0)
+    {
+        return;
+    }
+
+    if (!shield->IsFunctioning())
+    {
         if (shieldOnlineState)
         {
-            // Shield was on, now off
             inspect->light_fuse(0, data->second.shieldOfflineFuse, 0, 0.f, 0.f);
         }
-        else
-        {
-            // Shield was off, now on
-            inspect->unlight_fuse(data->second.shieldOfflineFuse, 0, 0.f);
-        }
+    }
+    else
+    {
+        inspect->unlight_fuse(data->second.shieldOfflineFuse, 0, 0.f);
     }
 }
 

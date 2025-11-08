@@ -42,7 +42,7 @@ void Debugger::RenderDebugSpaceWindow(Ship* player)
 
     EqObj* target = nullptr;
     player->get_target(reinterpret_cast<IObjRW*&>(target));
-    if (target)
+    if (target && !target->is_dying())
     {
         ImGui::BeginTable("##dbg-target-table", 2);
 
@@ -114,7 +114,7 @@ void Debugger::RenderDebugSpaceWindow(Ship* player)
 
         ImGui::SeparatorText("Target's Target");
 
-        if (nextTarget)
+        if (nextTarget && !nextTarget->is_dying())
         {
             vibe = nextTarget->ceqobj()->repVibe;
             Reputation::Vibe::GetName(vibe, name1, name2, str);
@@ -195,7 +195,7 @@ void Debugger::Render()
         RenderDebugCommandWindow();
     }
 
-    if (const auto player = Fluf::GetPlayerIObj(); player && renderDebugSpaceWindow)
+    if (const auto player = Fluf::GetPlayerIObj(); player && !player->is_dying() && renderDebugSpaceWindow)
     {
         RenderDebugSpaceWindow(player);
     }

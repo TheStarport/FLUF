@@ -1,11 +1,9 @@
-cmake_minimum_required(VERSION 3.23.5)
-
 set(VER_MAJOR 1)
 set(VER_MINOR 0)
 set(VER_PATCH 0)
-set(NAME "Patch Notes")
-set(DESCRIPTION "This adds to the main menu a box containing information that is pulled from a web server on startup.")
-set(CUR_PROJECT "patch_notes")
+set(NAME "objective_tracking")
+set(DESCRIPTION "Provides a UI element for tracking current objectives and informing the player of what they need to do")
+set(CUR_PROJECT "objective_tracking")
 
 # Glob our source files and header files
 begin_glob()
@@ -17,17 +15,12 @@ add_library(${CUR_PROJECT} SHARED ${SOURCE_FILES} ${ROOT_DIR}/PCH.cpp ${ROOT_DIR
 target_include_directories(${CUR_PROJECT} PRIVATE
         ${INCLUDE_PATH}
         ${FLUF_UI_PATH}/Include
-        ${CURL_PATH}/include
-        ${VENDOR_PATH}/imgui-markdown
 )
 add_dependencies(${CUR_PROJECT} FLUF FLUF.UI)
-target_link_libraries(${CUR_PROJECT} PRIVATE
-        FLUF
-        FLUF.UI
-        "${SDK_PATH}/lib/FLCoreCommon.lib"
-        ${VENDOR_PATH}/libcurl.lib
-        md4c::md4c-html
-)
+target_link_libraries(${CUR_PROJECT} PRIVATE FLUF FLUF.UI)
+
+# Link against FLCore
+target_link_libraries(${CUR_PROJECT} PRIVATE "${SDK_PATH}/lib/FLCoreCommon.lib")
 
 target_precompile_headers(${CUR_PROJECT} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${ROOT_DIR}/PCH.hpp>")
 

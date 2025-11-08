@@ -28,13 +28,13 @@ struct ExtraShipData
 {
         float hullDotMax = 0.f;
         std::list<std::pair<float, Id>> hullVulnerabilityFuses;
-        uint shieldOfflineFuse = 0;
 };
 
 struct ExtraShieldData
 {
         float shieldStrength = 0.f;
         float offlineRegenerationRate = 0.f;
+        uint shieldOfflineFuse = 0;
 };
 
 struct ShipDotData
@@ -99,7 +99,6 @@ struct CustomShieldHitArray
                 AleCleanup1(ptr);
                 ptr->StopEffect();
                 AleCleanup2(ptr);
-
             }
         }
 };
@@ -154,6 +153,7 @@ class Retold final : public FlufModule, public ImGuiModule
         static void __thiscall ShieldSetHealthDetour(CEShield* shield, float hitPts);
         static void __fastcall ShieldRegenerationPatch(CEShieldGenerator* generator, CEShield* shield, float hitPts);
         static void ShieldRegenerationPatchNaked();
+        static bool __thiscall ShieldSetActiveDetour(CEShield* shield, bool active);
 
         // Weapons
 

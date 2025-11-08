@@ -25,7 +25,6 @@ void Retold::ProcessAutoTurrets(float delta)
     // TODO: Handle when obj or auto turret is destroyed / released
     if (timeUntilPool <= 0.f)
     {
-        Fluf::Info("Searching");
         timeUntilPool = 1.f;
         autoTurrets.clear();
         autoTurretTargets.clear();

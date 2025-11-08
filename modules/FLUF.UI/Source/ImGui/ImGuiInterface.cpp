@@ -191,6 +191,7 @@ void ImGuiInterface::Render()
         module->Render();
     }
 
+    // Windows
     customOptionsWindow->Render();
     playerStatusWindow->Render();
 
@@ -477,6 +478,10 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
 
     Fluf::Log(LogLevel::Debug, std::format("Creating ImGui interface with backend: {}", rfl::enum_to_string(backend)));
     ImGui_ImplWin32_Init(*FlufUi::mainFreelancerWindow);
+
+    RECT windowRect;
+    GetWindowRect(*FlufUi::mainFreelancerWindow, &windowRect);
+
     switch (backend)
     {
         case RenderingBackend::Dx8:
@@ -504,6 +509,9 @@ ImGuiInterface::ImGuiInterface(FlufUi* flufUi, const RenderingBackend backend, v
     Fluf::GetKeyManager()->RegisterKey(flufUi, "USER_BUTTON1", Key::USER_BUTTON1, reinterpret_cast<KeyFunc>(&FlufUi::ShouldSuppressMouseButton)); // Mouse Right
     Fluf::GetKeyManager()->RegisterKey(
         flufUi, "USER_BUTTON2", Key::USER_BUTTON2, reinterpret_cast<KeyFunc>(&FlufUi::ShouldSuppressMouseButton)); // Middle Mouse
+
+    const auto viewport = ImGui::GetMainViewport();
+    viewport->Size = { static_cast<float>(windowRect.right - windowRect.left), static_cast<float>(windowRect.bottom - windowRect.top) };
 }
 
 void ImGuiInterface::PushNewWindow(FlWindow* newWindow) { flWindowStack.push_back(newWindow); }

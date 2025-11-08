@@ -5,6 +5,10 @@ using uint = unsigned int;
 using i64 = long long;
 using u64 = unsigned long long;
 
+#ifndef _USE_MATH_DEFINES
+    #define _USE_MATH_DEFINES
+#endif
+
 #include <Windows.h>
 
 #include <mmsystem.h>

@@ -411,6 +411,7 @@ void Retold::ReadEquipmentIni(const std::string& file)
 
                 ini.GetFloat("shield_strength", data.shieldStrength, found);
                 ini.GetFloat("offline_regeneration_rate", data.offlineRegenerationRate, found);
+                ini.GetHash("collapse_fuse", data.shieldOfflineFuse, found);
             }
 
             if (!nickname.empty() && found)
@@ -458,10 +459,6 @@ void Retold::ReadShipArchFile(const std::string& file)
                 {
                     data.hullVulnerabilityFuses.emplace_back(threshold, fuse);
                 }
-            }
-            else if (ini.is_value("shield_offline_fuse"))
-            {
-                data.shieldOfflineFuse = CreateID(ini.get_value_string(0));
             }
         }
 

@@ -80,7 +80,6 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void Retold::SetupHooks()
 {
-    const auto fl = reinterpret_cast<DWORD>(GetModuleHandleA(nullptr));
     const auto common = reinterpret_cast<DWORD>(GetModuleHandleA("common.dll"));
 
     iniReaderOpenDetour.Detour(IniReaderOpenDetour);
@@ -90,7 +89,6 @@ void Retold::SetupHooks()
     RetoldHooks::shieldSetHealthDetour.Detour(ShieldSetHealthDetour);
 
     MemUtils::PatchAssembly(common + 0x3CF06, ShieldRegenerationPatchNaked);
-
     MemUtils::PatchAssembly(0x53A02A, ShieldHitEffectsReplacement);
 }
 
