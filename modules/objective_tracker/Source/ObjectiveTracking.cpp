@@ -25,6 +25,12 @@ BOOL WINAPI DllMain(const HMODULE mod, [[maybe_unused]] const DWORD reason, [[ma
 
 void ObjectiveTracking::Render()
 {
+    // Don't render anything when on a base
+    if (!Fluf::GetPlayerCShip())
+    {
+        return;
+    }
+
     const auto viewport = ImGui::GetMainViewport();
     const ImVec2 mainWindowSize = viewport->Size;
 
@@ -32,15 +38,17 @@ void ObjectiveTracking::Render()
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
-    for (auto& objective : objectives)
+    for (const auto& objective : objectives)
     {
+        objective->animation->Update();
+
         constexpr float windowHeight = 10.f;
         constexpr float widthPadding = 20.f;
         ImGui::SetNextWindowPos(ImVec2((viewport->WorkPos.x + viewport->WorkSize.x) * 0.02f, (viewport->WorkPos.y + viewport->WorkSize.y) * 0.05f + yOffset),
                                 ImGuiCond_Always);
-        auto contentSize = ImGui::CalcTextSize((objective.icon + objective.message).c_str());
+        auto contentSize = ImGui::CalcTextSize((objective->icon + objective->message).c_str());
         ImGui::SetNextWindowSize({ contentSize.x + widthPadding + 3, windowHeight + contentSize.y });
-        ImGui::Begin(std::format("##objective-{}", objective.message).c_str(),
+        ImGui::Begin(std::format("##objective-{}", objective->message).c_str(),
                      nullptr,
                      ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground);
 
@@ -49,13 +57,20 @@ void ObjectiveTracking::Render()
 
         ImVec2 cursorScreenPos = ImGui::GetCursorScreenPos();
 
-        ImGui::BeginDisabled(objective.complete);
-        ImGui::Text("%s   %s", objective.complete ? ICON_FA_CHECK : objective.icon.c_str(), objective.message.c_str());
+        ImGui::PushStyleVar(ImGuiStyleVar_DisabledAlpha, objective->opacity);
+        ImGui::BeginDisabled(objective->complete);
+        ImGui::Text("%s   %s", objective->complete ? ICON_FA_CHECK : objective->icon.c_str(), objective->message.c_str());
         ImGui::EndDisabled();
+        ImGui::PopStyleVar();
 
-        /*cursorScreenPos.y += ImGui::GetFontSize() * 0.5f;
-        ImGui::GetWindowDrawList()->AddLine(
-            { cursorScreenPos.x + 35.f, cursorScreenPos.y }, ImVec2(cursorScreenPos.x + contentSize.x + 3, cursorScreenPos.y), IM_COL32(255, 0, 0, 255), 3.0f);*/
+        if (objective->crossOut)
+        {
+            cursorScreenPos.y += ImGui::GetFontSize() * 0.5f;
+            ImGui::GetWindowDrawList()->AddLine({ cursorScreenPos.x + 35.f, cursorScreenPos.y },
+                                                ImVec2(cursorScreenPos.x + contentSize.x + 3, cursorScreenPos.y),
+                                                IM_COL32(255, 0, 0, 255),
+                                                3.0f);
+        }
 
         ImGui::PopTextWrapPos();
         constexpr float padding = 10.f;
@@ -65,6 +80,14 @@ void ObjectiveTracking::Render()
     }
 
     ImGui::PopStyleVar();
+}
+
+void ObjectiveTracking::OnFixedUpdate(const float delta, bool gamePaused)
+{
+    // Clear complete objectives that have completed their animations
+    auto [beg, end] =
+        std::ranges::remove_if(objectives, [](const std::shared_ptr<Objective>& objective) { return objective->complete && objective->opacity <= 0.f; });
+    objectives.erase(beg, end);
 }
 
 void ObjectiveTracking::OnGameLoad()
@@ -89,5 +112,18 @@ ObjectiveTracking::ObjectiveTracking() { AssertRunningOnClient; }
 ObjectiveTracking::~ObjectiveTracking() = default;
 
 std::string_view ObjectiveTracking::GetModuleName() { return moduleName; }
+
+std::weak_ptr<Objective> ObjectiveTracking::AddObjective(const std::string_view icon, const std::string_view message)
+{
+    auto obj = std::make_shared<Objective>(std::string(icon), std::string(message));
+    obj->animation = std::make_shared<imanim::FloatAnim>(&obj->opacity);
+    obj->animation->SetStartValue(1.0f);
+    obj->animation->SetEndValue(0.0f);
+    obj->animation->SetDuration(5.0f);
+    obj->animation->SetEasingCurve(imanim::EasingCurve::Type::OutExpo);
+
+    objectives.emplace_back(obj);
+    return { obj };
+}
 
 SETUP_MODULE(ObjectiveTracking);
