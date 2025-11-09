@@ -563,7 +563,8 @@ Fluf::~Fluf()
 
 bool Fluf::GetUserDataPathDetour(char* path)
 {
-    constexpr char newSavePath[] = "..\\SAVES";
-    memcpy_s(path, MAX_PATH, newSavePath, sizeof(newSavePath));
+    std::memset(path, 0, MAX_PATH);
+    const auto newSavePath = std::format("..\\{}", instance->config->saveDirectoryName);
+    memcpy_s(path, MAX_PATH, newSavePath.c_str(), newSavePath.size());
     return true;
 }

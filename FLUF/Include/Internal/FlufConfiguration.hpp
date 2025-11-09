@@ -15,4 +15,5 @@ struct FlufConfiguration
         std::unordered_set<std::string> serverModules;
         bool setSaveDirectoryRelativeToExecutable = false;
         bool writeSpewToLogSinks = true;
+        std::string saveDirectoryName = "SAVES";
 };
