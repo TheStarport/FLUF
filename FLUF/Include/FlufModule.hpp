@@ -148,7 +148,10 @@ class FLUF_API FlufModule
         virtual void BeforeShipShieldDmg(Ship* iobj, CEShield* shield, float& incDmg, DamageList* dmg) {}
         virtual void BeforeShipEnergyDmg(Ship* ship, float& incDmg, DamageList* dmgList) {}
         virtual void BeforeShipFuse(Ship* ship, uint fuseCause, uint& fuseId, ushort sId, float radius, float lifetime) {}
-
+        virtual void BeforeSolarMunitionHit(Solar* ship, MunitionImpactData* impact, DamageList* dmgList) {}
+        virtual void BeforeSolarMunitionHitAfter(Solar* ship, MunitionImpactData* impact, DamageList* dmgList) {}
+        virtual void BeforeSolarColGrpDmg(Solar* solar, CArchGroup* colGrp, float& incDmg, DamageList* dmg) {}
+        virtual void BeforeSolarEquipDmg(Solar* solar, CAttachedEquip* equip, float& damage, DamageList* dmgList) {}
         virtual bool BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId) { return true; }
 
         virtual void OnCShipInit(CShip* ship) {}

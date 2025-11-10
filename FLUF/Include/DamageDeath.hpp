@@ -9,7 +9,7 @@ class IEngineHook
 {
         friend Fluf;
 
-        protected:
+    protected:
         using SendCommType = int (*)(uint sender, uint receiver, uint voiceId, const Costume* costume, uint infocardId, uint* lines, int lineCount,
                                      uint infocardId2, float radioSilenceTimerAfter, bool global);
 
@@ -74,7 +74,6 @@ class IEngineHook
                 std::unordered_map<uint, std::pair<uint, uint>> numberHashes; // number said in the middle and in the end
         };
 
-
 #define VTablePtr(x) static_cast<DWORD>(x)
 
         inline static VTableHook<VTablePtr(CShipVTable::Start), VTablePtr(CShipVTable::End)> cShipVTable{ "common" };
@@ -106,10 +105,12 @@ class IEngineHook
 
         static void __fastcall ShipEquipDmg(Ship* ship, void* edx, CAttachedEquip* equip, float damage, DamageList* dmgList);
         static void __fastcall ShipEquipDestroy(Ship* ship, void* edx, CEquip* equip, DamageEntry::SubObjFate fate, DamageList* dmgList);
+        static void __fastcall SolarEquipDmg(Solar* solar, void* edx, CAttachedEquip* equip, float damage, DamageList* dmgList);
 
         static void __fastcall ShipColGrpDmg(Ship*, void* edx, CArchGroup* colGrp, float incDmg, DamageList* dmg);
         static void __fastcall ShipColGrpDestroy(Ship* ship, void* edx, CArchGroup* colGrp, DamageEntry::SubObjFate fate, DamageList* dmgList,
                                                  bool killLinkedElements);
+        static void __fastcall SolarColGrpDmg(Solar* solar, void* edx, CArchGroup* colGrp, float incDmg, DamageList* dmg);
 
         static void __fastcall ShipUseItem(Ship* ship, void* edx, ushort sId, uint count, uint clientId);
 
@@ -120,6 +121,7 @@ class IEngineHook
         static void __fastcall GuidedExplosionHit(Guided* guided, void* edx, ExplosionDamageEvent* explosion, DamageList* dmgList);
         static void __fastcall SolarExplosionHit(Solar* guided, void* edx, ExplosionDamageEvent* explosion, DamageList* dmgList);
         static void __fastcall ShipMunitionHit(Ship* ship, void* edx, MunitionImpactData* impact, DamageList* dmgList);
+        static void __fastcall SolarMunitionHit(Solar* ship, void* edx, MunitionImpactData* impact, DamageList* dmgList);
         static void __fastcall ShipExplosionHit(Ship* ship, void* edx, ExplosionDamageEvent* explosion, DamageList* dmgList);
 
         static void __fastcall ShipShieldDmg(Ship* iobj, void* edx, CEShield* shield, float incDmg, DamageList* dmg);

@@ -33,7 +33,7 @@ struct IClientImpl;
 struct IServerImpl;
 class ClientSend;
 class ClientReceive;
-class FlufConfiguration;
+struct FlufConfiguration;
 struct CShip;
 struct SStartupInfo;
 class KeyManager;

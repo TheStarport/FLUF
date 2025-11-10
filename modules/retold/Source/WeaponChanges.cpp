@@ -115,84 +115,30 @@ void Retold::BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType dest
 
     shipHullVulnerabilities.erase(id);
     shipShieldRechargeDebuffs.erase(id);
-
     autoTurretTargets.remove(ship);
-
     objectShieldHitEffectMap.erase(id);
 }
 
-void Retold::BeforeSolarDestroy(Solar* solar, DestroyType destroyType, Id killerId) { objectShieldHitEffectMap.erase(solar->get_id()); }
-
-void Retold::BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)
+void Retold::BeforeSolarDestroy(Solar* solar, DestroyType destroyType, Id killerId)
 {
-    const auto munitionData = extraMunitionData.find(impact->munitionArch->archId);
-    if (munitionData == extraMunitionData.end())
-    {
-        return;
-    }
+    const auto id = solar->get_id();
 
-    if (impact->subObjId > 1 && munitionData->second.equipmentMultiplier != 0.f)
-    {
-        equipmentMultipliersToApply = munitionData->second.equipmentMultiplier;
-    }
+    shipHullVulnerabilities.erase(id);
+    shipShieldRechargeDebuffs.erase(id);
+    autoTurretTargets.remove(solar);
+    objectShieldHitEffectMap.erase(id);
 }
 
-void Retold::BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList)
-{
-    float currentShields = 0.f;
-    float maxShields = 0.f;
-    bool shieldActive = true;
-    pub::SpaceObj::GetShieldHealth(ship->get_id(), currentShields, maxShields, shieldActive);
+void Retold::BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) { BeforeEqObjectMunitionHit(ship, impact); }
+void Retold::BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList) { BeforeComponentDamage(damage); }
+void Retold::BeforeShipColGrpDmg(Ship* ship, CArchGroup* colGrp, float& incDmg, DamageList* dmg) { BeforeComponentDamage(incDmg); }
+void Retold::BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList) { ProcessEqObjectDamage(ship, damage); }
+void Retold::BeforeSolarHullDamage(Solar* ship, float& damage, DamageList* dmgList) { ProcessEqObjectDamage(ship, damage); }
+void Retold::BeforeSolarMunitionHit(Solar* solar, MunitionImpactData* impact, DamageList* dmgList) { BeforeEqObjectMunitionHit(solar, impact); }
+void Retold::BeforeSolarColGrpDmg(Solar* solar, CArchGroup* colGrp, float& damage, DamageList* dmg) { BeforeComponentDamage(damage); }
+void Retold::BeforeSolarEquipDmg(Solar* solar, CAttachedEquip* equip, float& damage, DamageList* dmgList) { BeforeComponentDamage(damage); }
 
-    const auto munitionData = extraMunitionData.find(impact->munitionArch->archId);
-    if (munitionData == extraMunitionData.end())
-    {
-        return;
-    }
-
-    ApplyShieldReductionStacks(ship, impact, munitionData->second);
-    if (shieldActive)
-    {
-        return;
-    }
-
-    ApplyShipDotStacks(ship, impact, munitionData->second);
-    ApplyShipVulnerabilityStacks(ship, impact, munitionData->second);
-}
-
-void Retold::BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList)
-{
-    if (equipmentMultipliersToApply != 0.f)
-    {
-        damage *= equipmentMultipliersToApply;
-        equipmentMultipliersToApply = 0.f;
-    }
-}
-
-void Retold::BeforeShipColGrpDmg(Ship* ship, CArchGroup* colGrp, float& incDmg, DamageList* dmg)
-{
-    if (equipmentMultipliersToApply != 0.f)
-    {
-        incDmg *= equipmentMultipliersToApply;
-        equipmentMultipliersToApply = 0.f;
-    }
-}
-
-void Retold::BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList)
-{
-    if (const auto vulnList = shipHullVulnerabilities.find(ship->get_id()); vulnList != shipHullVulnerabilities.end())
-    {
-        float plasmaModifier = 1.f;
-        for (const auto& plasma : vulnList->second)
-        {
-            plasmaModifier += plasma.modifier;
-        }
-
-        damage *= plasmaModifier;
-    }
-}
-
-bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId)
+bool Retold::BeforeShipUseItem(Ship* ship, const ushort sId, uint count, ClientId clientId)
 {
     static auto NANOBOT_ARCH = CreateID("ge_s_repair_01");
     static auto BATTERY_ARCH = CreateID("ge_s_battery_01");
@@ -240,7 +186,6 @@ bool Retold::BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clie
 
 bool Retold::BeforeBaseEnter(uint baseId, uint client)
 {
-
     if (SinglePlayer())
     {
         objectShieldHitEffectMap.clear();
@@ -249,7 +194,7 @@ bool Retold::BeforeBaseEnter(uint baseId, uint client)
     return true;
 }
 
-void Retold::ProcessShipDotStacks(float delta)
+void Retold::ProcessDotStacks(const float delta)
 {
     for (auto dots = shipDots.begin(); dots != shipDots.end();)
     {
@@ -306,7 +251,7 @@ void Retold::ProcessShipDotStacks(float delta)
     }
 }
 
-void Retold::ProcessShipHealingStacks(float delta)
+void Retold::ProcessHealingStacks(const float delta)
 {
     for (auto healingData = shipHealing.begin(); healingData != shipHealing.end();)
     {
@@ -377,7 +322,7 @@ void Retold::ProcessShipHealingStacks(float delta)
     }
 }
 
-void Retold::RemoveShieldReductionStacks(float delta)
+void Retold::RemoveShieldReductionStacks(const float delta)
 {
     // TODO: This function and the one below it are near identical, merge?
     for (auto& reductions : shipShieldRechargeDebuffs | std::views::values)
@@ -397,7 +342,7 @@ void Retold::RemoveShieldReductionStacks(float delta)
     }
 }
 
-void Retold::RemoveShipVulnerabilityStacks(float delta)
+void Retold::RemoveVulnerabilityStacks(const float delta)
 {
     for (auto& [id, vulnerabilities] : shipHullVulnerabilities)
     {
@@ -421,7 +366,59 @@ void Retold::RemoveShipVulnerabilityStacks(float delta)
     }
 }
 
-void __fastcall Retold::ShieldRegenerationPatch(CEShieldGenerator* generator, CEShield* shield, float delta)
+void Retold::ProcessEqObjectDamage(const EqObj* ship, float& damage)
+{
+    if (const auto vulnList = shipHullVulnerabilities.find(ship->get_id()); vulnList != shipHullVulnerabilities.end())
+    {
+        float plasmaModifier = 1.f;
+        for (const auto& plasma : vulnList->second)
+        {
+            plasmaModifier += plasma.modifier;
+        }
+
+        damage *= plasmaModifier;
+    }
+}
+
+void Retold::BeforeComponentDamage(float& damage)
+{
+    if (equipmentMultipliersToApply != 0.f)
+    {
+        printf("doing more damage!!!\n");
+        damage *= equipmentMultipliersToApply;
+        equipmentMultipliersToApply = 0.f;
+    }
+}
+
+void Retold::BeforeEqObjectMunitionHit(EqObj* obj, MunitionImpactData* impact)
+{
+    float currentShields = 0.f;
+    float maxShields = 0.f;
+    bool shieldActive = true;
+    pub::SpaceObj::GetShieldHealth(obj->get_id(), currentShields, maxShields, shieldActive);
+
+    const auto munitionData = extraMunitionData.find(impact->munitionArch->archId);
+    if (munitionData == extraMunitionData.end())
+    {
+        return;
+    }
+
+    if (impact->subObjId != 1 && !shieldActive && munitionData->second.equipmentMultiplier != 0.f)
+    {
+        equipmentMultipliersToApply = munitionData->second.equipmentMultiplier;
+    }
+
+    ApplyShieldReductionStacks(obj, impact, munitionData->second);
+    if (shieldActive)
+    {
+        return;
+    }
+
+    ApplyDotStacks(obj, impact, munitionData->second);
+    ApplyVulnerabilityStacks(obj, impact, munitionData->second);
+}
+
+void __fastcall Retold::ShieldRegenerationPatch(const CEShieldGenerator* generator, CEShield* shield, const float delta)
 {
     float regenRate = 0.f;
     const auto arch = generator->ShieldGenArch();
@@ -524,25 +521,25 @@ void __thiscall Retold::ShieldSetHealthDetour(CEShield* shield, float hitPts)
     }
 }
 
-void Retold::ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData)
+void Retold::ApplyDotStacks(EqObj* obj, MunitionImpactData* impact, const ExtraMunitionData& munitionData)
 {
     if (munitionData.hullDot == 0.f)
     {
         return;
     }
 
-    auto& agm = ship->cship()->archGroupManager;
+    auto& agm = obj->ceqobj()->archGroupManager;
     float totalDamage = 0.f;
-    auto& dotInfo = shipDots[ship->get_id()];
+    auto& dotInfo = shipDots[obj->get_id()];
     for (const auto& data : dotInfo)
     {
         totalDamage += data.damageToApply;
     }
 
-    const auto shipData = extraShipData.find(ship->ceqobj()->archetype->archId);
+    const auto shipData = extraShipData.find(obj->ceqobj()->archetype->archId);
     const auto curHullDotMax = (shipData != extraShipData.end() && shipData->second.hullDotMax != 0.f) ? shipData->second.hullDotMax : hullDotMax;
 
-    auto& em = ship->cship()->equipManager;
+    auto& em = obj->ceqobj()->equipManager;
     CEquipTraverser trav{ static_cast<int>(EquipmentClass::Armor) };
     CEArmor* armor;
     float hitPtsScale = 1.f;
@@ -570,7 +567,7 @@ void Retold::ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const Ex
     dotInfo.emplace_back(hullDotDuration, damage, impact->subObjId, impact->attackerId);
 }
 
-void Retold::ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData)
+void Retold::ApplyVulnerabilityStacks(EqObj* obj, MunitionImpactData* impact, const ExtraMunitionData& munitionData)
 {
     if (munitionData.hullVulnerability == 0.f)
     {
@@ -578,7 +575,7 @@ void Retold::ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact
     }
 
     float plasmaModifier = munitionData.hullVulnerability;
-    auto& em = ship->cship()->equipManager;
+    auto& em = obj->ceqobj()->equipManager;
     CEquipTraverser trav{ static_cast<int>(EquipmentClass::Armor) };
     const CEArmor* armor = nullptr;
     while ((armor = static_cast<CEArmor*>(em.Traverse(trav))))
@@ -586,7 +583,7 @@ void Retold::ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact
         plasmaModifier /= armor->ArmorArch()->hitPointsScale;
     }
 
-    const auto shipModifiers = extraShipData.find(ship->ceqobj()->archetype->archId);
+    const auto shipModifiers = extraShipData.find(obj->ceqobj()->archetype->archId);
     auto& fuses = shipModifiers == extraShipData.end() ? hullVulnerabilityFuses : shipModifiers->second.hullVulnerabilityFuses;
 
     uint fuseId = 0;
@@ -595,23 +592,23 @@ void Retold::ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact
         if (plasmaModifier >= threshold)
         {
             fuseId = fuse;
-            ship->light_fuse(0, fuse, impact->subObjId, 0.f, 0.f);
+            obj->light_fuse(0, fuse, impact->subObjId, 0.f, 0.f);
             break;
         }
     }
 
-    auto& vulnerabilities = shipHullVulnerabilities[ship->get_id()];
+    auto& vulnerabilities = shipHullVulnerabilities[obj->get_id()];
     vulnerabilities.emplace_back(hullVulnerabilityDuration, plasmaModifier, fuseId, impact->subObjId);
 }
 
-void Retold::ApplyShieldReductionStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData)
+void Retold::ApplyShieldReductionStacks(EqObj* obj, MunitionImpactData* impact, const ExtraMunitionData& munitionData)
 {
     if (munitionData.shieldRechargeReduction <= 0.f)
     {
         return;
     }
 
-    auto& em = ship->cship()->equipManager;
+    auto& em = obj->ceqobj()->equipManager;
     CEquipTraverser traverser{ static_cast<int>(EquipmentClass::ShieldGenerator) };
     CEShieldGenerator* gen;
     float shieldStrength = 1.f;
@@ -623,6 +620,6 @@ void Retold::ApplyShieldReductionStacks(Ship* ship, MunitionImpactData* impact, 
         }
     }
 
-    auto& reductionInfo = shipShieldRechargeDebuffs[ship->get_id()];
+    auto& reductionInfo = shipShieldRechargeDebuffs[obj->get_id()];
     reductionInfo.emplace_back(shieldRechargeReductionDuration, munitionData.shieldRechargeReduction / shieldStrength);
 }

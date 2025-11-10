@@ -9,8 +9,6 @@
 #include <imgui_internal.h>
 #include <ImGui/ImGuiInterface.hpp>
 
-#include "ImGui/Fonts/Keycaps.hpp"
-
 #include <ImGui/Fonts/IconFontAwesome6.hpp>
 
 // ReSharper disable twice CppUseAuto
@@ -92,13 +90,13 @@ void ObjectiveTracking::OnFixedUpdate(const float delta, bool gamePaused)
 
 void ObjectiveTracking::OnGameLoad()
 {
-    auto flufUi = Fluf::GetModule(FlufUi::moduleName);
+    const auto flufUi = Fluf::GetModule(FlufUi::moduleName);
     if (flufUi.expired())
     {
         throw ModuleLoadException("Objective Tracking requires FLUF.UI to be enabled.");
     }
 
-    auto ui = std::static_pointer_cast<FlufUi>(flufUi.lock());
+    const auto ui = std::static_pointer_cast<FlufUi>(flufUi.lock());
     if (!ui || !ui->GetImGuiInterface())
     {
         throw ModuleLoadException("Objective Tracking requires Fluf UI to be in ImGui mode");

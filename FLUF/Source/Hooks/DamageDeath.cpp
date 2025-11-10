@@ -58,6 +58,16 @@ void __fastcall IEngineHook::ShipMunitionHit(Ship* ship, void* edx, MunitionImpa
     Fluf::instance->CallModuleEvent(&FlufModule::BeforeShipMunitionHitAfter, ship, impact, dmgList);
 }
 
+void __fastcall IEngineHook::SolarMunitionHit(Solar* solar, void* edx, MunitionImpactData* impact, DamageList* dmgList)
+{
+    Fluf::instance->CallModuleEvent(&FlufModule::BeforeSolarMunitionHit, solar, impact, dmgList);
+
+    using ISolarMunitionImpactType = void(__thiscall*)(Solar*, MunitionImpactData*, DamageList*);
+    static_cast<ISolarMunitionImpactType>(iSolarVTable.GetOriginal(static_cast<ushort>(ISolarInspectVTable::MunitionImpact)))(solar, impact, dmgList);
+
+    Fluf::instance->CallModuleEvent(&FlufModule::BeforeSolarMunitionHitAfter, solar, impact, dmgList);
+}
+
 void __fastcall IEngineHook::ShipExplosionHit(Ship* ship, void* edx, ExplosionDamageEvent* explosion, DamageList* dmgList)
 {
     Fluf::instance->CallModuleEvent(&FlufModule::BeforeShipExplosionHit, ship, explosion, dmgList);
@@ -147,6 +157,14 @@ void __fastcall IEngineHook::ShipEquipDestroy(Ship* ship, void* edx, CEquip* equ
     static_cast<IShipEquipDestroyType>(iShipVTable.GetOriginal(static_cast<ushort>(IShipInspectVTable::CEquipDeath)))(ship, equip, fate, dmgList);
 }
 
+void __fastcall IEngineHook::SolarEquipDmg(Solar* solar, void* edx, CAttachedEquip* equip, float damage, DamageList* dmgList)
+{
+    Fluf::instance->CallModuleEvent(&FlufModule::BeforeSolarEquipDmg, solar, equip, damage, dmgList);
+
+    using ISolarEquipDmg = void(__thiscall*)(Solar*, CAttachedEquip*, float, DamageList*);
+    static_cast<ISolarEquipDmg>(iSolarVTable.GetOriginal(static_cast<ushort>(ISolarInspectVTable::DamageExtEq)))(solar, equip, damage, dmgList);
+}
+
 void __fastcall IEngineHook::ShipColGrpDmg(Ship* ship, void* edx, CArchGroup* colGrp, float damage, DamageList* dmgList)
 {
     Fluf::instance->CallModuleEvent(&FlufModule::BeforeShipColGrpDmg, ship, colGrp, damage, dmgList);
@@ -165,6 +183,13 @@ void __fastcall IEngineHook::ShipColGrpDestroy(Ship* ship, void* edx, CArchGroup
         ship, colGrp, fate, dmgList, killLinkedElements);
 }
 
+void __fastcall IEngineHook::SolarColGrpDmg(Solar* solar, void* edx, CArchGroup* colGrp, float damage, DamageList* dmg)
+{
+    Fluf::instance->CallModuleEvent(&FlufModule::BeforeSolarColGrpDmg, solar, colGrp, damage, dmg);
+
+    using ISolarColGrpDmg = void(__thiscall*)(Solar*, CArchGroup*, float, DamageList*);
+    static_cast<ISolarColGrpDmg>(iSolarVTable.GetOriginal(static_cast<ushort>(ISolarInspectVTable::DamageColGrp)))(solar, colGrp, damage, dmg);
+}
 
 void __fastcall IEngineHook::ShipUseItem(Ship* ship, void* edx, ushort sId, uint count, uint clientId)
 {
@@ -175,8 +200,7 @@ void __fastcall IEngineHook::ShipUseItem(Ship* ship, void* edx, ushort sId, uint
     }
 
     using IShipUseItemType = void(__thiscall*)(Ship*, ushort, uint, uint);
-    static_cast<IShipUseItemType>(iShipAffectVTable.GetOriginal(static_cast<ushort>(IShipAffectVTable::UseItem)))(
-        ship, sId, count, clientId);
+    static_cast<IShipUseItemType>(iShipAffectVTable.GetOriginal(static_cast<ushort>(IShipAffectVTable::UseItem)))(ship, sId, count, clientId);
 }
 
 void __fastcall IEngineHook::ShipDropAllCargo(Ship* ship, void* edx, const char* hardPoint, DamageList* dmgList)

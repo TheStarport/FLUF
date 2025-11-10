@@ -174,6 +174,8 @@ void Fluf::LoadServerHooks()
 #define VTablePtr(x) static_cast<unsigned short>(x)
     const void* ptr = &IEngineHook::ShipMunitionHit;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::MunitionImpact), &ptr);
+    ptr = &IEngineHook::SolarMunitionHit;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::MunitionImpact), &ptr);
 
     ptr = &IEngineHook::ShipDestroy;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::ObjectDestroyed), &ptr);
@@ -190,9 +192,6 @@ void Fluf::LoadServerHooks()
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageHull), &ptr);
     ptr = &IEngineHook::SolarHullDamage;
     IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::DamageHull), &ptr);
-
-    ptr = &IEngineHook::SolarColGrpDestroy;
-    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::ColGrpDeath), &ptr);
 
     ptr = &IEngineHook::ShipShieldDmg;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageShield), &ptr);
@@ -214,10 +213,18 @@ void Fluf::LoadServerHooks()
     ptr = &IEngineHook::ShipEquipDestroy;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::CEquipDeath), &ptr);
 
+    ptr = &IEngineHook::SolarEquipDmg;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::DamageExtEq), &ptr);
+
     ptr = &IEngineHook::ShipColGrpDmg;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::DamageColGrp), &ptr);
     ptr = &IEngineHook::ShipColGrpDestroy;
     IEngineHook::iShipVTable.Hook(VTablePtr(IShipInspectVTable::ColGrpDeath), &ptr);
+
+    ptr = &IEngineHook::SolarColGrpDmg;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::DamageColGrp), &ptr);
+    ptr = &IEngineHook::SolarColGrpDestroy;
+    IEngineHook::iSolarVTable.Hook(VTablePtr(ISolarInspectVTable::ColGrpDeath), &ptr);
 
     ptr = &IEngineHook::ShipUseItem;
     IEngineHook::iShipAffectVTable.Hook(VTablePtr(IShipAffectVTable::UseItem), &ptr);

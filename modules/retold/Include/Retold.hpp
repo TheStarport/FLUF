@@ -151,19 +151,22 @@ class Retold final : public FlufModule, public ImGuiModule
         static void __thiscall LauncherConsumeFireResourcesDetour(CELauncher* launcher);
         static ContentStory* __thiscall ContentStoryCreateDetour(ContentStory* story, void* contentInstance, DWORD* payload);
         static void __thiscall ShieldSetHealthDetour(CEShield* shield, float hitPts);
-        static void __fastcall ShieldRegenerationPatch(CEShieldGenerator* generator, CEShield* shield, float hitPts);
+        static void __fastcall ShieldRegenerationPatch(const CEShieldGenerator* generator, CEShield* shield, float hitPts);
         static void ShieldRegenerationPatchNaked();
         static bool __thiscall ShieldSetActiveDetour(CEShield* shield, bool active);
 
         // Weapons
 
-        void ApplyShipDotStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
-        void ApplyShipVulnerabilityStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
-        void ApplyShieldReductionStacks(Ship* ship, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
-        void ProcessShipDotStacks(float delta);
-        void ProcessShipHealingStacks(float delta);
+        void ApplyDotStacks(EqObj* obj, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
+        void ApplyVulnerabilityStacks(EqObj* obj, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
+        void ApplyShieldReductionStacks(EqObj* obj, MunitionImpactData* impact, const ExtraMunitionData& munitionData);
+        void ProcessDotStacks(float delta);
+        void ProcessHealingStacks(float delta);
         void RemoveShieldReductionStacks(float delta);
-        void RemoveShipVulnerabilityStacks(float delta);
+        void RemoveVulnerabilityStacks(float delta);
+        void ProcessEqObjectDamage(const EqObj* ship, float& damage);
+        void BeforeComponentDamage(float& damage);
+        void BeforeEqObjectMunitionHit(EqObj* obj, MunitionImpactData* impact);
 
         // Autoturrets
 
@@ -184,11 +187,16 @@ class Retold final : public FlufModule, public ImGuiModule
         bool OnKeyToggleAutoTurrets(KeyState state);
         void BeforeShipDestroy(Ship* ship, DamageList* dmgList, DestroyType destroyType, Id killerId) override;
         void BeforeSolarDestroy(Solar* ship, DestroyType destroyType, Id killerId) override;
+
         void BeforeShipMunitionHit(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
-        void BeforeShipMunitionHitAfter(Ship* ship, MunitionImpactData* impact, DamageList* dmgList) override;
         void BeforeShipEquipDmg(Ship* ship, CAttachedEquip* equip, float& damage, DamageList* dmgList) override;
         void BeforeShipColGrpDmg(Ship*, CArchGroup* colGrp, float& incDmg, DamageList* dmg) override;
         void BeforeShipHullDamage(Ship* ship, float& damage, DamageList* dmgList) override;
+        void BeforeSolarHullDamage(Solar* ship, float& damage, DamageList* dmgList) override;
+        void BeforeSolarMunitionHit(Solar* solar, MunitionImpactData* impact, DamageList* dmgList) override;
+        void BeforeSolarColGrpDmg(Solar* solar, CArchGroup* colGrp, float& damage, DamageList* dmg) override;
+        void BeforeSolarEquipDmg(Solar* solar, CAttachedEquip* equip, float& damage, DamageList* dmgList) override;
+
         bool BeforeShipUseItem(Ship* ship, ushort sId, uint count, ClientId clientId) override;
         bool BeforeBaseEnter(uint baseId, uint client) override;
 
