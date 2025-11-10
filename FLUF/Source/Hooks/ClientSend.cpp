@@ -3,6 +3,7 @@
 #include "Internal/Hooks/ClientSend.hpp"
 
 #include "ClientServerCommunicator.hpp"
+#include "FxManager.hpp"
 #include "Fluf.hpp"
 #include "FlufModule.hpp"
 #include "VTables.hpp"
@@ -244,6 +245,7 @@ void __thiscall ClientSend::BaseEnter(IServerImpl* serverImpl, uint baseId, uint
 {
     Fluf::Log(LogLevel::Trace, __FUNCTION__);
 
+    Fluf::GetFxManager()->CleanAll(false);
     using FuncType = void(__thiscall*)(IServerImpl*, uint, uint);
     if (Fluf::instance->CallModuleEvent(&FlufModule::BeforeBaseEnter, baseId, client))
     {

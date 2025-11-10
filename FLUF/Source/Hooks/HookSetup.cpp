@@ -3,6 +3,7 @@
 
 #include <Fluf.hpp>
 #include <KeyManager.hpp>
+#include <FxManager.hpp>
 #include <Internal/FlufConfiguration.hpp>
 #include <Internal/Hooks/ClientReceive.hpp>
 #include <Utils/MemUtils.hpp>
@@ -363,6 +364,7 @@ void Fluf::SetupHooks()
 #undef NULL_SERVER_PATCH
 
     keyManager = std::make_unique<KeyManager>();
+    fxManager = std::make_unique<FxManager>();
     ClientPatches();
 
     loadResourceDllDetour = std::make_unique<FunctionDetour<LoadResourceDll>>(reinterpret_cast<LoadResourceDll>(0x5B0C30));

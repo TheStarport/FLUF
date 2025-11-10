@@ -37,6 +37,7 @@ struct FlufConfiguration;
 struct CShip;
 struct SStartupInfo;
 class KeyManager;
+class FxManager;
 struct EquipDesc;
 
 namespace Universe
@@ -76,6 +77,7 @@ class Fluf
         std::array<VTablePatch, static_cast<int>(IServerVTable::Count)> serverPatches;
 
         std::unique_ptr<KeyManager> keyManager;
+        std::unique_ptr<FxManager> fxManager;
 
         static void OnUpdateHook(double delta);
         static void* OnScriptLoadHook(const char* file);
@@ -200,6 +202,7 @@ class Fluf
          * @return A ptr to the KeyManager, but only if IsRunningOnClient() return true, else a nullptr
          */
         FLUF_API static KeyManager* GetKeyManager();
+        FLUF_API static FxManager* GetFxManager();
 
         FLUF_API static ClientServerCommunicator* GetClientServerCommunicator();
 };

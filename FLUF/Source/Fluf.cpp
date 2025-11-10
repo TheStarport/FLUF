@@ -10,6 +10,7 @@
 #include "Internal/Hooks/InfocardOverrides.hpp"
 #include "Utils/MemUtils.hpp"
 #include "KeyManager.hpp"
+#include "FxManager.hpp"
 #include "DamageDeath.hpp"
 
 #include <Exceptions.hpp>
@@ -273,6 +274,7 @@ void Fluf::OnUpdateHook(const double delta)
             mod->OnFixedUpdate(SixtyFramesPerSecond, gamePausedFunc());
         }
 
+        GetFxManager()->FixedUpdate(SixtyFramesPerSecond);
         timeCounter -= SixtyFramesPerSecond;
     }
 
@@ -412,6 +414,7 @@ GameObject* Fluf::GetObjInspect(ObjectId id)
 }
 
 KeyManager* Fluf::GetKeyManager() { return instance->keyManager.get(); }
+FxManager* Fluf::GetFxManager() { return instance->fxManager.get(); }
 ClientServerCommunicator* Fluf::GetClientServerCommunicator() { return instance->clientServerCommunicator.get(); }
 
 // Returns the last Win32 error, in string format. Returns an empty string if there is no error.
